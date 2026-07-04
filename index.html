@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BEAM STUDY — 프로젝션 스터디</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0E13; --panel:#12161E; --panel2:#171C26; --line:#232A38;
+  --txt:#E6EBF2; --txt2:#8B95A7; --beam:#FFB84D; --led:#5AD1DE;
+  --ok:#6FD08C; --warn:#E5645A; --sel:#FFB84D;
+  --mono:'JetBrains Mono',monospace; --sans:'Noto Sans KR',-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:13px}
+#app{display:grid;grid-template-rows:44px 1fr;grid-template-columns:250px 1fr 300px;height:100%}
+/* ---------- top bar ---------- */
+#topbar{grid-column:1/4;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+#logo{font-family:var(--mono);font-weight:600;font-size:14px;letter-spacing:.12em;color:var(--beam)}
+#logo span{color:var(--txt2);font-weight:400}
+.modes{display:flex;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px}
+.modes button{background:none;border:none;color:var(--txt2);font-family:var(--sans);font-size:12px;padding:4px 12px;border-radius:4px;cursor:pointer}
+.modes button.on{background:var(--panel2);color:var(--txt)}
+#topbar .spacer{flex:1}
+.tbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--sans)}
+.tbtn:hover{border-color:var(--txt2)}
+.tbtn.primary{background:var(--beam);border-color:var(--beam);color:#1A1408;font-weight:700}
+/* ---------- left panel ---------- */
+#left{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.ptitle{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--txt2);padding:12px 14px 8px}
+#tree{overflow-y:auto;padding:0 8px;flex:0 0 auto;max-height:34%}
+.node{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12.5px}
+.node:hover{background:var(--panel2)}
+.node.sel{background:#2A2213;outline:1px solid var(--beam)}
+.node .dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+.node .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.node input.vis{width:14px;height:14px;accent-color:var(--beam);cursor:pointer;flex:0 0 auto}
+.node .del{color:var(--txt2);background:none;border:none;cursor:pointer;font-size:13px}
+.node .del:hover{color:var(--warn)}
+#lib{flex:1;overflow-y:auto;border-top:1px solid var(--line)}
+.libtabs{display:flex;gap:2px;padding:8px 8px 0}
+.libtabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--txt2);padding:6px 0;font-size:12px;cursor:pointer;font-family:var(--sans)}
+.libtabs button.on{color:var(--txt);border-bottom-color:var(--beam)}
+.libitem{margin:6px 8px;padding:9px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.libitem:hover{border-color:var(--beam)}
+.libitem .t{font-size:12.5px;font-weight:500}
+.libitem .s{font-family:var(--mono);font-size:10.5px;color:var(--txt2);margin-top:2px}
+.libitem.led:hover{border-color:var(--led)}
+/* ---------- viewport ---------- */
+#vp{position:relative;overflow:hidden}
+#vp canvas{display:block}
+#hud{position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:10.5px;color:var(--txt2);line-height:1.7;pointer-events:none;text-shadow:0 1px 2px #000}
+#vpLabels{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.vlab{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10.5px;color:#F2E86D;background:rgba(11,14,19,.78);border:1px solid rgba(242,232,109,.45);border-radius:4px;padding:2px 7px;white-space:nowrap}
+#legend{position:absolute;right:12px;bottom:12px;background:rgba(11,14,19,.85);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:none}
+#legend .bar{width:150px;height:10px;border-radius:5px;background:linear-gradient(90deg,#0C1440,#1460C8,#18B478,#E8D440,#E5645A);margin:6px 0 3px}
+#legend .lb{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--txt2)}
+#legend .tt{font-size:10.5px;color:var(--txt)}
+/* ---------- right panel ---------- */
+#right{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto}
+.sec{padding:10px 14px;border-bottom:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:6px;margin:6px 0;min-width:0}
+.row label{flex:0 0 72px;color:var(--txt2);font-size:11px}
+.row input[type=number],.row input[type=text],.row select{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:5px;padding:5px 6px;font-family:var(--mono);font-size:11px}
+.row input[type=range]{flex:1 1 40px;min-width:36px}
+.row input.num{flex:0 0 68px;text-align:right}
+.row .unit{flex:0 0 auto;font-family:var(--mono);font-size:10px;color:var(--txt2);min-width:18px}
+.row .rv{font-family:var(--mono);font-size:11px;color:var(--txt2);width:38px;text-align:right}
+.row input:focus,.row select:focus{outline:none;border-color:var(--beam)}
+.calc{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:8px}
+.calc .cr{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;margin:3px 0}
+.calc .cr b{color:var(--beam);font-weight:600}
+.calc .cr .v2{color:var(--led)}
+.empty{color:var(--txt2);font-size:12px;padding:18px 14px;line-height:1.7}
+.chk{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--txt2)}
+/* ---------- publish modal ---------- */
+#modal{position:fixed;inset:0;background:rgba(5,7,10,.7);display:none;align-items:center;justify-content:center;z-index:50}
+#modal .box{width:min(680px,92vw);max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+#modal h2{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--beam);margin-bottom:12px}
+#snapimg{width:100%;border-radius:8px;border:1px solid var(--line)}
+#report{font-family:var(--mono);font-size:11px;white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin:12px 0;line-height:1.7;color:var(--txt)}
+.mbtns{display:flex;gap:8px;justify-content:flex-end}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+#vp canvas{touch-action:none}
+#mobilebar{display:none}
+#backdrop{display:none}
+@media(max-width:899px){
+  #app{grid-template-rows:44px 1fr 50px;grid-template-columns:1fr}
+  #topbar{grid-column:1;overflow-x:auto;scrollbar-width:none;gap:8px}
+  #topbar::-webkit-scrollbar{display:none}
+  #topbar>*{flex:0 0 auto}
+  #logo span{display:none}
+  .tbtn,.modes button{white-space:nowrap}
+  #vp{grid-column:1;grid-row:2}
+  #left,#right{
+    position:fixed;top:44px;bottom:50px;width:min(320px,84vw);z-index:30;
+    transition:transform .22s ease;box-shadow:0 0 30px rgba(0,0,0,.5)}
+  #left{left:0;transform:translateX(-102%);border-right:1px solid var(--line)}
+  #right{right:0;transform:translateX(102%);border-left:1px solid var(--line)}
+  #left.open,#right.open{transform:translateX(0)}
+  #backdrop{display:none;position:fixed;top:44px;bottom:50px;left:0;right:0;z-index:25;background:rgba(5,7,10,.35)}
+  #backdrop.on{display:block}
+  #mobilebar{
+    display:flex;grid-column:1;grid-row:3;background:var(--panel);
+    border-top:1px solid var(--line);z-index:35}
+  #mobilebar button{
+    flex:1;background:none;border:none;color:var(--txt2);font-family:var(--sans);
+    font-size:12.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  #mobilebar button.on{color:var(--beam)}
+  #tree{max-height:30%}
+}
+@media(max-width:899px) and (orientation:landscape){
+  #left,#right{width:min(300px,44vw)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="logo">BEAM STUDY<span> / projection study</span></div>
+    <div class="modes" id="viewModes">
+      <button data-m="0" class="on">테스트 그리드</button>
+      <button data-m="2">화이트 라이트</button>
+      <button data-m="1">조도 히트맵</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="tbtn" id="btnLoad">불러오기</button>
+    <button class="tbtn" id="btnSave">저장 (JSON)</button>
+    <button class="tbtn primary" id="btnPublish">Publish</button>
+    <input type="file" id="fileIn" accept=".json" style="display:none">
+  </div>
+
+  <div id="left">
+    <div class="ptitle">SCENE — 씬 트리</div>
+    <div id="tree"></div>
+    <div id="lib">
+      <div class="libtabs">
+        <button class="on" data-t="proj">프로젝터</button>
+        <button data-t="surf">서페이스</button>
+        <button data-t="led">LED</button>
+      </div>
+      <div id="libItems"></div>
+    </div>
+  </div>
+
+  <div id="vp">
+    <div id="hud"></div>
+    <div id="vpLabels"></div>
+    <div id="legend">
+      <div class="tt">조도 (lux)</div>
+      <div class="bar"></div>
+      <div class="lb"><span>0</span><span id="lgMid"></span><span id="lgMax"></span></div>
+    </div>
+  </div>
+
+  <div id="right"><div class="empty">오브젝트를 선택하면 속성이 표시됩니다.<br><br>· 좌드래그 — 궤도 회전<br>· 우드래그 / Shift+드래그 — 팬<br>· 휠 — 줌<br>· 선택 후 드래그 — 바닥 기준 이동</div></div>
+
+  <div id="backdrop"></div>
+  <div id="mobilebar">
+    <button id="mbLeft">☰ 씬 · 라이브러리</button>
+    <button id="mbRight">속성 · 무대 ⚙</button>
+  </div>
+</div>
+
+<div id="modal">
+  <div class="box">
+    <h2>PUBLISH & SHARE — 스냅샷 · 사인오프</h2>
+    <img id="snapimg" alt="snapshot">
+    <div id="report"></div>
+    <div class="mbtns">
+      <button class="tbtn" id="mClose">닫기</button>
+      <button class="tbtn" id="mJson">JSON 다운로드</button>
+      <button class="tbtn primary" id="mPng">PNG 저장</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+        onerror="document.getElementById('vp').innerHTML='<div style=&quot;padding:24px;color:#E5645A;font-size:13px;line-height:1.7&quot;>3D 엔진(three.js)을 불러오지 못했어요.<br>네트워크 연결을 확인한 뒤 새로고침해 주세요.</div>'"></script>
+<script>
+if(typeof THREE === 'undefined'){
+  // 로드 실패 시 아래 앱 코드가 실행되지 않도록 가드
+  document.getElementById('vp').innerHTML = '<div style="padding:24px;color:#E5645A;font-size:13px;line-height:1.7">3D 엔진(three.js)을 불러오지 못했어요.<br>네트워크 연결을 확인한 뒤 새로고침해 주세요.</div>';
+  throw new Error('THREE not loaded');
+}
+</script>
+<script>
+/* =====================================================================
+   BEAM STUDY — 개인용 프로젝션 스터디 툴 (Mapping Matter 스타일)
+   서페이스 배치 · 프로젝터/LED 라이브러리 · 포토메트릭 분석 · Publish
+===================================================================== */
+const MAXP = 8; // 셰이더 동시 계산 프로젝터 수
+
+/* ---------- 렌즈 라이브러리 (브랜드별 대표 교환렌즈, 투사비 기준) ---------- */
+const LENS = {
+  pana: [
+    {name:'ET-D75LE6 · 0.9–1.1',   tr:[0.9,1.1]},
+    {name:'ET-D75LE10 · 1.3–1.7',  tr:[1.3,1.7]},
+    {name:'ET-D75LE20 · 1.7–2.4',  tr:[1.7,2.4]},
+    {name:'ET-D75LE30 · 2.4–4.7',  tr:[2.4,4.7]},
+    {name:'ET-D75LE40 · 4.6–7.4',  tr:[4.6,7.4]},
+  ],
+  barco: [
+    {name:'TLD+ 0.8–1.16',  tr:[0.8,1.16]},
+    {name:'TLD+ 1.25–1.6',  tr:[1.25,1.6]},
+    {name:'TLD+ 1.5–2.0',   tr:[1.5,2.0]},
+    {name:'TLD+ 2.0–2.8',   tr:[2.0,2.8]},
+    {name:'TLD+ 2.8–4.5',   tr:[2.8,4.5]},
+  ],
+  christie: [
+    {name:'1.13–1.66:1', tr:[1.13,1.66]},
+    {name:'1.63–2.71:1', tr:[1.63,2.71]},
+    {name:'2.71–3.89:1', tr:[2.71,3.89]},
+  ],
+  epson: [
+    {name:'ELPLU03S · 0.65–0.78', tr:[0.65,0.78]},
+    {name:'ELPLM15 · 1.44–2.32',  tr:[1.44,2.32]},
+    {name:'ELPLM11 · 2.42–3.71',  tr:[2.42,3.71]},
+    {name:'ELPLL08 · 3.71–5.45',  tr:[3.71,5.45]},
+  ],
+  dp: [
+    {name:'0.84–1.03:1', tr:[0.84,1.03]},
+    {name:'1.54–1.93:1', tr:[1.54,1.93]},
+    {name:'1.93–2.90:1', tr:[1.93,2.9]},
+  ],
+};
+/* ---------- 프로젝터 기종 라이브러리 — 밝기·해상도는 기종 고정값 ---------- */
+const PROJ_LIB = [
+  {name:'Panasonic PT-RQ35K', brand:'Panasonic 3-Chip DLP', lumens:30500, res:[3840,2400], lenses:LENS.pana},
+  {name:'Panasonic PT-RZ21K', brand:'Panasonic 3-Chip DLP', lumens:20000, res:[1920,1200], lenses:LENS.pana},
+  {name:'Barco UDX-4K32',     brand:'Barco',    lumens:31000, res:[3840,2400], lenses:LENS.barco},
+  {name:'Barco F80-4K12',     brand:'Barco',    lumens:12000, res:[3840,2160], lenses:LENS.barco},
+  {name:'Christie Crimson WU25', brand:'Christie', lumens:25000, res:[1920,1200], lenses:LENS.christie},
+  {name:'Epson EB-PU2220B',   brand:'Epson 3LCD', lumens:20000, res:[1920,1200], lenses:LENS.epson},
+  {name:'E-Vision Laser 15000 WU', brand:'Digital Projection', lumens:15000, res:[1920,1200], lenses:LENS.dp},
+  {name:'커스텀 프로젝터', brand:'Custom', lumens:10000, res:[1920,1080],
+   lenses:[{name:'커스텀 렌즈', tr:[0.5,8.0]}], custom:true},
+];
+const RES_PRESETS = [
+  {label:'WUXGA 1920×1200 (16:10)', res:[1920,1200]},
+  {label:'Full HD 1920×1080 (16:9)', res:[1920,1080]},
+  {label:'4K UHD 3840×2160 (16:9)', res:[3840,2160]},
+  {label:'4K+ 3840×2400 (16:10)', res:[3840,2400]},
+];
+/* ---------- 무대·공간 전역 설정 ---------- */
+const AMB_PRESETS = [
+  {label:'암전 (공연·영화)', lux:2},
+  {label:'어두운 조광 (콘서트·이벤트)', lux:30},
+  {label:'일반 실내 (로비·전시)', lux:150},
+  {label:'밝은 실내 (매장·주간)', lux:400},
+];
+const stage = {
+  ambPreset:0, ambPct:100,      // 주변광 = preset.lux × pct%
+  wallGain:1.0, wallMode:'rear',// 기본 벽 광학 (게인·리어 투과)
+  wallW:12, wallH:5.5, wallX:0, wallZ:-6, wallRy:0,
+  stageW:14, stageD:12,
+  floorRefl:14, wallOn:true, floorOn:true,
+  unit:'m',                     // 모델 임포트 단위
+};
+function ambientLux(){ return AMB_PRESETS[stage.ambPreset].lux * stage.ambPct/100; }
+const SURF_LIB = [
+  {name:'평면 벽', kind:'wall',   sub:'W×H 조절'},
+  {name:'커브드 월', kind:'curve', sub:'반지름·각도 조절'},
+  {name:'실린더', kind:'cyl',    sub:'원기둥 (막힌 기둥)'},
+  {name:'박스 / 건물', kind:'box', sub:'W×H×D'},
+  {name:'성당 파사드', kind:'facade', sub:'아치 프리셋'},
+  {name:'3D 모델 가져오기', kind:'model', sub:'.obj — Blender 내보내기'},
+];
+const LED_LIB = [
+  {name:'LED 스크린 P2.6', pitch:2.6, nits:1200},
+  {name:'LED 스크린 P3.9', pitch:3.9, nits:4500},
+  {name:'커스텀 LED', pitch:2.9, nits:1000, custom:true},
+];
+const PCOLORS = [0xFFB84D,0x5AD1DE,0xB48CFF,0x6FD08C,0xFF7A9E,0xF2E86D,0x7FA8FF,0xFF9A5A];
+
+/* ---------- three 기본 ---------- */
+const vpEl = document.getElementById('vp');
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+vpEl.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0B0E13);
+scene.fog = new THREE.Fog(0x0B0E13, 60, 160);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+const dl = new THREE.DirectionalLight(0xffffff, 0.25); dl.position.set(5,10,3); scene.add(dl);
+
+/* ---------- 커스텀 오르빗 컨트롤 ---------- */
+const orbit = {tgt:new THREE.Vector3(0,3,0), r:22, theta:Math.PI*0.25, phi:Math.PI*0.32};
+function applyCam(){
+  const sp = Math.sin(orbit.phi), cp = Math.cos(orbit.phi);
+  camera.position.set(
+    orbit.tgt.x + orbit.r*sp*Math.sin(orbit.theta),
+    orbit.tgt.y + orbit.r*cp,
+    orbit.tgt.z + orbit.r*sp*Math.cos(orbit.theta));
+  camera.lookAt(orbit.tgt);
+}
+applyCam();
+
+/* ---------- 공유 셰이더 유니폼 ---------- */
+const shared = {
+  uNum:{value:0},
+  uVP:{value:Array.from({length:MAXP},()=>new THREE.Matrix4())},
+  uPos:{value:Array.from({length:MAXP},()=>new THREE.Vector3())},
+  uCol:{value:Array.from({length:MAXP},()=>new THREE.Color(1,1,1))},
+  uLum:{value:new Float32Array(MAXP)},
+  uTanH:{value:new Float32Array(MAXP)},
+  uTanV:{value:new Float32Array(MAXP)},
+  uMode:{value:0},          // 0 그리드 / 1 히트맵 / 2 화이트
+  uTargetLux:{value:150},   // 목표 조도
+  uAmbient:{value:2},       // 주변광 lux
+};
+const SURF_VERT = `
+varying vec3 vW; varying vec3 vN;
+void main(){
+  vec4 w = modelMatrix * vec4(position,1.0);
+  vW = w.xyz;
+  vN = normalize(mat3(modelMatrix) * normal);
+  gl_Position = projectionMatrix * viewMatrix * w;
+}`;
+const SURF_FRAG = `
+precision highp float;
+varying vec3 vW; varying vec3 vN;
+uniform int uNum; uniform mat4 uVP[${MAXP}]; uniform vec3 uPos[${MAXP}];
+uniform vec3 uCol[${MAXP}]; uniform float uLum[${MAXP}];
+uniform float uTanH[${MAXP}]; uniform float uTanV[${MAXP}];
+uniform int uMode; uniform float uTargetLux; uniform vec3 uAlbedo; uniform float uAmbient;
+uniform float uGloss; uniform float uRear;
+vec3 ramp(float t){
+  t = clamp(t,0.0,1.0);
+  vec3 c1=vec3(.047,.078,.25), c2=vec3(.078,.376,.784), c3=vec3(.094,.706,.47),
+       c4=vec3(.91,.83,.25), c5=vec3(.898,.392,.353);
+  if(t<.25) return mix(c1,c2,t/.25);
+  if(t<.5)  return mix(c2,c3,(t-.25)/.25);
+  if(t<.75) return mix(c3,c4,(t-.5)/.25);
+  return mix(c4,c5,(t-.75)/.25);
+}
+float gridPat(vec2 uv){
+  vec2 g = abs(fract(uv*8.0)-0.5);
+  float ln = smoothstep(0.46,0.5,max(g.x,g.y));       // 격자선
+  vec2 c = abs(uv-0.5);
+  float border = smoothstep(0.47,0.485,max(c.x,c.y)); // 외곽 테두리
+  float cross = (1.0-smoothstep(0.0,0.012,min(c.x,c.y)))*0.9; // 센터 크로스
+  return clamp(ln*0.85 + border + cross, 0.0, 1.0);
+}
+void main(){
+  vec3 N = normalize(vN);
+  if(!gl_FrontFacing) N = -N;
+  float ambF = clamp(uAmbient/(uTargetLux*2.0), 0.0, 0.85);
+  vec3 base = uAlbedo * (0.10 + 0.08*max(N.y,0.0) + ambF*0.8);
+  float totalE = uAmbient;
+  vec3 beam = vec3(0.0);
+  for(int i=0;i<${MAXP};i++){
+    if(i>=uNum) break;
+    vec4 clip = uVP[i] * vec4(vW,1.0);
+    if(clip.w <= 0.0) continue;
+    vec3 ndc = clip.xyz/clip.w;
+    if(abs(ndc.x)>1.0||abs(ndc.y)>1.0||ndc.z>1.0||ndc.z<-1.0) continue;
+    vec3 toP = uPos[i]-vW;
+    float d = length(toP);
+    float cosT = dot(N, toP/d);
+    float trans = 1.0;
+    if(cosT < 0.0){
+      if(uRear < 0.5) continue;                 // 전면(불투과) 서페이스는 뒷면 빛 차단
+      cosT = -cosT; trans = 0.75;               // 리어 스크린: 투과 (손실 근사)
+    }
+    if(cosT <= 0.001) continue;
+    float area = 4.0*d*d*uTanH[i]*uTanV[i];     // 투사면적 근사
+    float E = uLum[i]/max(area,1e-4) * cosT * trans;    // lux
+    // 프러스텀 가장자리 소프트
+    float edge = (1.0-smoothstep(0.94,1.0,abs(ndc.x)))*(1.0-smoothstep(0.94,1.0,abs(ndc.y)));
+    E *= edge;
+    totalE += E;
+    vec2 uv = ndc.xy*0.5+0.5;
+    // 핫스팟: 전면=반사 방향, 리어=투과 직진광 방향과 시선 일치 지점
+    vec3 Vv = normalize(cameraPosition - vW);
+    vec3 hdir = trans < 1.0 ? normalize(vW - uPos[i]) : reflect(-(toP/d), N);
+    float spot = pow(max(dot(hdir, Vv), 0.0), mix(3.0, 70.0, uGloss));
+    float shade = mix(1.0, 0.18 + 3.2*spot, uGloss);
+    float b = clamp(E*shade/uTargetLux,0.0,1.8);
+    if(uMode==0)      beam += uCol[i]*gridPat(uv)*b;
+    else if(uMode==2) beam += vec3(1.0)*b*0.85;
+  }
+  vec3 col;
+  if(uMode==1){
+    col = ramp(totalE/(uTargetLux*2.0));
+    if(totalE<0.5) col = uAlbedo*0.16;
+  } else {
+    col = base + beam;
+  }
+  gl_FragColor = vec4(col,1.0);
+}`;
+/* 표면 광학: 게인(핫스팟)·리어 투과는 서페이스별 개별 설정 */
+const FLOOR_GLOSS = {value:0.1};   // 바닥 광택 (반사율 기반)
+const WALL_GLOSS = {value:0}, WALL_REAR = {value:1}; // 기본 벽 전용
+function surfGloss(gain){ return THREE.MathUtils.clamp((gain-1)/1.5, 0, 1); }
+function makeSurfMat(albedoHex, glossEntry, rearEntry){
+  return new THREE.ShaderMaterial({
+    vertexShader:SURF_VERT, fragmentShader:SURF_FRAG, side:THREE.DoubleSide,
+    uniforms:Object.assign({uAlbedo:{value:new THREE.Color(albedoHex)},
+                            uGloss:glossEntry||{value:0},
+                            uRear:rearEntry||{value:0}}, shared)
+  });
+}
+
+/* ---------- 시스템 무대: 기본 벽 · 기본 바닥 ---------- */
+let sysWall = new THREE.Mesh(new THREE.PlaneGeometry(1,1), makeSurfMat(0xB9C2D0, WALL_GLOSS, WALL_REAR));
+let sysFloor = new THREE.Mesh(new THREE.PlaneGeometry(1,1), makeSurfMat(0xFFFFFF, FLOOR_GLOSS));
+sysFloor.rotation.x = -Math.PI/2;
+sysWall.userData.sys = 'wall';
+sysFloor.userData.sys = 'floor';
+const SYS_WALL = {sys:'wall', name:'기본 벽'};
+const SYS_FLOOR = {sys:'floor', name:'기본 바닥'};
+scene.add(sysWall, sysFloor);
+let grid = new THREE.GridHelper(80, 80, 0x2B3446, 0x1A2130);
+scene.add(grid);
+function updateStage(){
+  sysWall.visible = stage.wallOn;
+  sysWall.geometry.dispose();
+  sysWall.geometry = new THREE.PlaneGeometry(stage.wallW, stage.wallH);
+  sysWall.position.set(stage.wallX, stage.wallH/2, stage.wallZ);
+  sysWall.rotation.y = THREE.MathUtils.degToRad(stage.wallRy);
+  sysFloor.visible = stage.floorOn;
+  sysFloor.geometry.dispose();
+  sysFloor.geometry = new THREE.PlaneGeometry(stage.stageW, stage.stageD);
+  sysFloor.position.set(0, 0.01, 0);
+  const r = stage.floorRefl/100;
+  sysFloor.material.uniforms.uAlbedo.value.setRGB(r, r, r);
+  scene.remove(grid); grid.geometry.dispose();
+  const gs = Math.ceil(Math.max(stage.stageW, stage.stageD))+4;
+  grid = new THREE.GridHelper(gs, gs, 0x2B3446, 0x1A2130);
+  scene.add(grid);
+  shared.uAmbient.value = ambientLux();
+  WALL_GLOSS.value = surfGloss(stage.wallGain);
+  WALL_REAR.value = stage.wallMode==='rear' ? 1 : 0;
+  FLOOR_GLOSS.value = THREE.MathUtils.clamp(stage.floorRefl/100, 0, 1)*0.9;
+}
+
+/* ---------- 씬 오브젝트 모델 ---------- */
+let objects = [];   // {id,type:'proj'|'surf'|'led', name, mesh, params, visible}
+let seq = 1, selected = null;
+
+function addSurface(kind, name){
+  const screenLike = (kind==='wall'||kind==='curve');
+  const p = {kind, w:10, h:6, d:4, radius:6, angle:120, x:0, y:0, z:0, ry:0,
+             gain:1.0, pmode: screenLike ? 'rear' : 'front'};
+  const glossU = {value:0}, rearU = {value: p.pmode==='rear'?1:0};
+  const mat = makeSurfMat(0xB9C2D0, glossU, rearU);
+  const mesh = new THREE.Mesh(surfGeo(p), mat);
+  mesh.position.set(0, kind==='wall'||kind==='curve'||kind==='facade' ? p.h/2 : (kind==='cyl'? p.h/2 : p.h/2), -6);
+  p.y = mesh.position.y; p.z = -6;
+  const o = {id:seq++, type:'surf', name:name||kind, mesh, params:p, visible:true, glossU, rearU};
+  mesh.userData.oid = o.id;
+  scene.add(mesh); objects.push(o); select(o); refreshTree();
+  return o;
+}
+/* 서페이스별 광학(게인·리어) → 셰이더 반영 */
+function applySurfOptics(o){
+  if(o.type!=='surf' || !o.glossU) return;
+  o.glossU.value = surfGloss(o.params.gain||1);
+  o.rearU.value = o.params.pmode==='rear' ? 1 : 0;
+}
+function surfGeo(p){
+  switch(p.kind){
+    case 'wall':   return new THREE.PlaneGeometry(p.w, p.h);
+    case 'curve': {
+      const th = THREE.MathUtils.degToRad(p.angle);
+      return new THREE.CylinderGeometry(p.radius,p.radius,p.h, 48,1, true, -th/2, th);
+    }
+    case 'cyl':    return new THREE.CylinderGeometry(p.radius,p.radius,p.h, 48,1, false);
+    case 'box':    return new THREE.BoxGeometry(p.w,p.h,p.d);
+    case 'facade': {
+      const w=p.w, h=p.h, s=new THREE.Shape();
+      s.moveTo(-w/2,0); s.lineTo(-w/2,h*0.7); s.lineTo(-w*0.18,h*0.7);
+      s.absarc(0,h*0.7,w*0.18,Math.PI,0,true);
+      s.lineTo(w/2,h*0.7); s.lineTo(w/2,0); s.lineTo(-w/2,0);
+      const g = new THREE.ExtrudeGeometry(s,{depth:0.4,bevelEnabled:false});
+      g.translate(0,0,-0.2); return g;
+    }
+  }
+}
+/* ---------- 3D 모델 임포트 (.obj) ---------- */
+function parseOBJ(text, unitScale){
+  const V=[], N=[], pos=[], nor=[];
+  const lines = text.split('\n');
+  for(let li=0; li<lines.length; li++){
+    const l = lines[li].trim();
+    if(l.startsWith('v ')){
+      const t = l.split(/\s+/); V.push([+t[1],+t[2],+t[3]]);
+    } else if(l.startsWith('vn ')){
+      const t = l.split(/\s+/); N.push([+t[1],+t[2],+t[3]]);
+    } else if(l.startsWith('f ')){
+      const t = l.split(/\s+/).slice(1);
+      const idx = t.map(s=>{
+        const a = s.split('/');
+        const vi = parseInt(a[0]); const ni = a[2]?parseInt(a[2]):0;
+        return [vi>0?vi-1:V.length+vi, ni>0?ni-1:(ni<0?N.length+ni:-1)];
+      });
+      for(let k=1;k<idx.length-1;k++){        // 팬 삼각분할
+        [idx[0],idx[k],idx[k+1]].forEach(([vi,ni])=>{
+          const v = V[vi]; if(!v) return;
+          pos.push(v[0],v[1],v[2]);
+          if(ni>=0 && N[ni]) nor.push(N[ni][0],N[ni][1],N[ni][2]);
+        });
+      }
+    }
+  }
+  if(!pos.length) throw new Error('면(f) 데이터가 없어요');
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+  if(nor.length === pos.length) g.setAttribute('normal', new THREE.Float32BufferAttribute(nor,3));
+  else g.computeVertexNormals();
+  // 단위 적용 (실측 스케일) + 바닥(y=0) 정렬 · XZ 센터링
+  const u = unitScale||1;
+  if(u!==1) g.scale(u,u,u);
+  g.computeBoundingBox();
+  const bb = g.boundingBox;
+  const cx = (bb.min.x+bb.max.x)/2, cz = (bb.min.z+bb.max.z)/2;
+  g.translate(-cx, -bb.min.y, -cz);
+  return g;
+}
+function addModelFromText(name, objText, unit){
+  unit = unit || stage.unit;
+  const uScale = unit==='mm'?0.001 : unit==='cm'?0.01 : 1;
+  let geo;
+  try{ geo = parseOBJ(objText, uScale); }
+  catch(err){ alert('.obj 파싱 실패: '+err.message); return null; }
+  const p = {kind:'model', x:0, y:0, z:-6, ry:0, scale:1, unit, objText, gain:1.0, pmode:'front'};
+  const glossU = {value:0}, rearU = {value:0};
+  const mesh = new THREE.Mesh(geo, makeSurfMat(0xB9C2D0, glossU, rearU));
+  mesh.position.set(p.x,p.y,p.z);
+  const o = {id:seq++, type:'surf', name:name||'3D 모델', mesh, params:p, visible:true, glossU, rearU};
+  mesh.userData.oid = o.id;
+  scene.add(mesh); objects.push(o); select(o); refreshTree();
+  return o;
+}
+const objFileIn = document.createElement('input');
+objFileIn.type='file'; objFileIn.accept='.obj'; objFileIn.style.display='none';
+document.body.appendChild(objFileIn);
+objFileIn.onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  if(f.size > 30*1024*1024){ alert('30MB 이하 .obj만 지원해요 (Blender에서 Decimate 후 내보내기 추천)'); e.target.value=''; return; }
+  const rd = new FileReader();
+  rd.onload = ()=>addModelFromText(f.name.replace(/\.obj$/i,''), rd.result);
+  rd.readAsText(f); e.target.value='';
+};
+
+function effLumens(o){
+  const p = o.params;
+  return p.lumens * (p.output/100) * 0.85; // 라이트 출력 % × 광학 손실 근사
+}
+function addProjector(lib){
+  const lens0 = lib.lenses[0];
+  const p = {model:lib.name, brand:lib.brand, lumens:lib.lumens, resW:lib.res[0], resH:lib.res[1],
+             lensIdx:0, tr:(lens0.tr[0]+lens0.tr[1])/2, output:100,
+             custom:!!lib.custom, x:0, y:2, z:8, yaw:0, pitch:0, on:true};
+  const color = PCOLORS[objects.filter(o=>o.type==='proj').length % PCOLORS.length];
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.28,0.7),
+    new THREE.MeshStandardMaterial({color:0x2A3140, roughness:0.6}));
+  const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.12,16),
+    new THREE.MeshStandardMaterial({color, emissive:color, emissiveIntensity:0.7}));
+  lens.rotation.x = Math.PI/2; lens.position.z = -0.41;
+  g.add(body,lens);
+  const frust = new THREE.LineSegments(new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({color, transparent:true, opacity:0.55}));
+  g.add(frust);
+  g.position.set(p.x,p.y,p.z);
+  const o = {id:seq++, type:'proj', name:lib.name, mesh:g, frust, color, params:p, visible:true,
+             cam:new THREE.PerspectiveCamera(1,1,0.1,200)};
+  body.userData.oid = o.id; lens.userData.oid = o.id; g.userData.oid = o.id;
+  scene.add(g); objects.push(o); select(o); refreshTree();
+  return o;
+}
+function addLED(lib){
+  const p = {name:lib.name, w:6, h:3.5, pitch:lib.pitch, nits:lib.nits, x:0, y:2, z:-6, ry:0};
+  const tex = ledTexture(p);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.w,p.h),
+    new THREE.MeshBasicMaterial({map:tex, side:THREE.DoubleSide}));
+  mesh.position.set(p.x, p.h/2+0.2, p.z); p.y = mesh.position.y;
+  const o = {id:seq++, type:'led', name:lib.name, mesh, params:p, visible:true};
+  mesh.userData.oid = o.id;
+  scene.add(mesh); objects.push(o); select(o); refreshTree();
+  return o;
+}
+function ledTexture(p){
+  const cols = Math.max(2, Math.round(p.w*1000/p.pitch/14)); // 표시용 다운샘플
+  const rows = Math.max(2, Math.round(p.h*1000/p.pitch/14));
+  const c = document.createElement('canvas'); c.width=512; c.height=Math.round(512*p.h/p.w);
+  const x = c.getContext('2d');
+  const gr = x.createLinearGradient(0,0,c.width,c.height);
+  gr.addColorStop(0,'#0FD0E0'); gr.addColorStop(.5,'#3A6BF0'); gr.addColorStop(1,'#B04AE8');
+  x.fillStyle = gr; x.fillRect(0,0,c.width,c.height);
+  x.fillStyle = 'rgba(0,0,0,0.55)';
+  const cw=c.width/cols, ch=c.height/rows;
+  for(let i=0;i<=cols;i++) x.fillRect(i*cw-0.5,0,1,c.height);
+  for(let j=0;j<=rows;j++) x.fillRect(0,j*ch-0.5,c.width,1);
+  const t = new THREE.CanvasTexture(c); t.anisotropy=4; return t;
+}
+function removeObj(o){
+  scene.remove(o.mesh);
+  objects = objects.filter(x=>x!==o);
+  if(selected===o) select(null);
+  refreshTree();
+}
+
+/* ---------- 프로젝터 프러스텀 & 카메라 갱신 ---------- */
+function updateProjector(o){
+  const p = o.params;
+  o.mesh.position.set(p.x,p.y,p.z);
+  o.mesh.rotation.set(THREE.MathUtils.degToRad(p.pitch), THREE.MathUtils.degToRad(p.yaw), 0, 'YXZ');
+  const tanH = 1/(2*p.tr);
+  const tanV = tanH * (p.resH/p.resW);
+  const far = 40;
+  const hf=far*tanH, vf=far*tanV;
+  const pts = [];
+  const corners = [[-hf,vf,-far],[hf,vf,-far],[hf,-vf,-far],[-hf,-vf,-far]];
+  corners.forEach(c=>{pts.push(0,0,0, c[0],c[1],c[2]);});
+  for(let i=0;i<4;i++){const a=corners[i],b=corners[(i+1)%4];pts.push(a[0],a[1],a[2],b[0],b[1],b[2]);}
+  o.frust.geometry.dispose();
+  o.frust.geometry = new THREE.BufferGeometry();
+  o.frust.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts,3));
+  // 셰이더용 가상 카메라
+  o.cam.fov = 2*THREE.MathUtils.radToDeg(Math.atan(tanV));
+  o.cam.aspect = tanH/tanV;
+  o.cam.near = 0.1; o.cam.far = 120;
+  o.cam.position.copy(o.mesh.position);
+  o.cam.rotation.copy(o.mesh.rotation);
+  o.cam.updateProjectionMatrix();
+  o.cam.updateMatrixWorld(true);
+  o._tanH=tanH; o._tanV=tanV;
+}
+function pushUniforms(){
+  const act = objects.filter(o=>o.type==='proj' && o.visible && o.params.on).slice(0,MAXP);
+  shared.uNum.value = act.length;
+  act.forEach((o,i)=>{
+    updateProjector(o);
+    shared.uVP.value[i].multiplyMatrices(o.cam.projectionMatrix, o.cam.matrixWorldInverse);
+    shared.uPos.value[i].copy(o.cam.position);
+    shared.uCol.value[i].setHex(o.color);
+    shared.uLum.value[i] = effLumens(o);
+    shared.uTanH.value[i] = o._tanH;
+    shared.uTanV.value[i] = o._tanV;
+  });
+}
+
+/* ---------- 중심선 레이캐스트 (투사거리·이미지 사이즈) ---------- */
+const ray = new THREE.Raycaster();
+function centerHit(o){
+  updateProjector(o);
+  const dir = new THREE.Vector3(0,0,-1).applyEuler(o.mesh.rotation);
+  ray.set(o.mesh.position, dir);
+  const surfMeshes = objects.filter(x=>x.type==='surf'&&x.visible).map(x=>x.mesh);
+  if(sysWall && sysWall.visible) surfMeshes.push(sysWall);
+  if(sysFloor && sysFloor.visible) surfMeshes.push(sysFloor);
+  const hits = ray.intersectObjects(surfMeshes, false);
+  if(!hits.length) return null;
+  const d = hits[0].distance;
+  const w = d/o.params.tr, h = w*o.params.resH/o.params.resW;
+  const lux = effLumens(o)/(w*h);
+  // 맞은 서페이스의 개별 게인으로 휘도 계산
+  const tgtMesh = hits[0].object;
+  let g = 1.0;
+  if(tgtMesh===sysWall) g = stage.wallGain;
+  else if(tgtMesh!==sysFloor){
+    const oo = objects.find(x=>x.mesh===tgtMesh);
+    if(oo && oo.params.gain) g = oo.params.gain;
+  }
+  const nits = lux * g / Math.PI;               // 휘도
+  const fl = nits / 3.426;                      // foot-lambert
+  const amb = ambientLux();
+  const contrast = amb>0 ? (lux+amb)/amb : Infinity;
+  return {d, w, h, lux, nits, fl, contrast, gain:g, ppm:o.params.resW/w};
+}
+
+/* ---------- UI: 라이브러리 ---------- */
+const libItems = document.getElementById('libItems');
+let libTab = 'proj';
+function renderLib(){
+  libItems.innerHTML='';
+  const list = libTab==='proj'?PROJ_LIB : libTab==='surf'?SURF_LIB : LED_LIB;
+  list.forEach(item=>{
+    const el = document.createElement('div');
+    el.className = 'libitem'+(libTab==='led'?' led':'');
+    el.innerHTML = `<div class="t">${item.name}</div><div class="s">${
+      libTab==='proj' ? `${item.lumens.toLocaleString()} lm · ${item.res[0]}×${item.res[1]} · 렌즈 ${item.lenses.length}종`
+      : libTab==='surf' ? item.sub
+      : `P${item.pitch} · ${item.nits.toLocaleString()} nit`}</div>`;
+    el.onclick = ()=>{
+      if(libTab==='proj') addProjector(item);
+      else if(libTab==='surf'){ item.kind==='model' ? objFileIn.click() : addSurface(item.kind,item.name); }
+      else addLED(item);
+      if(item.kind!=='model') openPropsIfMobile();
+    };
+    libItems.appendChild(el);
+  });
+}
+document.querySelectorAll('.libtabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.libtabs button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); libTab=b.dataset.t; renderLib();
+});
+renderLib();
+
+/* ---------- UI: 씬 트리 ---------- */
+const tree = document.getElementById('tree');
+function refreshTree(){
+  tree.innerHTML='';
+  // 고정 시스템 노드: 기본 벽 · 기본 바닥
+  [[SYS_WALL,'wallOn','#8B95A7'],[SYS_FLOOR,'floorOn','#5E6878']].forEach(([sysObj,key,col])=>{
+    const n = document.createElement('div');
+    n.className = 'node'+(selected===sysObj?' sel':'');
+    n.innerHTML = `<span class="dot" style="background:${col};border-radius:50%"></span>
+      <span class="nm">${sysObj.name}</span>
+      <input type="checkbox" class="vis" ${stage[key]?'checked':''} title="표시">`;
+    n.querySelector('.nm').onclick = ()=>{select(sysObj); openPropsIfMobile();};
+    n.onclick = e=>{ if(e.target===n){select(sysObj); openPropsIfMobile();} };
+    const cb = n.querySelector('.vis');
+    cb.onclick = e=>e.stopPropagation();
+    cb.onchange = ()=>{
+      stage[key]=cb.checked; updateStage(); refreshTree();
+      if(selected===sysObj) renderProps();
+    };
+    tree.appendChild(n);
+  });
+  objects.forEach(o=>{
+    const n = document.createElement('div');
+    n.className = 'node'+(selected===o?' sel':'');
+    const col = o.type==='proj' ? '#'+o.color.toString(16).padStart(6,'0')
+              : o.type==='led' ? 'var(--led)' : '#8B95A7';
+    n.innerHTML = `<span class="dot" style="background:${col}"></span>
+      <span class="nm">${o.name}</span>
+      <input type="checkbox" class="vis" ${o.visible?'checked':''} title="표시">
+      <button class="del">×</button>`;
+    const nm = n.querySelector('.nm');
+    nm.onclick = ()=>{select(o); openPropsIfMobile();};
+    nm.ondblclick = e=>{
+      e.stopPropagation();
+      const inp = document.createElement('input');
+      inp.type='text'; inp.value=o.name;
+      inp.style.cssText='flex:1;min-width:0;background:var(--bg);border:1px solid var(--beam);color:var(--txt);border-radius:4px;padding:2px 6px;font-size:12px;font-family:var(--sans)';
+      nm.replaceWith(inp); inp.focus(); inp.select();
+      const commit = ()=>{ o.name = inp.value.trim() || o.name; refreshTree(); if(selected===o) renderProps(); };
+      inp.onblur = commit;
+      inp.onkeydown = ev=>{ if(ev.key==='Enter') inp.blur(); if(ev.key==='Escape'){ inp.onblur=null; refreshTree(); } };
+      inp.onclick = ev=>ev.stopPropagation();
+    };
+    n.onclick = e=>{ if(e.target===n){select(o); openPropsIfMobile();} };
+    const cb = n.querySelector('.vis');
+    cb.onclick = e=>e.stopPropagation();
+    cb.onchange = ()=>{o.visible=cb.checked; o.mesh.visible=o.visible; refreshTree();};
+    n.querySelector('.del').onclick = e=>{e.stopPropagation(); removeObj(o);};
+    tree.appendChild(n);
+  });
+}
+
+/* ---------- UI: 속성 패널 ---------- */
+const right = document.getElementById('right');
+function select(o){
+  selected = o;
+  objects.forEach(x=>{ if(x.type==='proj') x.frust.material.opacity = (x===o?0.95:0.4); });
+  refreshTree(); renderProps();
+}
+function numRow(label, val, step, cb, min, max, unit, factor){
+  if(min===undefined) min = -30;
+  if(max===undefined) max = 30;
+  factor = factor||1; // 표시값 = 내부값 × factor (mm는 1000)
+  const r = document.createElement('div'); r.className='row';
+  r.innerHTML = `<label>${label}</label>`;
+  const rng = document.createElement('input'); rng.type='range';
+  rng.min=min*factor; rng.max=max*factor; rng.step=(step||0.1)*factor; rng.value=val*factor;
+  const i = document.createElement('input'); i.type='number'; i.className='num';
+  i.value=Math.round(val*factor*100)/100; i.step=(step||0.1)*factor; i.min=min*factor; i.max=max*factor;
+  rng.oninput = ()=>{ const v=parseFloat(rng.value); i.value=v; cb(v/factor); };
+  i.oninput = ()=>{ const v=parseFloat(i.value); if(isNaN(v)) return; rng.value=v; cb(v/factor); };
+  r.appendChild(rng); r.appendChild(i);
+  if(unit){
+    const u = document.createElement('span'); u.className='unit'; u.textContent = unit;
+    r.appendChild(u);
+  }
+  return r;
+}
+const MM = ['mm', 1000]; // 길이 행 공통: mm 표시
+function renderProps(){
+  if(!selected){ renderStage(); return; }
+  if(selected.sys){ renderSysProps(selected.sys); return; }
+  const o = selected, p = o.params;
+  right.innerHTML='';
+  const s1 = document.createElement('div'); s1.className='sec';
+  s1.innerHTML = `<div class="ptitle" style="padding:0 0 6px">${o.type==='proj'?'PROJECTOR':o.type==='led'?'LED SCREEN':'SURFACE'}</div>`;
+  const nr = document.createElement('div'); nr.className='row';
+  nr.innerHTML = `<label>이름</label>`;
+  const ni = document.createElement('input'); ni.type='text'; ni.value=o.name; ni.maxLength=40;
+  ni.onchange = ()=>{ o.name = ni.value.trim() || o.name; ni.value = o.name; refreshTree(); };
+  nr.appendChild(ni); s1.appendChild(nr);
+  right.appendChild(s1);
+
+  const pos = document.createElement('div'); pos.className='sec';
+  pos.appendChild(numRow('X', p.x, 0.1, v=>{p.x=v; sync(o);}, -30, 30, ...MM));
+  pos.appendChild(numRow('Y', p.y, 0.1, v=>{p.y=v; sync(o);}, 0, 20, ...MM));
+  pos.appendChild(numRow('Z', p.z, 0.1, v=>{p.z=v; sync(o);}, -30, 30, ...MM));
+  if(o.type==='proj'){
+    pos.appendChild(numRow('Yaw', p.yaw, 1, v=>{p.yaw=v; sync(o);}, -180, 180, '°'));
+    pos.appendChild(numRow('Pitch', p.pitch, 1, v=>{p.pitch=v; sync(o);}, -90, 90, '°'));
+  } else if(p.ry!==undefined){
+    pos.appendChild(numRow('회전 Y', p.ry, 1, v=>{p.ry=v; sync(o);}, -180, 180, '°'));
+  }
+  right.appendChild(pos);
+
+  if(o.type==='proj'){
+    const s = document.createElement('div'); s.className='sec';
+    // 기종 선택 → 밝기·해상도·렌즈군 자동 결정
+    const mr = document.createElement('div'); mr.className='row';
+    mr.innerHTML = `<label>기종</label>`;
+    const msel = document.createElement('select');
+    PROJ_LIB.forEach((l,i)=>{
+      const op = document.createElement('option'); op.value=i; op.textContent=l.name;
+      if(l.name===p.model) op.selected=true; msel.appendChild(op);
+    });
+    msel.onchange = ()=>{
+      const lib = PROJ_LIB[msel.value];
+      p.model = lib.name; p.brand = lib.brand; p.custom = !!lib.custom;
+      p.lumens = lib.lumens; p.resW = lib.res[0]; p.resH = lib.res[1];
+      p.lensIdx = 0;
+      const lz = lib.lenses[0]; p.tr = (lz.tr[0]+lz.tr[1])/2;
+      o.name = lib.name; sync(o); refreshTree(); renderProps();
+    };
+    mr.appendChild(msel); s.appendChild(mr);
+    const lib = PROJ_LIB.find(l=>l.name===p.model) || PROJ_LIB[PROJ_LIB.length-1];
+    // 렌즈 선택 → 투사비 범위 결정
+    const lr = document.createElement('div'); lr.className='row';
+    lr.innerHTML = `<label>렌즈</label>`;
+    const lsel = document.createElement('select');
+    lib.lenses.forEach((lz,i)=>{
+      const op = document.createElement('option'); op.value=i; op.textContent=lz.name;
+      if(i===p.lensIdx) op.selected=true; lsel.appendChild(op);
+    });
+    lsel.onchange = ()=>{
+      p.lensIdx = +lsel.value;
+      const lz = lib.lenses[p.lensIdx];
+      p.tr = THREE.MathUtils.clamp(p.tr, lz.tr[0], lz.tr[1]);
+      sync(o); renderProps();
+    };
+    lr.appendChild(lsel); s.appendChild(lr);
+    // 줌 — 선택 렌즈 범위 내에서만
+    const lz = lib.lenses[Math.min(p.lensIdx, lib.lenses.length-1)];
+    s.appendChild(numRow('줌 — 투사비', p.tr, 0.01, v=>{
+      p.tr = THREE.MathUtils.clamp(v, lz.tr[0], lz.tr[1]); sync(o);
+    }, lz.tr[0], lz.tr[1]));
+    if(p.custom){
+      // 커스텀만 스펙 직접 입력 가능
+      s.appendChild(numRow('밝기', p.lumens, 500, v=>{p.lumens=v; sync(o);}, 1000, 50000, 'lm'));
+      const rr = document.createElement('div'); rr.className='row';
+      rr.innerHTML = `<label>해상도</label>`;
+      const rsel = document.createElement('select');
+      RES_PRESETS.forEach((rp,i)=>{
+        const op = document.createElement('option'); op.value=i; op.textContent=rp.label;
+        if(rp.res[0]===p.resW && rp.res[1]===p.resH) op.selected=true; rsel.appendChild(op);
+      });
+      rsel.onchange = ()=>{ const rp=RES_PRESETS[rsel.value]; p.resW=rp.res[0]; p.resH=rp.res[1]; sync(o); };
+      rr.appendChild(rsel); s.appendChild(rr);
+    } else {
+      // 기종 고정 스펙 — 표시 전용
+      const spec = document.createElement('div');
+      spec.style.cssText='font-family:var(--mono);font-size:10.5px;color:var(--txt2);margin:8px 0 2px;line-height:1.7';
+      spec.innerHTML = `${p.brand}<br><b style="color:var(--beam)">${p.lumens.toLocaleString()} lm (ANSI)</b> · ${p.resW}×${p.resH}`;
+      s.appendChild(spec);
+    }
+    // 라이트 출력 % (레이저 디밍)
+    s.appendChild(numRow('라이트 출력', p.output, 5, v=>{p.output=THREE.MathUtils.clamp(v,10,100); sync(o);}, 10, 100, '%'));
+    const on = document.createElement('label'); on.className='chk';
+    on.innerHTML = `<input type="checkbox" ${p.on?'checked':''}> 출력 ON`;
+    on.querySelector('input').onchange = e=>{p.on=e.target.checked;};
+    s.appendChild(on);
+    right.appendChild(s);
+    const calc = document.createElement('div'); calc.className='sec';
+    calc.innerHTML = `<div class="calc" id="projCalc"></div>`;
+    right.appendChild(calc);
+  }
+  if(o.type==='surf'){
+    const opt = document.createElement('div'); opt.className='sec';
+    opt.appendChild(selRow('투사 방식', ['전면 (불투과)','리어 겸용 (투과)'], p.pmode==='rear'?1:0,
+      v=>{p.pmode = v===1?'rear':'front'; applySurfOptics(o);}));
+    opt.appendChild(numRow('스크린 게인', p.gain||1, 0.05, v=>{p.gain=THREE.MathUtils.clamp(v,0.3,2.5); applySurfOptics(o); renderProps();}, 0.3, 2.5));
+    const gn = document.createElement('div');
+    gn.style.cssText='font-size:10px;color:var(--txt2);line-height:1.5;margin-top:2px';
+    gn.textContent = '게인 1.2↑ 핫스팟 · 리어 겸용은 뒷면 투사가 앞면에 비쳐요.';
+    opt.appendChild(gn);
+    right.appendChild(opt);
+    const s = document.createElement('div'); s.className='sec';
+    if(p.kind==='model'){
+      s.appendChild(numRow('스케일', p.scale, 0.05, v=>{p.scale=Math.max(0.05,v); sync(o);}, 0.05, 10));
+      const info = document.createElement('div');
+      info.style.cssText='font-size:10.5px;color:var(--txt2);margin-top:6px;font-family:var(--mono)';
+      info.textContent = `삼각형 ${ (o.mesh.geometry.attributes.position.count/3).toLocaleString() }개`;
+      s.appendChild(info);
+    } else if(p.kind==='wall'||p.kind==='box'||p.kind==='facade'){
+      s.appendChild(numRow('폭 W', p.w, 0.5, v=>{p.w=v; rebuild(o);}, 0.5, 30, ...MM));
+      s.appendChild(numRow('높이 H', p.h, 0.5, v=>{p.h=v; rebuild(o);}, 0.5, 30, ...MM));
+      if(p.kind==='box') s.appendChild(numRow('깊이 D', p.d, 0.5, v=>{p.d=v; rebuild(o);}, 0.5, 30, ...MM));
+    } else {
+      s.appendChild(numRow('반지름', p.radius, 0.5, v=>{p.radius=v; rebuild(o);}, 0.5, 20, ...MM));
+      s.appendChild(numRow('높이 H', p.h, 0.5, v=>{p.h=v; rebuild(o);}, 0.5, 30, ...MM));
+      if(p.kind==='curve') s.appendChild(numRow('호 각도', p.angle, 5, v=>{p.angle=v; rebuild(o);},10,360,'°'));
+    }
+    right.appendChild(s);
+  }
+  if(o.type==='led'){
+    const s = document.createElement('div'); s.className='sec';
+    s.appendChild(numRow('폭 W', p.w, 0.5, v=>{p.w=v; rebuildLED(o);}, 0.5, 30, ...MM));
+    s.appendChild(numRow('높이 H', p.h, 0.5, v=>{p.h=v; rebuildLED(o);}, 0.5, 30, ...MM));
+    s.appendChild(numRow('픽셀피치', p.pitch, 0.1, v=>{p.pitch=Math.max(0.5,v); rebuildLED(o);}, 0.5, 10, 'mm'));
+    s.appendChild(numRow('밝기', p.nits, 100, v=>{p.nits=v; renderProps();}, 100, 6000, 'nit'));
+    const resW = Math.round(p.w*1000/p.pitch), resH = Math.round(p.h*1000/p.pitch);
+    const c = document.createElement('div'); c.className='sec';
+    c.innerHTML = `<div class="calc">
+      <div class="cr"><span>해상도</span><b class="v2">${resW} × ${resH} px</b></div>
+      <div class="cr"><span>총 픽셀</span><b class="v2">${(resW*resH/1e6).toFixed(2)} MP</b></div>
+      <div class="cr"><span>픽셀 밀도</span><b class="v2">${Math.round(1000/p.pitch)} px/m</b></div>
+    </div>`;
+    right.appendChild(s); right.appendChild(c);
+  }
+  const g = document.createElement('div'); g.className='sec';
+  g.appendChild(numRow('목표 조도', shared.uTargetLux.value, 10,
+    v=>{shared.uTargetLux.value = Math.max(1,v); updateLegend();}, 10, 600, 'lx'));
+  const note = document.createElement('div');
+  note.style.cssText='font-size:10.5px;color:var(--txt2);margin-top:8px;line-height:1.6';
+  note.textContent = '조도는 lm/투사면적 × 입사각 근사치입니다. 오브젝트 간 그림자(가림)는 계산되지 않아요.';
+  g.appendChild(note);
+  right.appendChild(g);
+}
+/* ---------- 시스템 벽·바닥 속성 패널 ---------- */
+function toggleRow(label, on, cb){
+  const r = document.createElement('div'); r.className='row';
+  r.innerHTML = `<label>${label}</label>`;
+  const b = document.createElement('button'); b.className='tbtn';
+  b.style.cssText = 'flex:1;font-weight:700;' +
+    (on ? 'background:var(--beam);border-color:var(--beam);color:#1A1408'
+        : 'background:var(--bg);color:var(--txt2)');
+  b.textContent = on ? '켜짐 — 끄기' : '꺼짐 — 켜기';
+  b.onclick = ()=>cb(!on);
+  r.appendChild(b); return r;
+}
+function renderSysProps(kind){
+  right.innerHTML='';
+  const isWall = kind==='wall';
+  const h = document.createElement('div'); h.className='sec';
+  h.innerHTML = `<div class="ptitle" style="padding:0 0 6px">SYSTEM — ${isWall?'기본 벽':'기본 바닥'}</div>`;
+  right.appendChild(h);
+
+  const t = document.createElement('div'); t.className='sec';
+  t.appendChild(toggleRow('표시', isWall?stage.wallOn:stage.floorOn, v=>{
+    if(isWall) stage.wallOn=v; else stage.floorOn=v;
+    updateStage(); refreshTree(); renderProps();
+  }));
+  right.appendChild(t);
+
+  const s = document.createElement('div'); s.className='sec';
+  if(isWall){
+    s.appendChild(selRow('투사 방식', ['전면 (불투과)','리어 겸용 (투과)'], stage.wallMode==='rear'?1:0,
+      v=>{stage.wallMode = v===1?'rear':'front'; updateStage();}));
+    s.appendChild(numRow('스크린 게인', stage.wallGain, 0.05, v=>{stage.wallGain=THREE.MathUtils.clamp(v,0.3,2.5); updateStage();}, 0.3, 2.5));
+    s.appendChild(numRow('X', stage.wallX, 0.1, v=>{stage.wallX=v; updateStage();}, -30, 30, ...MM));
+    s.appendChild(numRow('Z', stage.wallZ, 0.1, v=>{stage.wallZ=v; updateStage();}, -30, 30, ...MM));
+    s.appendChild(numRow('회전 Y', stage.wallRy, 1, v=>{stage.wallRy=v; updateStage();}, -180, 180, '°'));
+    s.appendChild(numRow('폭 W', stage.wallW, 0.5, v=>{stage.wallW=v; updateStage();}, 2, 30, ...MM));
+    s.appendChild(numRow('높이 H', stage.wallH, 0.5, v=>{stage.wallH=v; updateStage();}, 1, 20, ...MM));
+  } else {
+    s.appendChild(numRow('무대 폭', stage.stageW, 0.5, v=>{stage.stageW=v; updateStage();}, 4, 40, ...MM));
+    s.appendChild(numRow('무대 깊이', stage.stageD, 0.5, v=>{stage.stageD=v; updateStage();}, 4, 40, ...MM));
+    s.appendChild(numRow('반사율', stage.floorRefl, 1, v=>{stage.floorRefl=THREE.MathUtils.clamp(v,0,100); updateStage();}, 0, 100, '%'));
+  }
+  right.appendChild(s);
+
+  const note = document.createElement('div'); note.className='sec';
+  note.innerHTML = `<div style="font-size:10.5px;color:var(--txt2);line-height:1.6">${
+    isWall ? '벽은 뷰포트에서 선택 후 드래그로도 이동할 수 있어요.'
+           : '바닥 반사율은 바닥에 떨어지는 투사·주변광 밝기에 반영돼요.'}</div>`;
+  right.appendChild(note);
+}
+
+/* ---------- 무대·공간 설정 패널 (선택 없음 상태) ---------- */
+function selRow(label, options, curIdx, cb){
+  const r = document.createElement('div'); r.className='row';
+  r.innerHTML = `<label>${label}</label>`;
+  const sel = document.createElement('select');
+  options.forEach((t,i)=>{
+    const op = document.createElement('option'); op.value=i; op.textContent=t;
+    if(i===curIdx) op.selected=true; sel.appendChild(op);
+  });
+  sel.onchange = ()=>cb(+sel.value);
+  r.appendChild(sel); return r;
+}
+function renderStage(){
+  right.innerHTML='';
+  const h = document.createElement('div'); h.className='sec';
+  h.innerHTML = `<div class="ptitle" style="padding:0 0 6px">STAGE — 무대 · 공간</div>
+    <div style="font-size:11px;color:var(--txt2);line-height:1.6">오브젝트 선택 해제 시 이 패널이 표시돼요.</div>`;
+  right.appendChild(h);
+
+  const a = document.createElement('div'); a.className='sec';
+  a.appendChild(selRow('주변광 환경', AMB_PRESETS.map(x=>`${x.label} · ${x.lux} lx`), stage.ambPreset,
+    v=>{stage.ambPreset=v; updateStage(); renderStage();}));
+  a.appendChild(numRow('주변광', stage.ambPct, 5, v=>{stage.ambPct=THREE.MathUtils.clamp(v,0,100); updateStage();}, 0, 100, '%'));
+  const ambInfo = document.createElement('div');
+  ambInfo.style.cssText='font-family:var(--mono);font-size:10.5px;color:var(--txt2)';
+  ambInfo.textContent = `현재 주변광 ≈ ${ambientLux().toFixed(1)} lux`;
+  a.appendChild(ambInfo);
+  right.appendChild(a);
+
+  const b = document.createElement('div'); b.className='sec';
+  const bNote = document.createElement('div');
+  bNote.style.cssText='font-size:10.5px;color:var(--txt2);line-height:1.6';
+  bNote.textContent = '투사 방식(전면/리어)과 스크린 게인은 이제 벽·서페이스를 선택해서 각각 설정해요. 씬 트리에서 기본 벽이나 오브젝트를 눌러보세요.';
+  b.appendChild(bNote);
+  right.appendChild(b);
+
+  const c = document.createElement('div'); c.className='sec';
+  c.appendChild(numRow('스크린(벽) 폭', stage.wallW, 0.5, v=>{stage.wallW=v; updateStage();}, 2, 30, ...MM));
+  c.appendChild(numRow('스크린(벽) 높이', stage.wallH, 0.5, v=>{stage.wallH=v; updateStage();}, 1, 20, ...MM));
+  c.appendChild(numRow('무대 폭', stage.stageW, 0.5, v=>{stage.stageW=v; updateStage();}, 4, 40, ...MM));
+  c.appendChild(numRow('무대 깊이', stage.stageD, 0.5, v=>{stage.stageD=v; updateStage();}, 4, 40, ...MM));
+  c.appendChild(numRow('바닥 반사율', stage.floorRefl, 1, v=>{stage.floorRefl=THREE.MathUtils.clamp(v,0,100); updateStage();}, 0, 100, '%'));
+  c.appendChild(toggleRow('기본 벽', stage.wallOn, v=>{stage.wallOn=v; updateStage(); refreshTree(); renderStage();}));
+  c.appendChild(toggleRow('기본 바닥', stage.floorOn, v=>{stage.floorOn=v; updateStage(); refreshTree(); renderStage();}));
+  right.appendChild(c);
+
+  const d = document.createElement('div'); d.className='sec';
+  d.innerHTML = `<div class="ptitle" style="padding:0 0 6px">공간(무대) 모델 — OBJ</div>`;
+  const dr = document.createElement('div'); dr.className='row';
+  const btn = document.createElement('button'); btn.className='tbtn'; btn.style.flex='1';
+  btn.textContent = '공간 모델 불러오기…';
+  btn.onclick = ()=>objFileIn.click();
+  const usel = document.createElement('select'); usel.style.flex='0 0 92px';
+  [['m','단위: m'],['cm','단위: cm'],['mm','단위: mm']].forEach(([v,t])=>{
+    const op = document.createElement('option'); op.value=v; op.textContent=t;
+    if(stage.unit===v) op.selected=true; usel.appendChild(op);
+  });
+  usel.onchange = ()=>{stage.unit = usel.value;};
+  dr.appendChild(btn); dr.appendChild(usel);
+  d.appendChild(dr);
+  const note = document.createElement('div');
+  note.style.cssText='font-size:10.5px;color:var(--txt2);margin-top:6px;line-height:1.6';
+  note.textContent = 'Blender 내보내기 단위에 맞춰 선택하면 실측 스케일로 배치돼요.';
+  d.appendChild(note);
+  right.appendChild(d);
+
+  const g = document.createElement('div'); g.className='sec';
+  g.appendChild(numRow('목표 조도', shared.uTargetLux.value, 10,
+    v=>{shared.uTargetLux.value = Math.max(1,v); updateLegend();}, 10, 600, 'lx'));
+  right.appendChild(g);
+}
+
+function sync(o){
+  if(o.type==='proj'){ updateProjector(o); }
+  else { o.mesh.position.set(o.params.x,o.params.y,o.params.z);
+         if(o.params.ry!==undefined) o.mesh.rotation.y = THREE.MathUtils.degToRad(o.params.ry);
+         if(o.params.kind==='model') o.mesh.scale.setScalar(o.params.scale||1);
+         applySurfOptics(o); }
+}
+function rebuild(o){
+  if(o.params.kind==='model'){ sync(o); return; }
+  o.mesh.geometry.dispose();
+  o.mesh.geometry = surfGeo(o.params);
+  sync(o);
+}
+function rebuildLED(o){
+  o.mesh.geometry.dispose();
+  o.mesh.geometry = new THREE.PlaneGeometry(o.params.w,o.params.h);
+  o.mesh.material.map = ledTexture(o.params);
+  o.mesh.material.needsUpdate = true;
+  sync(o); renderProps();
+}
+
+/* ---------- 뷰 모드 ---------- */
+document.querySelectorAll('#viewModes button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#viewModes button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  shared.uMode.value = parseInt(b.dataset.m);
+  document.getElementById('legend').style.display = shared.uMode.value===1?'block':'none';
+  updateLegend();
+});
+function updateLegend(){
+  const t = shared.uTargetLux.value;
+  document.getElementById('lgMid').textContent = t+' lx (목표)';
+  document.getElementById('lgMax').textContent = (t*2)+'+';
+}
+updateLegend();
+
+/* ---------- 이동 기즈모 (X빨강 · Y초록 · Z파랑) ---------- */
+function makeArrow(axis, colorHex){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({color:colorHex, depthTest:false, transparent:true, opacity:0.95});
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,0.78,8), mat);
+  shaft.position.y = 0.39;
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.075,0.24,12), mat);
+  tip.position.y = 0.9;
+  const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,1.15,6),
+    new THREE.MeshBasicMaterial({visible:false}));
+  hit.position.y = 0.575;
+  g.add(shaft, tip, hit);
+  [shaft,tip,hit,g].forEach(m=>m.userData.axis=axis);
+  if(axis==='x') g.rotation.z = -Math.PI/2;
+  if(axis==='z') g.rotation.x =  Math.PI/2;
+  return g;
+}
+const AXIS_DIR = {x:new THREE.Vector3(1,0,0), y:new THREE.Vector3(0,1,0), z:new THREE.Vector3(0,0,1)};
+const AXIS_COL = {x:0xE5645A, y:0x6FD08C, z:0x7FA8FF};
+const gizmo = new THREE.Group();
+['x','y','z'].forEach(a=>gizmo.add(makeArrow(a, AXIS_COL[a])));
+gizmo.visible = false; gizmo.renderOrder = 999;
+scene.add(gizmo);
+/* 레이–축 최근접 파라미터 (축 위 좌표) */
+function axisT(rayO, rayD, lineO, lineD){
+  const n = new THREE.Vector3().crossVectors(rayD, lineD);
+  const n2 = n.lengthSq(); if(n2 < 1e-9) return null;
+  const diff = new THREE.Vector3().subVectors(lineO, rayO); // 부호 수정: 드래그 방향 일치
+  return new THREE.Vector3().crossVectors(diff, rayD).dot(n)/n2;
+}
+function updateGizmo(){
+  const on = selected && objects.includes(selected);
+  gizmo.visible = !!on;
+  rotGizmo.visible = !!on;
+  if(!on) return;
+  gizmo.position.copy(selected.mesh.position);
+  const s = camera.position.distanceTo(gizmo.position)*0.12;
+  gizmo.scale.setScalar(THREE.MathUtils.clamp(s, 0.4, 8));
+  rotGizmo.position.copy(gizmo.position);
+  rotGizmo.scale.copy(gizmo.scale);
+  const p = selected.params;
+  yawRing.visible = (p.yaw!==undefined || p.ry!==undefined);
+  pitchRing.visible = selected.type==='proj';
+  if(pitchRing.visible)
+    pitchRing.rotation.set(0, Math.PI/2 + THREE.MathUtils.degToRad(p.yaw||0), 0);
+}
+
+/* ---------- 회전 기즈모 (요 초록=Y축 · 피치 빨강=로컬 X축) ---------- */
+function makeRing(tag, colorHex){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({color:colorHex, depthTest:false, transparent:true, opacity:0.85, side:THREE.DoubleSide});
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.022, 8, 64), mat);
+  const hit = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.11, 6, 48),
+    new THREE.MeshBasicMaterial({visible:false}));
+  g.add(ring, hit);
+  [ring,hit,g].forEach(m=>m.userData.rot=tag);
+  return g;
+}
+const rotGizmo = new THREE.Group();
+const yawRing = makeRing('yaw', 0x6FD08C);
+yawRing.rotation.x = Math.PI/2;              // XZ 평면에 눕혀 Y축 둘레 링
+const pitchRing = makeRing('pitch', 0xE5645A);
+pitchRing.rotation.y = Math.PI/2;            // X축 둘레 링 (요에 따라 회전)
+rotGizmo.add(yawRing, pitchRing);
+rotGizmo.visible = false; rotGizmo.renderOrder = 999;
+scene.add(rotGizmo);
+const rotPlane = new THREE.Plane();
+function ringHitVec(axis, center){
+  rotPlane.setFromNormalAndCoplanarPoint(axis, center);
+  const q = new THREE.Vector3();
+  if(!ray.ray.intersectPlane(rotPlane, q)) return null;
+  q.sub(center);
+  q.addScaledVector(axis, -q.dot(axis)); // 축 성분 제거
+  if(q.lengthSq() < 1e-8) return null;
+  return q.normalize();
+}
+function wrap180(v){ return ((v+180)%360+360)%360-180; }
+
+/* ---------- 투사 프레임 · 센터 포인트 · 라벨 ---------- */
+const frameGeo = new THREE.BufferGeometry();
+frameGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(12), 3));
+const projFrame = new THREE.LineLoop(frameGeo,
+  new THREE.LineBasicMaterial({color:0xF2E86D, transparent:true, opacity:0.95, depthTest:false}));
+projFrame.renderOrder = 998; projFrame.visible = false; projFrame.frustumCulled = false;
+scene.add(projFrame);
+const dashGeo = new THREE.BufferGeometry();
+dashGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+const centerLine = new THREE.Line(dashGeo,
+  new THREE.LineDashedMaterial({color:0xF2E86D, dashSize:0.28, gapSize:0.18, transparent:true, opacity:0.75, depthTest:false}));
+centerLine.renderOrder = 998; centerLine.visible = false; centerLine.frustumCulled = false;
+scene.add(centerLine);
+/* 센터 마커: 링+점 스프라이트 */
+const centerSprite = (()=>{
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d');
+  x.strokeStyle = '#F2E86D'; x.lineWidth = 4;
+  x.beginPath(); x.arc(32,32,22,0,Math.PI*2); x.stroke();
+  x.fillStyle = '#F2E86D';
+  x.beginPath(); x.arc(32,32,6,0,Math.PI*2); x.fill();
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:new THREE.CanvasTexture(c), depthTest:false, transparent:true}));
+  sp.renderOrder = 999; sp.visible = false;
+  scene.add(sp); return sp;
+})();
+/* 화면 라벨 (mm 크기 · 투사비 · 비율) */
+const vpLabels = document.getElementById('vpLabels');
+const sizeLab = document.createElement('div'); sizeLab.className='vlab';
+const trLab = document.createElement('div'); trLab.className='vlab';
+vpLabels.appendChild(sizeLab); vpLabels.appendChild(trLab);
+function toScreen(v){
+  const p = v.clone().project(camera);
+  return {x:(p.x*0.5+0.5)*renderer.domElement.clientWidth,
+          y:(-p.y*0.5+0.5)*renderer.domElement.clientHeight,
+          vis: p.z > -1 && p.z < 1};
+}
+function aspectStr(w,h){
+  const g = (a,b)=>b?g(b,a%b):a; const d = g(w,h);
+  let a = w/d, b = h/d;
+  if(a===8 && b===5){a=16;b=10;}
+  return (a<=32 && b<=32) ? `${a}:${b}` : (w/h).toFixed(2)+':1';
+}
+function placeLab(el, v, show){
+  if(!show){ el.style.display='none'; return; }
+  const s = toScreen(v);
+  if(!s.vis){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.style.left = s.x+'px'; el.style.top = s.y+'px';
+}
+function updateProjViz(){
+  const on = selected && selected.type==='proj' && selected.params.on;
+  let hit = null;
+  if(on) hit = centerHit(selected);
+  if(!on || !hit){
+    projFrame.visible = centerLine.visible = centerSprite.visible = false;
+    sizeLab.style.display = trLab.style.display = 'none';
+    return;
+  }
+  const o = selected, p = o.params;
+  o.mesh.updateMatrixWorld(true);
+  const m = o.mesh.matrixWorld;
+  const d = hit.d, hw = hit.w/2, hh = hit.h/2;
+  const corners = [[-hw,hh,-d],[hw,hh,-d],[hw,-hh,-d],[-hw,-hh,-d]];
+  const arr = projFrame.geometry.attributes.position.array;
+  corners.forEach((c,i)=>{
+    const v = new THREE.Vector3(c[0],c[1],c[2]).applyMatrix4(m);
+    arr[i*3]=v.x; arr[i*3+1]=v.y; arr[i*3+2]=v.z;
+  });
+  projFrame.geometry.attributes.position.needsUpdate = true;
+  projFrame.visible = true;
+  const lens = o.mesh.position;
+  const cpt = new THREE.Vector3(0,0,-d).applyMatrix4(m);
+  const la = centerLine.geometry.attributes.position.array;
+  la[0]=lens.x; la[1]=lens.y; la[2]=lens.z; la[3]=cpt.x; la[4]=cpt.y; la[5]=cpt.z;
+  centerLine.geometry.attributes.position.needsUpdate = true;
+  centerLine.computeLineDistances();
+  centerLine.visible = true;
+  centerSprite.position.copy(cpt);
+  const ss = THREE.MathUtils.clamp(camera.position.distanceTo(cpt)*0.028, 0.15, 1.6);
+  centerSprite.scale.setScalar(ss);
+  centerSprite.visible = true;
+  // 라벨: 프레임 하단 중앙 = 크기(mm), 프레임 상단 = 투사비·비율
+  const botMid = new THREE.Vector3(0,-hh,-d).applyMatrix4(m);
+  const topMid = new THREE.Vector3(0, hh,-d).applyMatrix4(m);
+  sizeLab.textContent = `${Math.round(hit.w*1000).toLocaleString()} × ${Math.round(hit.h*1000).toLocaleString()} mm`;
+  trLab.textContent = `tr : ${p.tr.toFixed(2)} · ${aspectStr(p.resW,p.resH)} · ${d.toFixed(2)} m`;
+  placeLab(sizeLab, botMid, true);
+  placeLab(trLab, topMid, true);
+}
+
+/* ---------- 모바일 서랍(드로어) ---------- */
+const isMobile = ()=>window.matchMedia('(max-width:899px)').matches;
+const leftEl = document.getElementById('left'), rightEl = document.getElementById('right');
+const backdrop = document.getElementById('backdrop');
+const mbL = document.getElementById('mbLeft'), mbR = document.getElementById('mbRight');
+function setDrawer(side){ // 'left' | 'right' | null
+  leftEl.classList.toggle('open', side==='left');
+  rightEl.classList.toggle('open', side==='right');
+  backdrop.classList.toggle('on', !!side);
+  mbL.classList.toggle('on', side==='left');
+  mbR.classList.toggle('on', side==='right');
+  setTimeout(resize, 240);
+}
+mbL.onclick = ()=>setDrawer(leftEl.classList.contains('open')?null:'left');
+mbR.onclick = ()=>setDrawer(rightEl.classList.contains('open')?null:'right');
+backdrop.onclick = ()=>setDrawer(null);
+function openPropsIfMobile(){ if(isMobile()) setDrawer('right'); }
+
+/* ---------- 마우스 인터랙션 ---------- */
+let dragMode = null, downPos = null, moved = false, pendingHit = null;
+let axisDrag = null, rotDrag = null, lastPropsRefresh = 0;
+const pointers = new Map();
+let pinch = null; // {d0, mid0, r0, tgt0}
+function pinchState(){
+  const pts = [...pointers.values()];
+  const dx = pts[0][0]-pts[1][0], dy = pts[0][1]-pts[1][1];
+  return {d:Math.hypot(dx,dy), mid:[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2]};
+}
+const ndc = new THREE.Vector2();
+const groundPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+function setNDC(e){
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+}
+renderer.domElement.addEventListener('pointerdown', e=>{
+  pointers.set(e.pointerId, [e.clientX, e.clientY]);
+  if(pointers.size===2){
+    const ps = pinchState();
+    pinch = {d0:ps.d, mid0:ps.mid, r0:orbit.r, tgt0:orbit.tgt.clone()};
+    dragMode = 'pinch'; moved = true;
+    renderer.domElement.setPointerCapture(e.pointerId);
+    return;
+  }
+  downPos = [e.clientX,e.clientY]; moved = false;
+  setNDC(e); ray.setFromCamera(ndc, camera);
+  // 기즈모 축 드래그 우선
+  if(gizmo.visible && e.button===0){
+    const gh = ray.intersectObjects(gizmo.children, true).filter(h=>h.object.userData.axis);
+    if(gh.length){
+      const axis = gh[0].object.userData.axis;
+      const dir = AXIS_DIR[axis];
+      const t0 = axisT(ray.ray.origin, ray.ray.direction, gizmo.position, dir);
+      if(t0!==null){
+        axisDrag = {axis, dir, start:selected.mesh.position.clone(), t0};
+        dragMode = 'axis'; moved = true;
+        renderer.domElement.setPointerCapture(e.pointerId);
+        return;
+      }
+    }
+    // 회전 링
+    const rh = ray.intersectObjects(rotGizmo.children, true).filter(h=>h.object.userData.rot && h.object.parent.visible);
+    if(rh.length){
+      const tag = rh[0].object.userData.rot;
+      const p = selected.params;
+      const axis = tag==='yaw' ? new THREE.Vector3(0,1,0)
+        : new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0), THREE.MathUtils.degToRad(p.yaw||0));
+      const center = gizmo.position.clone();
+      const ref = ringHitVec(axis, center);
+      if(ref){
+        const startVal = tag==='yaw' ? (p.yaw!==undefined ? p.yaw : (p.ry||0)) : (p.pitch||0);
+        rotDrag = {tag, axis, center, ref, startVal};
+        dragMode = 'rot'; moved = true;
+        renderer.domElement.setPointerCapture(e.pointerId);
+        return;
+      }
+    }
+  }
+  const hits = ray.intersectObjects(scene.children, true).filter(h=>h.object.userData.oid || h.object.userData.sys);
+  let hitObj = null;
+  if(hits.length){
+    const ud = hits[0].object.userData;
+    hitObj = ud.oid ? objects.find(o=>o.id===ud.oid)
+           : ud.sys==='wall' ? SYS_WALL : SYS_FLOOR;
+  }
+  const movable = hitObj===selected && selected && (selected.params || selected===SYS_WALL);
+  if(e.button===0 && !e.shiftKey && movable){
+    dragMode = 'move';
+  } else if(e.button===2 || e.shiftKey){ dragMode='pan'; }
+  else { dragMode='orbit'; pendingHit = hitObj; }
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointermove', e=>{
+  if(pointers.has(e.pointerId)) pointers.set(e.pointerId, [e.clientX, e.clientY]);
+  if(dragMode==='pinch'){
+    if(pointers.size<2 || !pinch) return;
+    const ps = pinchState();
+    orbit.r = THREE.MathUtils.clamp(pinch.r0 * (pinch.d0/Math.max(ps.d,1)), 2, 120);
+    const sc = orbit.r*0.0016;
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+    orbit.tgt.copy(pinch.tgt0)
+      .addScaledVector(right,-(ps.mid[0]-pinch.mid0[0])*sc)
+      .addScaledVector(up,(ps.mid[1]-pinch.mid0[1])*sc);
+    applyCam();
+    return;
+  }
+  if(!dragMode) return;
+  if(dragMode==='rot' && rotDrag && selected){
+    setNDC(e); ray.setFromCamera(ndc, camera);
+    const cur = ringHitVec(rotDrag.axis, rotDrag.center);
+    if(cur){
+      const crossV = new THREE.Vector3().crossVectors(rotDrag.ref, cur);
+      const deg = THREE.MathUtils.radToDeg(Math.atan2(crossV.dot(rotDrag.axis), rotDrag.ref.dot(cur)));
+      const p = selected.params;
+      const val = Math.round(rotDrag.startVal + deg);
+      if(rotDrag.tag==='yaw'){
+        if(p.yaw!==undefined) p.yaw = wrap180(val); else p.ry = wrap180(val);
+      } else {
+        p.pitch = THREE.MathUtils.clamp(wrap180(val), -90, 90);
+      }
+      sync(selected);
+      const now = performance.now();
+      if(now - lastPropsRefresh > 120){ lastPropsRefresh = now; renderProps(); }
+    }
+    return;
+  }
+  if(dragMode==='axis' && axisDrag && selected){
+    setNDC(e); ray.setFromCamera(ndc, camera);
+    const t = axisT(ray.ray.origin, ray.ray.direction, axisDrag.start, axisDrag.dir);
+    if(t!==null){
+      const np = axisDrag.start.clone().addScaledVector(axisDrag.dir, t - axisDrag.t0);
+      selected.params.x = Math.round(np.x*100)/100;
+      selected.params.y = Math.max(0, Math.round(np.y*100)/100);
+      selected.params.z = Math.round(np.z*100)/100;
+      sync(selected);
+      const now = performance.now();
+      if(now - lastPropsRefresh > 120){ lastPropsRefresh = now; renderProps(); }
+    }
+    return;
+  }
+  const dx = e.clientX-downPos[0], dy = e.clientY-downPos[1];
+  if(Math.abs(dx)+Math.abs(dy)>3) moved = true;
+  if(dragMode==='orbit'){
+    orbit.theta -= dx*0.008; orbit.phi = THREE.MathUtils.clamp(orbit.phi - dy*0.008, 0.05, Math.PI/2-0.02);
+    applyCam();
+  } else if(dragMode==='pan'){
+    const sc = orbit.r*0.0016;
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+    orbit.tgt.addScaledVector(right,-dx*sc).addScaledVector(up,dy*sc);
+    applyCam();
+  } else if(dragMode==='move' && selected){
+    setNDC(e); ray.setFromCamera(ndc, camera);
+    const pt = new THREE.Vector3();
+    if(ray.ray.intersectPlane(groundPlane, pt)){
+      if(selected===SYS_WALL){
+        stage.wallX = Math.round(pt.x*20)/20;
+        stage.wallZ = Math.round(pt.z*20)/20;
+        updateStage(); renderProps();
+      } else if(selected.params){
+        selected.params.x = Math.round(pt.x*20)/20;
+        selected.params.z = Math.round(pt.z*20)/20;
+        sync(selected); renderProps();
+      }
+    }
+  }
+  downPos = [e.clientX,e.clientY];
+});
+renderer.domElement.addEventListener('pointerup', e=>{
+  pointers.delete(e.pointerId);
+  if(dragMode==='axis' || dragMode==='rot'){ dragMode=null; axisDrag=null; rotDrag=null; renderProps(); return; }
+  if(dragMode==='pinch'){
+    if(pointers.size<2){ dragMode = null; pinch = null; }
+    return;
+  }
+  if(dragMode==='orbit' && !moved){
+    select(pendingHit || null);
+  }
+  dragMode = null; pendingHit = null;
+});
+renderer.domElement.addEventListener('pointercancel', e=>{
+  pointers.delete(e.pointerId);
+  dragMode = null; pinch = null; pendingHit = null; axisDrag = null; rotDrag = null;
+});
+renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault();
+  orbit.r = THREE.MathUtils.clamp(orbit.r*(1+Math.sign(e.deltaY)*0.09), 2, 120);
+  applyCam();
+},{passive:false});
+
+/* ---------- 저장 / 불러오기 ---------- */
+function serialize(){
+  return JSON.stringify({
+    app:'BEAM STUDY', v:2, targetLux:shared.uTargetLux.value, stage,
+    objects:objects.map(o=>({type:o.type, name:o.name, params:o.params, visible:o.visible,
+      color:o.type==='proj'?o.color:undefined}))
+  }, null, 2);
+}
+function download(name, blobOrStr, mime){
+  const blob = blobOrStr instanceof Blob ? blobOrStr : new Blob([blobOrStr],{type:mime});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+document.getElementById('btnSave').onclick = ()=>download('beam_study_scene.json', serialize(), 'application/json');
+document.getElementById('btnLoad').onclick = ()=>document.getElementById('fileIn').click();
+document.getElementById('fileIn').onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    try{
+      const data = JSON.parse(rd.result);
+      [...objects].forEach(removeObj);
+      shared.uTargetLux.value = data.targetLux||150;
+      if(data.stage) Object.assign(stage, data.stage);
+      updateStage();
+      data.objects.forEach(so=>{
+        let o;
+        if(so.type==='proj'){
+          const lib = PROJ_LIB.find(l=>l.name===so.params.model) || PROJ_LIB[PROJ_LIB.length-1];
+          o = addProjector(lib);
+          if(so.color){ o.color = so.color; o.frust.material.color.setHex(so.color); }
+        } else if(so.type==='surf'){
+          o = so.params.kind==='model'
+            ? addModelFromText(so.name, so.params.objText||'', so.params.unit)
+            : addSurface(so.params.kind, so.name);
+          if(!o) return;
+        }
+        else { o = addLED({name:so.name, pitch:so.params.pitch, nits:so.params.nits}); }
+        Object.assign(o.params, so.params);
+        if(so.name) o.name = so.name;
+        o.visible = so.visible; o.mesh.visible = so.visible;
+        if(o.type==='surf') rebuild(o); else if(o.type==='led') rebuildLED(o); else sync(o);
+      });
+      select(null); refreshTree(); updateLegend();
+    }catch(err){ alert('JSON을 읽을 수 없어요: '+err.message); }
+  };
+  rd.readAsText(f); e.target.value='';
+};
+
+/* ---------- Publish (스냅샷 + 리포트) ---------- */
+document.getElementById('btnPublish').onclick = ()=>{
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL('image/png');
+  document.getElementById('snapimg').src = url;
+  const lines = [];
+  const now = new Date();
+  lines.push(`BEAM STUDY 리포트 — ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
+  lines.push(`목표 조도: ${shared.uTargetLux.value} lux · 주변광 ${ambientLux().toFixed(1)} lux (${AMB_PRESETS[stage.ambPreset].label})`);
+  lines.push('─'.repeat(46));
+  const projs = objects.filter(o=>o.type==='proj');
+  if(!projs.length) lines.push('프로젝터 없음');
+  projs.forEach((o,i)=>{
+    const p = o.params, hit = centerHit(o);
+    const lib = PROJ_LIB.find(l=>l.name===p.model);
+    const lensName = lib ? lib.lenses[Math.min(p.lensIdx,lib.lenses.length-1)].name : '—';
+    lines.push(`[P${i+1}] ${p.model}  ${p.on?'ON':'OFF'}${p.output<100?` · 출력 ${p.output}%`:''}`);
+    lines.push(`  ${p.lumens.toLocaleString()} lm · ${p.resW}×${p.resH} · 렌즈 ${lensName} · TR ${p.tr.toFixed(2)}`);
+    lines.push(`  위치 (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`);
+    if(hit){
+      const ok = hit.lux >= shared.uTargetLux.value;
+      lines.push(`  투사거리 ${hit.d.toFixed(2)} m → 이미지 ${hit.w.toFixed(2)} × ${hit.h.toFixed(2)} m`);
+      lines.push(`  중심 조도 ${hit.lux.toFixed(0)} lux ${ok?'✓ 목표 충족':'⚠ 목표 미달'} · 휘도 ${hit.nits.toFixed(0)} nit (${hit.fl.toFixed(1)} fL, 게인 ${hit.gain.toFixed(2)}) · 콘트라스트 ${isFinite(hit.contrast)?hit.contrast.toFixed(1)+':1':'∞'} · ${hit.ppm.toFixed(0)} px/m`);
+    } else lines.push(`  ⚠ 중심선이 서페이스에 닿지 않음`);
+    lines.push('');
+  });
+  const leds = objects.filter(o=>o.type==='led');
+  leds.forEach((o,i)=>{
+    const p = o.params;
+    const rw = Math.round(p.w*1000/p.pitch), rh = Math.round(p.h*1000/p.pitch);
+    lines.push(`[LED${i+1}] ${o.name} — ${p.w}×${p.h} m · P${p.pitch} · ${rw}×${rh} px · ${p.nits.toLocaleString()} nit`);
+  });
+  const surfs = objects.filter(o=>o.type==='surf');
+  if(surfs.length) lines.push(`서페이스 ${surfs.length}개: ` + surfs.map(s=>s.name).join(', '));
+  document.getElementById('report').textContent = lines.join('\n');
+  document.getElementById('modal').style.display = 'flex';
+  document.getElementById('mPng').onclick = ()=>{
+    fetch(url).then(r=>r.blob()).then(b=>download('beam_study_snapshot.png', b));
+  };
+};
+document.getElementById('mClose').onclick = ()=>document.getElementById('modal').style.display='none';
+document.getElementById('mJson').onclick = ()=>download('beam_study_scene.json', serialize(), 'application/json');
+
+/* ---------- HUD ---------- */
+const hud = document.getElementById('hud');
+function updateHUD(){
+  let t = `오브젝트 ${objects.length} · 프로젝터 ${objects.filter(o=>o.type==='proj').length}/${MAXP}`;
+  if(selected && selected.type==='proj'){
+    const hit = centerHit(selected);
+    if(hit) t += `\n${selected.name} → ${hit.d.toFixed(1)}m · ${hit.w.toFixed(1)}×${hit.h.toFixed(1)}m · ${hit.lux.toFixed(0)} lux`;
+  }
+  hud.textContent = t;
+  // 우측 패널 계산 카드 갱신
+  const pc = document.getElementById('projCalc');
+  if(pc && selected && selected.type==='proj'){
+    const hit = centerHit(selected);
+    if(hit){
+      const ok = hit.lux >= shared.uTargetLux.value;
+      const cOk = hit.contrast >= 7; // 최소 권장 콘트라스트 근사
+      pc.innerHTML = `
+        <div class="cr"><span>투사 거리</span><b>${hit.d.toFixed(2)} m</b></div>
+        <div class="cr"><span>이미지 크기</span><b>${hit.w.toFixed(2)} × ${hit.h.toFixed(2)} m</b></div>
+        <div class="cr"><span>중심 조도</span><b style="color:${ok?'var(--ok)':'var(--warn)'}">${hit.lux.toFixed(0)} lux</b></div>
+        <div class="cr"><span>휘도</span><b class="v2">${hit.nits.toFixed(0)} nit (${hit.fl.toFixed(1)} fL)</b></div>
+        <div class="cr"><span>콘트라스트</span><b style="color:${cOk?'var(--ok)':'var(--warn)'}">${isFinite(hit.contrast)?hit.contrast.toFixed(1)+':1':'∞'}</b></div>
+        <div class="cr"><span>픽셀 밀도</span><b>${hit.ppm.toFixed(0)} px/m</b></div>`;
+    } else pc.innerHTML = `<div class="cr"><span>중심선</span><b style="color:var(--warn)">서페이스 미도달</b></div>`;
+  }
+}
+
+/* ---------- 리사이즈 & 루프 ---------- */
+function resize(){
+  const w = vpEl.clientWidth, h = vpEl.clientHeight;
+  if(w<2 || h<2){ setTimeout(resize, 200); return; } // 회전 직후 0-사이즈 방지
+  renderer.setSize(w,h); camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=>{ setTimeout(resize,150); setTimeout(resize,500); });
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) setTimeout(resize,100); });
+resize();
+let frame = 0;
+function loop(){
+  requestAnimationFrame(loop);
+  pushUniforms();
+  updateGizmo();
+  updateProjViz();
+  if(frame++ % 12 === 0) updateHUD();
+  renderer.render(scene, camera);
+}
+loop();
+
+/* ---------- 시작 씬 ---------- */
+updateStage();
+const p1 = addProjector(PROJ_LIB[0]); p1.params.z = 12; p1.params.y = 1.8;
+select(null);
+</script>
+</body>
+</html>
