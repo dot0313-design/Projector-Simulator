@@ -266,6 +266,8 @@ const SURF_LIB = [
   {name:'실린더', kind:'cyl',    sub:'원기둥 (막힌 기둥)'},
   {name:'박스 / 건물', kind:'box', sub:'W×H×D'},
   {name:'성당 파사드', kind:'facade', sub:'아치 프리셋'},
+  {name:'남성 스케일 피규어', kind:'man',   sub:'키 175cm · 실측 고정'},
+  {name:'여성 스케일 피규어', kind:'woman', sub:'키 160cm · 실측 고정'},
   {name:'3D 모델 가져오기', kind:'model', sub:'.obj — Blender 내보내기'},
 ];
 const LED_LIB = [
@@ -450,7 +452,7 @@ function addSurface(kind, name){
   const glossU = {value:0}, rearU = {value: p.pmode==='rear'?1:0};
   const mat = makeSurfMat(0xB9C2D0, glossU, rearU);
   const mesh = new THREE.Mesh(surfGeo(p), mat);
-  mesh.position.set(0, kind==='wall'||kind==='curve'||kind==='facade' ? p.h/2 : (kind==='cyl'? p.h/2 : p.h/2), -6);
+  mesh.position.set(0, (kind==='man'||kind==='woman') ? 0 : p.h/2, -6);
   p.y = mesh.position.y; p.z = -6;
   const o = {id:seq++, type:'surf', name:name||kind, mesh, params:p, visible:true, glossU, rearU};
   mesh.userData.oid = o.id;
@@ -463,6 +465,44 @@ function applySurfOptics(o){
   o.glossU.value = surfGloss(o.params.gain||1);
   o.rearU.value = o.params.pmode==='rear' ? 1 : 0;
 }
+/* 프리미티브 병합 (r128에는 mergeBufferGeometries가 없어 직접 병합) */
+function mergeGeos(parts){
+  const pos=[], nor=[];
+  const m4 = new THREE.Matrix4();
+  parts.forEach(pt=>{
+    const g = pt.geo.toNonIndexed();
+    m4.makeRotationFromEuler(new THREE.Euler(pt.rx||0, pt.ry||0, pt.rz||0));
+    m4.setPosition(pt.x||0, pt.y||0, pt.z||0);
+    g.applyMatrix4(m4);
+    const pa = g.attributes.position.array, na = g.attributes.normal.array;
+    for(let i=0;i<pa.length;i++){ pos.push(pa[i]); nor.push(na[i]); }
+    g.dispose(); pt.geo.dispose();
+  });
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(nor,3));
+  return out;
+}
+/* 스케일 피규어 마네킹 — height(m), 어깨/골반 비율 */
+function humanGeo(height, shoulder, hip){
+  shoulder = shoulder||1; hip = hip||1;
+  const u = height/1.75;
+  const cyl = (rt,rb,h)=>new THREE.CylinderGeometry(rt,rb,h,10,1);
+  const sph = r=>new THREE.SphereGeometry(r,10,8);
+  const box = (w,h,d)=>new THREE.BoxGeometry(w,h,d);
+  return mergeGeos([
+    {geo:sph(0.11*u),                              y:1.64*u},                    // 머리
+    {geo:cyl(0.045*u,0.05*u,0.08*u),               y:1.51*u},                    // 목
+    {geo:cyl(0.155*u*shoulder,0.115*u,0.52*u),     y:1.21*u},                    // 몸통
+    {geo:cyl(0.115*u,0.135*u*hip,0.15*u),          y:0.885*u},                   // 골반
+    {geo:cyl(0.07*u,0.05*u,0.78*u),  x: 0.085*u*hip, y:0.42*u},                  // 다리 R
+    {geo:cyl(0.07*u,0.05*u,0.78*u),  x:-0.085*u*hip, y:0.42*u},                  // 다리 L
+    {geo:cyl(0.05*u,0.038*u,0.58*u), x: 0.215*u*shoulder, y:1.17*u, rz:-0.06},   // 팔 R
+    {geo:cyl(0.05*u,0.038*u,0.58*u), x:-0.215*u*shoulder, y:1.17*u, rz: 0.06},   // 팔 L
+    {geo:box(0.085*u,0.05*u,0.21*u), x: 0.085*u*hip, y:0.025*u, z:0.045*u},      // 발 R
+    {geo:box(0.085*u,0.05*u,0.21*u), x:-0.085*u*hip, y:0.025*u, z:0.045*u},      // 발 L
+  ]);
+}
 function surfGeo(p){
   switch(p.kind){
     case 'wall':   return new THREE.PlaneGeometry(p.w, p.h);
@@ -471,6 +511,8 @@ function surfGeo(p){
       return new THREE.CylinderGeometry(p.radius,p.radius,p.h, 48,1, true, -th/2, th);
     }
     case 'cyl':    return new THREE.CylinderGeometry(p.radius,p.radius,p.h, 48,1, false);
+    case 'man':    return humanGeo(1.75, 1.0, 1.0);
+    case 'woman':  return humanGeo(1.60, 0.9, 1.08);
     case 'box':    return new THREE.BoxGeometry(p.w,p.h,p.d);
     case 'facade': {
       const w=p.w, h=p.h, s=new THREE.Shape();
@@ -900,6 +942,11 @@ function renderProps(){
       s.appendChild(numRow('폭 W', p.w, 0.5, v=>{p.w=v; rebuild(o);}, 0.5, 30, ...MM));
       s.appendChild(numRow('높이 H', p.h, 0.5, v=>{p.h=v; rebuild(o);}, 0.5, 30, ...MM));
       if(p.kind==='box') s.appendChild(numRow('깊이 D', p.d, 0.5, v=>{p.d=v; rebuild(o);}, 0.5, 30, ...MM));
+    } else if(p.kind==='man'||p.kind==='woman'){
+      const info = document.createElement('div');
+      info.style.cssText='font-size:10.5px;color:var(--txt2);line-height:1.6';
+      info.textContent = (p.kind==='man'?'키 175cm':'키 160cm') + ' 고정 스케일 피규어 — 투사 크기 감 잡는 기준용이에요.';
+      s.appendChild(info);
     } else {
       s.appendChild(numRow('반지름', p.radius, 0.5, v=>{p.radius=v; rebuild(o);}, 0.5, 20, ...MM));
       s.appendChild(numRow('높이 H', p.h, 0.5, v=>{p.h=v; rebuild(o);}, 0.5, 30, ...MM));
