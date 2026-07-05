@@ -320,6 +320,36 @@ function applyCam(){
 applyCam();
 
 /* ---------- 공유 셰이더 유니폼 ---------- */
+/* ---------- 콘텐츠 아틀라스: 프로젝터별 이미지/영상 (4×2 타일, 각 1024²) ----------
+   flipY=true 기준 검산 완료: 타일 row r → v 오프셋 (1-r)*0.5 (베이크·샘플 일치) */
+const atlasCanvas = document.createElement('canvas');
+atlasCanvas.width = 4096; atlasCanvas.height = 2048;
+const atlasCtx = atlasCanvas.getContext('2d');
+atlasCtx.fillStyle = '#000'; atlasCtx.fillRect(0,0,4096,2048);
+const atlasTex = new THREE.CanvasTexture(atlasCanvas);
+atlasTex.flipY = true;
+atlasTex.generateMipmaps = false;
+atlasTex.minFilter = THREE.LinearFilter;
+atlasTex.magFilter = THREE.LinearFilter;
+atlasTex.wrapS = atlasTex.wrapT = THREE.ClampToEdgeWrapping;
+const tileOwner = new Array(MAXP).fill(null);   // 타일 i에 그려진 콘텐츠 키
+function drawContentTile(i, src, frameAR){
+  const sw = src.videoWidth||src.naturalWidth||0;
+  const sh = src.videoHeight||src.naturalHeight||0;
+  if(!sw || !sh) return false;
+  const rx=(i%4)*1024, ry=Math.floor(i/4)*1024;
+  atlasCtx.save();
+  atlasCtx.beginPath(); atlasCtx.rect(rx,ry,1024,1024); atlasCtx.clip();
+  atlasCtx.fillStyle='#000'; atlasCtx.fillRect(rx,ry,1024,1024);
+  const srcAR = sw/sh;
+  let dw=1024, dh=1024;                          // 타일 = 프로젝터 프레임 전체
+  if(srcAR > frameAR) dh = 1024*(frameAR/srcAR); // 레터박스
+  else dw = 1024*(srcAR/frameAR);
+  atlasCtx.drawImage(src, rx+(1024-dw)/2, ry+(1024-dh)/2, dw, dh);
+  atlasCtx.restore();
+  atlasTex.needsUpdate = true;
+  return true;
+}
 const shared = {
   uNum:{value:0},
   uVP:{value:Array.from({length:MAXP},()=>new THREE.Matrix4())},
@@ -333,6 +363,8 @@ const shared = {
   uAmbient:{value:2},       // 주변광 lux
   uShadowOn:{value:1},      // 그림자 전역 토글
   uBlendView:{value:0},     // 오버랩(블렌드) 하이라이트
+  uAtlas:{value:atlasTex},  // 콘텐츠 아틀라스
+  uHasC:{value:new Float32Array(MAXP)},
 };
 /* ---------- 그림자: 프로젝터별 깊이 맵을 4×2 타일 아틀라스 RT에 렌더 ---------- */
 const shadowRT = new THREE.WebGLRenderTarget(2048, 1024, {
@@ -380,6 +412,7 @@ uniform float uTanH[${MAXP}]; uniform float uTanV[${MAXP}];
 uniform int uMode; uniform float uTargetLux; uniform vec3 uAlbedo; uniform float uAmbient;
 uniform float uGloss; uniform float uRear;
 uniform sampler2D uShadow; uniform float uShadowOn; uniform float uBlendView;
+uniform sampler2D uAtlas; uniform float uHasC[${MAXP}];
 const float UnpackDownscale = 255. / 256.;
 const vec3 PackFactors3 = vec3(256.*256.*256., 256.*256., 256.);
 const vec4 UnpackFactors4 = UnpackDownscale / vec4(PackFactors3, 1.);
@@ -448,7 +481,15 @@ void main(){
     float spot = pow(max(dot(hdir, Vv), 0.0), mix(3.0, 70.0, uGloss));
     float shade = mix(1.0, 0.18 + 3.2*spot, uGloss);
     float b = clamp(E*shade/uTargetLux,0.0,1.8);
-    if(uMode==0)      beam += uCol[i]*gridPat(uv)*b;
+    if(uMode==0){
+      if(uHasC[i] > 0.5){
+        float fi = float(i);
+        vec2 cOff = vec2(mod(fi,4.0)*0.25, (1.0-floor(fi/4.0))*0.5); // flipY 검산 완료
+        beam += texture2D(uAtlas, cOff + uv*vec2(0.25,0.5)).rgb * b;
+      } else {
+        beam += uCol[i]*gridPat(uv)*b;
+      }
+    }
     else if(uMode==2) beam += vec3(1.0)*b*0.85;
   }
   vec3 col;
@@ -700,19 +741,36 @@ function addLED(lib){
   scene.add(mesh); objects.push(o); select(o); refreshTree();
   return o;
 }
-function ledTexture(p){
+function ledTexture(p, src){
   const cols = Math.max(2, Math.round(p.w*1000/p.pitch/14)); // 표시용 다운샘플
   const rows = Math.max(2, Math.round(p.h*1000/p.pitch/14));
-  const c = document.createElement('canvas'); c.width=512; c.height=Math.round(512*p.h/p.w);
+  const c = document.createElement('canvas'); c.width=512; c.height=Math.max(8, Math.round(512*p.h/p.w));
   const x = c.getContext('2d');
-  const gr = x.createLinearGradient(0,0,c.width,c.height);
-  gr.addColorStop(0,'#0FD0E0'); gr.addColorStop(.5,'#3A6BF0'); gr.addColorStop(1,'#B04AE8');
-  x.fillStyle = gr; x.fillRect(0,0,c.width,c.height);
-  x.fillStyle = 'rgba(0,0,0,0.55)';
-  const cw=c.width/cols, ch=c.height/rows;
-  for(let i=0;i<=cols;i++) x.fillRect(i*cw-0.5,0,1,c.height);
-  for(let j=0;j<=rows;j++) x.fillRect(0,j*ch-0.5,c.width,1);
-  const t = new THREE.CanvasTexture(c); t.anisotropy=4; return t;
+  function draw(){
+    const el = src && src.ready ? src.el : null;
+    const sw = el ? (el.videoWidth||el.naturalWidth||0) : 0;
+    const sh = el ? (el.videoHeight||el.naturalHeight||0) : 0;
+    if(el && sw && sh){
+      // cover 방식
+      const sAR = sw/sh, dAR = c.width/c.height;
+      let cw=sw, ch=sh, sx=0, sy=0;
+      if(sAR > dAR){ cw = sh*dAR; sx = (sw-cw)/2; }
+      else { ch = cw/dAR; sy = (sh-ch)/2; }
+      x.drawImage(el, sx, sy, cw, ch, 0, 0, c.width, c.height);
+    } else {
+      const gr = x.createLinearGradient(0,0,c.width,c.height);
+      gr.addColorStop(0,'#0FD0E0'); gr.addColorStop(.5,'#3A6BF0'); gr.addColorStop(1,'#B04AE8');
+      x.fillStyle = gr; x.fillRect(0,0,c.width,c.height);
+    }
+    x.fillStyle = 'rgba(0,0,0,0.55)';
+    const cw2=c.width/cols, ch2=c.height/rows;
+    for(let i=0;i<=cols;i++) x.fillRect(i*cw2-0.5,0,1,c.height);
+    for(let j=0;j<=rows;j++) x.fillRect(0,j*ch2-0.5,c.width,1);
+  }
+  draw();
+  const t = new THREE.CanvasTexture(c); t.anisotropy=4;
+  t.userData = {redraw:()=>{ draw(); t.needsUpdate = true; }};
+  return t;
 }
 /* ---------- 오브젝트 복제 ---------- */
 function duplicateObj(o){
@@ -739,7 +797,68 @@ function duplicateObj(o){
   return d;
 }
 
+/* ---------- 콘텐츠 (이미지·영상) 로드 공통 ----------
+   blob: URL은 임베드 환경 CSP에서 차단될 수 있어 data URL(FileReader) 사용.
+   alert도 샌드박스에서 삼켜질 수 있어 페이지 내 토스트로 표시. */
+let contentVer = 0;
+const toastEl = document.createElement('div');
+toastEl.style.cssText = 'position:absolute;left:50%;bottom:64px;transform:translateX(-50%);'+
+  'background:rgba(20,24,32,.95);border:1px solid var(--warn);color:var(--txt);'+
+  'padding:8px 14px;border-radius:8px;font-size:12px;z-index:40;display:none;max-width:80%;text-align:center';
+vpEl.appendChild(toastEl);
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg; toastEl.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ toastEl.style.display = 'none'; }, 4500);
+}
+function loadMedia(file, onReady){
+  const isVideo = file.type.startsWith('video');
+  if(isVideo && file.size > 120*1024*1024){
+    toast('영상이 너무 커요 (120MB 초과). 프리뷰용으로 줄여서 올려주세요.');
+    return null;
+  }
+  const c = {type:isVideo?'video':'img', el:null, name:file.name, ready:false, ver:++contentVer};
+  const rd = new FileReader();
+  rd.onerror = ()=>toast('파일을 읽을 수 없어요: ' + file.name);
+  rd.onload = ()=>{
+    const dataURL = rd.result;
+    if(isVideo){
+      const v = document.createElement('video');
+      v.loop = true; v.muted = true; v.playsInline = true;
+      v.onloadeddata = ()=>{ c.el = v; c.ready = true; v.play().catch(()=>{}); onReady(c); };
+      v.onerror = ()=>toast('영상 코덱을 재생할 수 없어요. mp4(H.264) 또는 webm을 권장해요.');
+      v.src = dataURL;
+    } else {
+      const img = new Image();
+      img.onload = ()=>{ c.el = img; c.ready = true; onReady(c); };
+      img.onerror = ()=>toast('이미지를 읽을 수 없어요. JPG/PNG 권장 (아이폰 HEIC 미지원 — JPG로 변환해 주세요).');
+      img.src = dataURL;
+    }
+  };
+  rd.readAsDataURL(file);
+  return c;
+}
+function stopMedia(c){
+  if(c && c.type==='video' && c.el){ c.el.pause(); c.el.removeAttribute('src'); c.el.load(); }
+}
+function setProjContent(o, file){
+  stopMedia(o.content);
+  o.content = loadMedia(file, ()=>renderProps());
+}
+function clearProjContent(o){
+  stopMedia(o.content); o.content = null;
+}
+function setLEDContent(o, file){
+  stopMedia(o.ledSrc);
+  o.ledSrc = loadMedia(file, ()=>{ rebuildLED(o); renderProps(); });
+}
+function clearLEDContent(o){
+  stopMedia(o.ledSrc); o.ledSrc = null;
+}
+
 function removeObj(o){
+  clearProjContent(o); clearLEDContent(o);
   scene.remove(o.mesh);
   objects = objects.filter(x=>x!==o);
   if(selected===o) select(null);
@@ -788,6 +907,22 @@ function pushUniforms(){
     shared.uLum.value[i] = effLumens(o);
     shared.uTanH.value[i] = o._tanH;
     shared.uTanV.value[i] = o._tanV;
+    // 콘텐츠: 활성 인덱스 i의 타일에 그리기 (변경 시 / 영상 재생 중)
+    const c = o.content;
+    if(c && c.ready){
+      const key = o.id + ':' + c.ver;
+      const ar = o.params.resW / o.params.resH;
+      if(c.type === 'video'){
+        if(tileOwner[i] !== key || !c.el.paused){
+          if(drawContentTile(i, c.el, ar)) tileOwner[i] = key;
+        }
+      } else if(tileOwner[i] !== key){
+        if(drawContentTile(i, c.el, ar)) tileOwner[i] = key;
+      }
+      shared.uHasC.value[i] = tileOwner[i] === key ? 1 : 0;
+    } else {
+      shared.uHasC.value[i] = 0;
+    }
   });
   // 그림자 베이크: 씬 변화 또는 활성 프로젝터 구성 변경 시에만
   if(shared.uShadowOn.value > 0.5){
@@ -944,6 +1079,49 @@ function numRow(label, val, step, cb, min, max, unit, factor){
   return r;
 }
 const MM = ['mm', 1000]; // 길이 행 공통: mm 표시
+/* 콘텐츠 업로드 섹션 (프로젝터·LED 공용) */
+function contentSection(o, getC, setFn, clearFn, note){
+  const cs = document.createElement('div'); cs.className='sec';
+  cs.innerHTML = `<div class="ptitle" style="padding:0 0 6px">CONTENT — 콘텐츠</div>`;
+  const row = document.createElement('div'); row.className='row';
+  const up = document.createElement('button'); up.className='tbtn'; up.style.flex='1';
+  up.textContent = getC() ? '콘텐츠 교체…' : '이미지·영상 업로드…';
+  const fin = document.createElement('input'); fin.type='file';
+  fin.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime';
+  fin.style.display='none';
+  up.onclick = ()=>fin.click();
+  fin.onchange = e=>{ const f=e.target.files[0]; if(f) setFn(f); e.target.value=''; };
+  row.appendChild(up); row.appendChild(fin); cs.appendChild(row);
+  const c = getC();
+  if(c){
+    const info = document.createElement('div');
+    info.style.cssText='font-family:var(--mono);font-size:10px;color:var(--txt2);margin:4px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    info.textContent = (c.type==='video'?'▶ ':'🖼 ') + c.name;
+    cs.appendChild(info);
+    const st = document.createElement('div');
+    st.style.cssText='font-size:10px;margin:2px 0 4px;color:'+(c.ready?'var(--ok)':'var(--beam)');
+    st.textContent = c.ready ? '✓ 적용됨 — 테스트 그리드 모드에서 확인' : '⏳ 로딩 중…';
+    cs.appendChild(st);
+    const btns = document.createElement('div'); btns.style.cssText='display:flex;gap:6px';
+    if(c.type==='video' && c.ready){
+      const pb = document.createElement('button'); pb.className='tbtn'; pb.style.flex='1';
+      pb.textContent = c.el.paused ? '▶ 재생' : '⏸ 일시정지';
+      pb.onclick = ()=>{ c.el.paused ? c.el.play().catch(()=>{}) : c.el.pause(); renderProps(); };
+      btns.appendChild(pb);
+    }
+    const rm = document.createElement('button'); rm.className='tbtn'; rm.style.flex='1';
+    rm.textContent = '초기화';
+    rm.onclick = ()=>{ clearFn(); renderProps(); };
+    btns.appendChild(rm);
+    cs.appendChild(btns);
+  }
+  const nn = document.createElement('div');
+  nn.style.cssText='font-size:10px;color:var(--txt2);margin-top:6px;line-height:1.5';
+  nn.textContent = note;
+  cs.appendChild(nn);
+  return cs;
+}
+
 function renderProps(){
   if(!selected){ renderStage(); return; }
   if(selected.sys){ renderSysProps(selected.sys); return; }
@@ -1055,6 +1233,11 @@ function renderProps(){
     on.querySelector('input').onchange = e=>{p.on=e.target.checked;};
     s.appendChild(on);
     right.appendChild(s);
+    right.appendChild(contentSection(o,
+      ()=>o.content,
+      f=>{ setProjContent(o, f); renderProps(); },
+      ()=>clearProjContent(o),
+      '테스트 그리드 모드에서 콘텐츠가 투사돼요. 파일은 JSON 저장에 포함되지 않아 씬을 불러오면 다시 올려야 해요.'));
     const calc = document.createElement('div'); calc.className='sec';
     calc.innerHTML = `<div class="calc" id="projCalc"></div>`;
     right.appendChild(calc);
@@ -1106,6 +1289,11 @@ function renderProps(){
       <div class="cr"><span>픽셀 밀도</span><b class="v2">${Math.round(1000/p.pitch)} px/m</b></div>
     </div>`;
     right.appendChild(s); right.appendChild(c);
+    right.appendChild(contentSection(o,
+      ()=>o.ledSrc,
+      f=>{ setLEDContent(o, f); renderProps(); },
+      ()=>{ clearLEDContent(o); rebuildLED(o); },
+      '이미지·영상이 픽셀 그리드 아래에 표시돼요 (cover 방식). 파일은 JSON 저장에 포함되지 않아요.'));
   }
   const g = document.createElement('div'); g.className='sec';
   g.appendChild(numRow('목표 조도', shared.uTargetLux.value, 10,
@@ -1257,7 +1445,7 @@ function rebuildLED(o){
   markShadowDirty();
   o.mesh.geometry.dispose();
   o.mesh.geometry = new THREE.PlaneGeometry(o.params.w,o.params.h);
-  o.mesh.material.map = ledTexture(o.params);
+  o.mesh.material.map = ledTexture(o.params, o.ledSrc);
   o.mesh.material.needsUpdate = true;
   sync(o); renderProps();
 }
@@ -2081,10 +2269,19 @@ function updateMeasureLabel(){
     placeLab(mLab, mid, true);
   }
 }
+function updateLEDVideos(){
+  objects.forEach(o=>{
+    if(o.type==='led' && o.ledSrc && o.ledSrc.type==='video' && o.ledSrc.ready && !o.ledSrc.el.paused){
+      const t = o.mesh.material.map;
+      if(t && t.userData && t.userData.redraw) t.userData.redraw();
+    }
+  });
+}
 function loop(){
   requestAnimationFrame(loop);
   stepCamAnim();
   pushUniforms();
+  updateLEDVideos();
   updateGizmo();
   updateProjViz();
   updateMeasureLabel();
