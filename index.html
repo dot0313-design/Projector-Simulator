@@ -288,6 +288,7 @@ const SURF_LIB = [
 const LED_LIB = [
   {name:'LED 스크린 P2.6', pitch:2.6, nits:1200},
   {name:'LED 스크린 P3.9', pitch:3.9, nits:4500},
+  {name:'32인치 TV (16:9 FHD)', pitch:0.37, nits:300, w:0.709, h:0.399, tv:true},
   {name:'커스텀 LED', pitch:2.9, nits:1000, custom:true},
 ];
 const PCOLORS = [0xFFB84D,0x5AD1DE,0xB48CFF,0x6FD08C,0xFF7A9E,0xF2E86D,0x7FA8FF,0xFF9A5A];
@@ -689,11 +690,11 @@ function addProjector(lib){
   return o;
 }
 function addLED(lib){
-  const p = {name:lib.name, w:6, h:3.5, pitch:lib.pitch, nits:lib.nits, x:0, y:2, z:-6, ry:0};
+  const p = {name:lib.name, w:lib.w||6, h:lib.h||3.5, pitch:lib.pitch, nits:lib.nits, x:0, y:2, z:-6, ry:0};
   const tex = ledTexture(p);
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.w,p.h),
     new THREE.MeshBasicMaterial({map:tex, side:THREE.DoubleSide}));
-  mesh.position.set(p.x, p.h/2+0.2, p.z); p.y = mesh.position.y;
+  mesh.position.set(p.x, lib.tv ? 1.2 : p.h/2+0.2, p.z); p.y = mesh.position.y;
   const o = {id:seq++, type:'led', name:lib.name, mesh, params:p, visible:true};
   mesh.userData.oid = o.id;
   scene.add(mesh); objects.push(o); select(o); refreshTree();
@@ -844,6 +845,7 @@ function renderLib(){
     el.innerHTML = `<div class="t">${item.name}</div><div class="s">${
       libTab==='proj' ? `${item.lumens.toLocaleString()} lm · ${item.res[0]}×${item.res[1]} · 렌즈 ${item.lenses.length}종`
       : libTab==='surf' ? item.sub
+      : item.tv ? `${Math.round(item.w*1000)}×${Math.round(item.h*1000)} mm · FHD 1920×1080 · ${item.nits} nit`
       : `P${item.pitch} · ${item.nits.toLocaleString()} nit`}</div>`;
     el.onclick = ()=>{
       if(libTab==='proj') addProjector(item);
