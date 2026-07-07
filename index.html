@@ -8,9 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0B0E13; --panel:#12161E; --panel2:#171C26; --line:#232A38;
-  --txt:#E6EBF2; --txt2:#8B95A7; --beam:#FFB84D; --led:#5AD1DE;
-  --ok:#6FD08C; --warn:#E5645A; --sel:#FFB84D;
+  --bg:#101010; --panel:#171717; --panel2:#1E1E1E; --line:#2A2A2A;
+  --txt:#EDEDED; --txt2:#9A9A9A; --beam:#21F1A8; --led:#5AD1DE;
+  --ok:#21F1A8; --warn:#E5645A; --sel:#21F1A8;
   --mono:'JetBrains Mono',monospace; --sans:'Noto Sans KR',-apple-system,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -26,7 +26,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 #topbar .spacer{flex:1}
 .tbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--sans)}
 .tbtn:hover{border-color:var(--txt2)}
-.tbtn.primary{background:var(--beam);border-color:var(--beam);color:#1A1408;font-weight:700}
+.tbtn.primary{background:var(--beam);border-color:var(--beam);color:#04130D;font-weight:700}
 .tbtn.toggled{border-color:var(--beam);color:var(--beam)}
 /* ---------- left panel ---------- */
 #left{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
@@ -34,7 +34,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 #tree{overflow-y:auto;padding:0 8px;flex:0 0 auto;max-height:34%}
 .node{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12.5px}
 .node:hover{background:var(--panel2)}
-.node.sel{background:#2A2213;outline:1px solid var(--beam)}
+.node.sel{background:#0E2A20;outline:1px solid var(--beam)}
 .node .dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
 .node .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .node input.vis{width:14px;height:14px;accent-color:var(--beam);cursor:pointer;flex:0 0 auto}
@@ -56,16 +56,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 #vp canvas{display:block}
 #hud{position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:10.5px;color:var(--txt2);line-height:1.7;pointer-events:none;text-shadow:0 1px 2px #000}
 #vpLabels{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
-.vlab{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10.5px;color:#F2E86D;background:rgba(11,14,19,.78);border:1px solid rgba(242,232,109,.45);border-radius:4px;padding:2px 7px;white-space:nowrap}
+.vlab{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10.5px;color:#21F1A8;background:rgba(16,16,16,.82);border:1px solid rgba(33,241,168,.45);border-radius:4px;padding:2px 7px;white-space:nowrap}
 #camViews{position:absolute;top:10px;left:12px;z-index:6;display:flex;gap:6px;flex-wrap:wrap;max-width:70%}
-.vchip{background:rgba(18,22,30,.85);border:1px solid var(--line);color:var(--txt);border-radius:14px;padding:4px 10px;font-size:11px;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:5px}
+.vchip{background:rgba(23,23,23,.88);border:1px solid var(--line);color:var(--txt);border-radius:14px;padding:4px 10px;font-size:11px;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:5px}
 .vchip:hover{border-color:var(--beam)}
 .vchip.vadd{color:var(--beam);border-style:dashed}
 .vchip.vfix{color:var(--led);border-color:rgba(90,209,222,.35)}
 .vchip.vfix:hover{border-color:var(--led)}
 .vchip .vx{color:var(--txt2);font-size:12px;padding:0 1px}
 .vchip .vx:hover{color:var(--warn)}
-#legend{position:absolute;right:12px;bottom:12px;background:rgba(11,14,19,.85);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:none}
+#legend{position:absolute;right:12px;bottom:12px;background:rgba(16,16,16,.88);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:none}
 #legend .bar{width:150px;height:10px;border-radius:5px;background:linear-gradient(90deg,#0C1440,#1460C8,#18B478,#E8D440,#E5645A);margin:6px 0 3px}
 #legend .lb{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--txt2)}
 #legend .tt{font-size:10.5px;color:var(--txt)}
@@ -87,7 +87,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .empty{color:var(--txt2);font-size:12px;padding:18px 14px;line-height:1.7}
 .chk{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--txt2)}
 /* ---------- publish modal ---------- */
-#modal{position:fixed;inset:0;background:rgba(5,7,10,.7);display:none;align-items:center;justify-content:center;z-index:50}
+#modal{position:fixed;inset:0;background:rgba(8,8,8,.72);display:none;align-items:center;justify-content:center;z-index:50}
 #modal .box{width:min(680px,92vw);max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
 #modal h2{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--beam);margin-bottom:12px}
 #snapimg{width:100%;border-radius:8px;border:1px solid var(--line)}
@@ -111,7 +111,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
   #left{left:0;transform:translateX(-102%);border-right:1px solid var(--line)}
   #right{right:0;transform:translateX(102%);border-left:1px solid var(--line)}
   #left.open,#right.open{transform:translateX(0)}
-  #backdrop{display:none;position:fixed;top:44px;bottom:50px;left:0;right:0;z-index:25;background:rgba(5,7,10,.35)}
+  #backdrop{display:none;position:fixed;top:44px;bottom:50px;left:0;right:0;z-index:25;background:rgba(8,8,8,.4)}
   #backdrop.on{display:block}
   #mobilebar{
     display:flex;grid-column:1;grid-row:3;background:var(--panel);
@@ -291,7 +291,7 @@ const LED_LIB = [
   {name:'32인치 TV (16:9 FHD)', pitch:0.37, nits:300, w:0.709, h:0.399, tv:true},
   {name:'커스텀 LED', pitch:2.9, nits:1000, custom:true},
 ];
-const PCOLORS = [0xFFB84D,0x5AD1DE,0xB48CFF,0x6FD08C,0xFF7A9E,0xF2E86D,0x7FA8FF,0xFF9A5A];
+const PCOLORS = [0xC8F169,0x5AD1DE,0xB48CFF,0x6FD08C,0xFF7A9E,0xF2E86D,0x7FA8FF,0xFF9A5A];
 
 /* ---------- three 기본 ---------- */
 const vpEl = document.getElementById('vp');
@@ -299,8 +299,8 @@ const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 vpEl.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0B0E13);
-scene.fog = new THREE.Fog(0x0B0E13, 60, 160);
+scene.background = new THREE.Color(0x101010);
+scene.fog = new THREE.Fog(0x101010, 60, 160);
 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
 camera.layers.enable(1);  // 레이어1 = 그림자 미투사 장식 요소
 
@@ -487,7 +487,7 @@ void main(){
         vec2 cOff = vec2(mod(fi,4.0)*0.25, (1.0-floor(fi/4.0))*0.5); // flipY 검산 완료
         beam += texture2D(uAtlas, cOff + uv*vec2(0.25,0.5)).rgb * b;
       } else {
-        beam += uCol[i]*gridPat(uv)*b;
+        beam += vec3(0.784, 0.945, 0.412)*gridPat(uv)*b;  // 테스트 그리드: Lime #C8F169
       }
     }
     else if(uMode==2) beam += vec3(1.0)*b*0.85;
@@ -525,7 +525,7 @@ sysFloor.userData.sys = 'floor';
 const SYS_WALL = {sys:'wall', name:'기본 벽'};
 const SYS_FLOOR = {sys:'floor', name:'기본 바닥'};
 scene.add(sysWall, sysFloor);
-let grid = new THREE.GridHelper(80, 80, 0x2B3446, 0x1A2130);
+let grid = new THREE.GridHelper(80, 80, 0x2E2E2E, 0x1C1C1C);
 grid.layers.set(1);
 scene.add(grid);
 function updateStage(){
@@ -542,7 +542,7 @@ function updateStage(){
   sysFloor.material.uniforms.uAlbedo.value.setRGB(r, r, r);
   scene.remove(grid); grid.geometry.dispose();
   const gs = Math.ceil(Math.max(stage.stageW, stage.stageD))+4;
-  grid = new THREE.GridHelper(gs, gs, 0x2B3446, 0x1A2130);
+  grid = new THREE.GridHelper(gs, gs, 0x2E2E2E, 0x1C1C1C);
   grid.layers.set(1);
   scene.add(grid);
   shared.uAmbient.value = ambientLux();
@@ -1454,7 +1454,7 @@ function rebuildLED(o){
 const measure = {on:false, p1:null, p2:null};
 function measureDot(){
   const g = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8),
-    new THREE.MeshBasicMaterial({color:0x5AD1DE, depthTest:false}));
+    new THREE.MeshBasicMaterial({color:0x21F1A8, depthTest:false}));
   g.renderOrder = 999; g.visible = false; g.layers.set(1);
   scene.add(g); return g;
 }
@@ -1462,12 +1462,12 @@ const mDot1 = measureDot(), mDot2 = measureDot();
 const mLineGeo = new THREE.BufferGeometry();
 mLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
 const mLine = new THREE.Line(mLineGeo,
-  new THREE.LineBasicMaterial({color:0x5AD1DE, transparent:true, opacity:0.95, depthTest:false}));
+  new THREE.LineBasicMaterial({color:0x21F1A8, transparent:true, opacity:0.95, depthTest:false}));
 mLine.renderOrder = 999; mLine.visible = false; mLine.frustumCulled = false; mLine.layers.set(1);
 scene.add(mLine);
 const mLab = document.createElement('div');
-mLab.className = 'vlab'; mLab.style.color = '#5AD1DE';
-mLab.style.borderColor = 'rgba(90,209,222,.45)'; mLab.style.display = 'none';
+mLab.className = 'vlab';
+mLab.style.display = 'none';
 document.getElementById('vpLabels').appendChild(mLab);  // vpLabels const 선언 순서와 무관하게 DOM 직접 참조
 function measurableMeshes(){
   const list = [];
@@ -1656,14 +1656,14 @@ function wrap180(v){ return ((v+180)%360+360)%360-180; }
 const frameGeo = new THREE.BufferGeometry();
 frameGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(12), 3));
 const projFrame = new THREE.LineLoop(frameGeo,
-  new THREE.LineBasicMaterial({color:0xF2E86D, transparent:true, opacity:0.95, depthTest:false}));
+  new THREE.LineBasicMaterial({color:0x21F1A8, transparent:true, opacity:0.95, depthTest:false}));
 projFrame.renderOrder = 998; projFrame.visible = false; projFrame.frustumCulled = false;
 projFrame.layers.set(1);
 scene.add(projFrame);
 const dashGeo = new THREE.BufferGeometry();
 dashGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
 const centerLine = new THREE.Line(dashGeo,
-  new THREE.LineDashedMaterial({color:0xF2E86D, dashSize:0.28, gapSize:0.18, transparent:true, opacity:0.75, depthTest:false}));
+  new THREE.LineDashedMaterial({color:0x21F1A8, dashSize:0.28, gapSize:0.18, transparent:true, opacity:0.75, depthTest:false}));
 centerLine.renderOrder = 998; centerLine.visible = false; centerLine.frustumCulled = false;
 centerLine.layers.set(1);
 scene.add(centerLine);
@@ -1671,9 +1671,9 @@ scene.add(centerLine);
 const centerSprite = (()=>{
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const x = c.getContext('2d');
-  x.strokeStyle = '#F2E86D'; x.lineWidth = 4;
+  x.strokeStyle = '#21F1A8'; x.lineWidth = 4;
   x.beginPath(); x.arc(32,32,22,0,Math.PI*2); x.stroke();
-  x.fillStyle = '#F2E86D';
+  x.fillStyle = '#21F1A8';
   x.beginPath(); x.arc(32,32,6,0,Math.PI*2); x.fill();
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({
     map:new THREE.CanvasTexture(c), depthTest:false, transparent:true}));
@@ -2093,20 +2093,20 @@ function exportTopViewInner(){
   const x=c.getContext('2d');
   const px=(wx)=>(wx-minX)*sc, pz=(wz)=>(wz-minZ)*sc+TH;
   // 배경·타이틀
-  x.fillStyle='#0B0E13'; x.fillRect(0,0,W,H);
-  x.fillStyle='#FFB84D'; x.font='600 22px monospace';
+  x.fillStyle='#101010'; x.fillRect(0,0,W,H);
+  x.fillStyle='#21F1A8'; x.font='600 22px monospace';
   x.fillText('PROJECTOR SIMULATOR — TOP VIEW (리그 도면)', 24, 38);
   x.fillStyle='#8B95A7'; x.font='13px monospace';
   const now=new Date();
   x.fillText(`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} · 격자 1칸 = 1 m · 단위 mm · 위쪽 = 무대 안(-Z)`, 24, 62);
   x.fillText(`목표 조도 ${shared.uTargetLux.value} lx · 주변광 ${ambientLux().toFixed(1)} lx`, 24, 84);
   // 1m 격자
-  x.strokeStyle='#1A2130'; x.lineWidth=1;
+  x.strokeStyle='#1F1F1F'; x.lineWidth=1;
   for(let gx=Math.ceil(minX); gx<=maxX; gx++){ x.beginPath(); x.moveTo(px(gx),TH); x.lineTo(px(gx),H); x.stroke(); }
   for(let gz=Math.ceil(minZ); gz<=maxZ; gz++){ x.beginPath(); x.moveTo(0,pz(gz)); x.lineTo(W,pz(gz)); x.stroke(); }
   // 무대 바닥
   if(stage.floorOn){
-    x.strokeStyle='#2B3446'; x.lineWidth=2;
+    x.strokeStyle='#333333'; x.lineWidth=2;
     x.strokeRect(px(-stage.stageW/2), pz(-stage.stageD/2), stage.stageW*sc, stage.stageD*sc);
   }
   // 회전 사각 헬퍼
@@ -2163,7 +2163,7 @@ function exportTopViewInner(){
     x.fillText(`(${Math.round(p.x*1000)}, ${Math.round(p.z*1000)}) mm · H ${Math.round(p.y*1000)} mm`, X0+10, Z0+6);
     if(hit){
       const mx=X0+Math.cos(beamDir)*L/2, mz=Z0+Math.sin(beamDir)*L/2;
-      x.fillStyle='#F2E86D';
+      x.fillStyle='#21F1A8';
       x.fillText(`d = ${Math.round(hit.d*1000).toLocaleString()} mm`, mx+8, mz-4);
       x.fillText(`이미지 ${Math.round(hit.w*1000).toLocaleString()} × ${Math.round(hit.h*1000).toLocaleString()} mm`, X0+10, Z0+22);
     }
