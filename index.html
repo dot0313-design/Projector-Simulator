@@ -271,7 +271,7 @@ const stage = {
   wallGain:1.0, wallMode:'rear',// 기본 벽 광학 (게인·리어 투과)
   wallW:12, wallH:5.5, wallX:0, wallZ:-6, wallRy:0,
   stageW:14, stageD:12,
-  floorRefl:14, wallOn:true, floorOn:true, shadows:true,
+  floorRefl:14, wallOn:true, floorOn:true, shadows:true, derate:100,
   unit:'m',                     // 모델 임포트 단위
 };
 function ambientLux(){ return AMB_PRESETS[stage.ambPreset].lux * stage.ambPct/100; }
@@ -704,7 +704,8 @@ objFileIn.onchange = e=>{
 
 function effLumens(o){
   const p = o.params;
-  return p.lumens * (p.output/100) * 0.85; // 라이트 출력 % × 광학 손실 근사
+  // ANSI 스펙 기준. stage.derate = 광량 유지율 % (경년·오염 여유, 기본 100 = 스펙 그대로)
+  return p.lumens * (p.output/100) * ((stage.derate||100)/100);
 }
 function addProjector(lib){
   const lens0 = lib.lenses[0];
@@ -952,7 +953,13 @@ function centerHit(o){
   const sL = Math.sqrt(sa*sa + sb*sb + 1);
   const d = hits[0].distance / sL;   // 광축 기준 투사거리 (시프트 보정)
   const w = d/o.params.tr, h = w*o.params.resH/o.params.resW;
-  const lux = effLumens(o)/(w*h);
+  // 입사각 보정: 표면 법선과 빔 방향의 cos (셰이더 조도식과 일치)
+  let cosI = 1;
+  if(hits[0].face){
+    const n = hits[0].face.normal.clone().transformDirection(hits[0].object.matrixWorld);
+    cosI = Math.abs(n.dot(dir));
+  }
+  const lux = effLumens(o)/(w*h) * cosI;
   // 맞은 서페이스의 개별 게인으로 휘도 계산
   const tgtMesh = hits[0].object;
   let g = 1.0;
@@ -1423,6 +1430,12 @@ function renderStage(){
   const g = document.createElement('div'); g.className='sec';
   g.appendChild(numRow('목표 조도', shared.uTargetLux.value, 10,
     v=>{shared.uTargetLux.value = Math.max(1,v); updateLegend();}, 10, 600, 'lx'));
+  g.appendChild(numRow('광량 유지율', stage.derate||100, 5,
+    v=>{stage.derate = THREE.MathUtils.clamp(v, 50, 100);}, 50, 100, '%'));
+  const dn = document.createElement('div');
+  dn.style.cssText='font-size:10px;color:var(--txt2);line-height:1.6;margin-top:4px';
+  dn.textContent = '100% = ANSI 스펙 그대로 (제조사 계산기와 일치). 램프 경년·렌즈 오염 여유를 두려면 85~90%를 권장해요.';
+  g.appendChild(dn);
   right.appendChild(g);
 }
 
@@ -2183,7 +2196,7 @@ document.getElementById('btnPublish').onclick = ()=>{
   const lines = [];
   const now = new Date();
   lines.push(`Projector Simulator 리포트 — ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
-  lines.push(`목표 조도: ${shared.uTargetLux.value} lux · 주변광 ${ambientLux().toFixed(1)} lux (${AMB_PRESETS[stage.ambPreset].label})`);
+  lines.push(`목표 조도: ${shared.uTargetLux.value} lux · 주변광 ${ambientLux().toFixed(1)} lux (${AMB_PRESETS[stage.ambPreset].label}) · 광량 유지율 ${stage.derate||100}%`);
   lines.push('─'.repeat(46));
   const projs = objects.filter(o=>o.type==='proj');
   if(!projs.length) lines.push('프로젝터 없음');
