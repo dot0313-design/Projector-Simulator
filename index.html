@@ -333,10 +333,13 @@ atlasTex.minFilter = THREE.LinearFilter;
 atlasTex.magFilter = THREE.LinearFilter;
 atlasTex.wrapS = atlasTex.wrapT = THREE.ClampToEdgeWrapping;
 const tileOwner = new Array(MAXP).fill(null);   // 타일 i에 그려진 콘텐츠 키
-function drawContentTile(i, src, frameAR){
-  const sw = src.videoWidth||src.naturalWidth||0;
-  const sh = src.videoHeight||src.naturalHeight||0;
-  if(!sw || !sh) return false;
+function drawContentTile(i, src, frameAR, crop){
+  const fw = src.videoWidth||src.naturalWidth||0;
+  const fh = src.videoHeight||src.naturalHeight||0;
+  if(!fw || !fh) return false;
+  // 크롭: 캡처 화면의 일부 영역만 이 프로젝터에 할당 (정규화 0~1)
+  const cr = crop || {x:0,y:0,w:1,h:1};
+  const sx = cr.x*fw, sy = cr.y*fh, sw = Math.max(1, cr.w*fw), sh = Math.max(1, cr.h*fh);
   const rx=(i%4)*1024, ry=Math.floor(i/4)*1024;
   atlasCtx.save();
   atlasCtx.beginPath(); atlasCtx.rect(rx,ry,1024,1024); atlasCtx.clip();
@@ -345,7 +348,7 @@ function drawContentTile(i, src, frameAR){
   let dw=1024, dh=1024;                          // 타일 = 프로젝터 프레임 전체
   if(srcAR > frameAR) dh = 1024*(frameAR/srcAR); // 레터박스
   else dw = 1024*(srcAR/frameAR);
-  atlasCtx.drawImage(src, rx+(1024-dw)/2, ry+(1024-dh)/2, dw, dh);
+  atlasCtx.drawImage(src, sx, sy, sw, sh, rx+(1024-dw)/2, ry+(1024-dh)/2, dw, dh);
   atlasCtx.restore();
   atlasTex.needsUpdate = true;
   return true;
@@ -749,14 +752,16 @@ function ledTexture(p, src){
   const x = c.getContext('2d');
   function draw(){
     const el = src && src.ready ? src.el : null;
-    const sw = el ? (el.videoWidth||el.naturalWidth||0) : 0;
-    const sh = el ? (el.videoHeight||el.naturalHeight||0) : 0;
-    if(el && sw && sh){
-      // cover 방식
-      const sAR = sw/sh, dAR = c.width/c.height;
-      let cw=sw, ch=sh, sx=0, sy=0;
-      if(sAR > dAR){ cw = sh*dAR; sx = (sw-cw)/2; }
-      else { ch = cw/dAR; sy = (sh-ch)/2; }
+    let fw = el ? (el.videoWidth||el.naturalWidth||0) : 0;
+    let fh = el ? (el.videoHeight||el.naturalHeight||0) : 0;
+    if(el && fw && fh){
+      // 크롭 영역 → cover 방식
+      const cr = src.crop || {x:0,y:0,w:1,h:1};
+      const bx = cr.x*fw, by = cr.y*fh, bw = Math.max(1,cr.w*fw), bh = Math.max(1,cr.h*fh);
+      const sAR = bw/bh, dAR = c.width/c.height;
+      let cw=bw, ch=bh, sx=bx, sy=by;
+      if(sAR > dAR){ cw = bh*dAR; sx = bx + (bw-cw)/2; }
+      else { ch = cw/dAR; sy = by + (bh-ch)/2; }
       x.drawImage(el, sx, sy, cw, ch, 0, 0, c.width, c.height);
     } else {
       const gr = x.createLinearGradient(0,0,c.width,c.height);
@@ -841,7 +846,46 @@ function loadMedia(file, onReady){
   return c;
 }
 function stopMedia(c){
-  if(c && c.type==='video' && c.el){ c.el.pause(); c.el.removeAttribute('src'); c.el.load(); }
+  if(!c) return;
+  if(c.stream){ c.stream.getTracks().forEach(t=>t.stop()); }
+  if(c.type==='video' && c.el && !c.stream){ c.el.pause(); c.el.removeAttribute('src'); c.el.load(); }
+}
+/* ---------- 라이브 캡처: MadMapper/Resolume/Millumin 출력창을 가상 빔의 소스로 ---------- */
+async function startLiveCapture(o, isLED){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
+    toast('이 환경에서는 화면 캡처가 지원되지 않아요. GitHub Pages 링크를 Chrome/Edge에서 열어주세요.');
+    return;
+  }
+  let stream;
+  try{
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video:{ frameRate:{max:30} }, audio:false
+    });
+  }catch(err){
+    if(err && err.name==='NotAllowedError')
+      toast('캡처가 취소됐거나 이 환경에서 차단됐어요. GitHub Pages 링크에서 다시 시도해 주세요.');
+    else toast('캡처 시작 실패: ' + (err && err.message || err));
+    return;
+  }
+  const v = document.createElement('video');
+  v.srcObject = stream; v.muted = true; v.playsInline = true;
+  const c = {type:'video', el:v, name:'라이브 캡처', ready:false, ver:++contentVer,
+             live:true, stream, crop:{x:0, y:0, w:1, h:1}};
+  v.onloadeddata = ()=>{
+    c.ready = true;
+    v.play().catch(()=>{});
+    if(isLED) rebuildLED(o);
+    renderProps();
+  };
+  const track = stream.getVideoTracks()[0];
+  if(track) track.onended = ()=>{           // 사용자가 공유 중지 / 창 닫힘
+    c.ready = false; c.ended = true;
+    toast('라이브 캡처가 끊어졌어요. CONTENT에서 재연결할 수 있어요.');
+    renderProps();
+  };
+  if(isLED){ stopMedia(o.ledSrc); o.ledSrc = c; }
+  else { stopMedia(o.content); o.content = c; }
+  renderProps();
 }
 function setProjContent(o, file){
   stopMedia(o.content);
@@ -914,11 +958,13 @@ function pushUniforms(){
       const key = o.id + ':' + c.ver;
       const ar = o.params.resW / o.params.resH;
       if(c.type === 'video'){
-        if(tileOwner[i] !== key || !c.el.paused){
-          if(drawContentTile(i, c.el, ar)) tileOwner[i] = key;
+        const fresh = tileOwner[i] !== key;
+        // 라이브 캡처는 두 프레임에 한 번만 갱신 (30fps 상당, 드로우 비용 절감)
+        if(fresh || (!c.el.paused && (!c.live || frame % 2 === 0))){
+          if(drawContentTile(i, c.el, ar, c.crop)) tileOwner[i] = key;
         }
       } else if(tileOwner[i] !== key){
-        if(drawContentTile(i, c.el, ar)) tileOwner[i] = key;
+        if(drawContentTile(i, c.el, ar, c.crop)) tileOwner[i] = key;
       }
       shared.uHasC.value[i] = tileOwner[i] === key ? 1 : 0;
     } else {
@@ -1087,30 +1133,45 @@ function numRow(label, val, step, cb, min, max, unit, factor){
 }
 const MM = ['mm', 1000]; // 길이 행 공통: mm 표시
 /* 콘텐츠 업로드 섹션 (프로젝터·LED 공용) */
-function contentSection(o, getC, setFn, clearFn, note){
+function contentSection(o, getC, setFn, clearFn, note, isLED){
   const cs = document.createElement('div'); cs.className='sec';
   cs.innerHTML = `<div class="ptitle" style="padding:0 0 6px">CONTENT — 콘텐츠</div>`;
+  // 업로드 + 라이브 캡처 버튼
   const row = document.createElement('div'); row.className='row';
   const up = document.createElement('button'); up.className='tbtn'; up.style.flex='1';
-  up.textContent = getC() ? '콘텐츠 교체…' : '이미지·영상 업로드…';
+  up.textContent = '파일 업로드…';
   const fin = document.createElement('input'); fin.type='file';
   fin.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime';
   fin.style.display='none';
   up.onclick = ()=>fin.click();
   fin.onchange = e=>{ const f=e.target.files[0]; if(f) setFn(f); e.target.value=''; };
-  row.appendChild(up); row.appendChild(fin); cs.appendChild(row);
+  const lv = document.createElement('button'); lv.className='tbtn'; lv.style.flex='1';
+  lv.textContent = '🔴 라이브 캡처';
+  lv.onclick = ()=>startLiveCapture(o, !!isLED);
+  row.appendChild(up); row.appendChild(fin); row.appendChild(lv);
+  cs.appendChild(row);
   const c = getC();
   if(c){
     const info = document.createElement('div');
     info.style.cssText='font-family:var(--mono);font-size:10px;color:var(--txt2);margin:4px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-    info.textContent = (c.type==='video'?'▶ ':'🖼 ') + c.name;
+    info.textContent = (c.live?'🔴 ':(c.type==='video'?'▶ ':'🖼 ')) + c.name;
     cs.appendChild(info);
     const st = document.createElement('div');
-    st.style.cssText='font-size:10px;margin:2px 0 4px;color:'+(c.ready?'var(--ok)':'var(--beam)');
-    st.textContent = c.ready ? '✓ 적용됨 — 테스트 그리드 모드에서 확인' : '⏳ 로딩 중…';
+    st.style.cssText='font-size:10px;margin:2px 0 4px;color:' +
+      (c.ended ? 'var(--warn)' : (c.ready ? 'var(--ok)' : 'var(--beam)'));
+    st.textContent = c.ended ? '⚠ 연결 끊김 — 아래에서 재연결하세요'
+                   : c.ready ? (c.live ? '● 라이브 캡처 중 — 매핑 프로그램에서 수정하면 실시간 반영'
+                                       : '✓ 적용됨 — 테스트 그리드 모드에서 확인')
+                   : '⏳ 로딩 중…';
     cs.appendChild(st);
     const btns = document.createElement('div'); btns.style.cssText='display:flex;gap:6px';
-    if(c.type==='video' && c.ready){
+    if(c.ended){
+      const rc = document.createElement('button'); rc.className='tbtn'; rc.style.flex='1';
+      rc.textContent = '🔴 재연결';
+      rc.onclick = ()=>startLiveCapture(o, !!isLED);
+      btns.appendChild(rc);
+    }
+    if(c.type==='video' && c.ready && !c.live){
       const pb = document.createElement('button'); pb.className='tbtn'; pb.style.flex='1';
       pb.textContent = c.el.paused ? '▶ 재생' : '⏸ 일시정지';
       pb.onclick = ()=>{ c.el.paused ? c.el.play().catch(()=>{}) : c.el.pause(); renderProps(); };
@@ -1121,6 +1182,55 @@ function contentSection(o, getC, setFn, clearFn, note){
     rm.onclick = ()=>{ clearFn(); renderProps(); };
     btns.appendChild(rm);
     cs.appendChild(btns);
+    // 크롭: 캡처/영상 화면의 일부 영역만 이 출력에 할당 (분할 출력 워크플로)
+    if(c.type==='video' && c.ready && !c.ended){
+      if(!c.crop) c.crop = {x:0, y:0, w:1, h:1};
+      const ct = document.createElement('div');
+      ct.style.cssText='font-size:10px;color:var(--txt2);margin:8px 0 2px';
+      ct.textContent = '캡처 영역 할당 (분할 출력)';
+      cs.appendChild(ct);
+      const presets = [
+        ['전체', {x:0,y:0,w:1,h:1}],
+        ['◧ 좌½', {x:0,y:0,w:0.5,h:1}],
+        ['◨ 우½', {x:0.5,y:0,w:0.5,h:1}],
+        ['⬒ 상½', {x:0,y:0,w:1,h:0.5}],
+        ['⬓ 하½', {x:0,y:0.5,w:1,h:0.5}],
+      ];
+      const pr = document.createElement('div');
+      pr.style.cssText='display:flex;gap:4px;flex-wrap:wrap';
+      presets.forEach(([lb, cr])=>{
+        const b = document.createElement('button'); b.className='tbtn';
+        b.style.cssText='flex:1;padding:4px 6px;font-size:10.5px;min-width:0';
+        const active = Math.abs(c.crop.x-cr.x)<0.001 && Math.abs(c.crop.y-cr.y)<0.001 &&
+                       Math.abs(c.crop.w-cr.w)<0.001 && Math.abs(c.crop.h-cr.h)<0.001;
+        if(active) b.classList.add('toggled');
+        b.textContent = lb;
+        b.onclick = ()=>{
+          c.crop = {x:cr.x, y:cr.y, w:cr.w, h:cr.h};
+          c.ver = ++contentVer;              // 타일 강제 갱신
+          if(isLED) rebuildLED(o);
+          renderProps();
+        };
+        pr.appendChild(b);
+      });
+      cs.appendChild(pr);
+      // 미세 조절 (%): X·Y·폭·높이
+      const applyCrop = ()=>{
+        c.crop.w = THREE.MathUtils.clamp(c.crop.w, 0.05, 1);
+        c.crop.h = THREE.MathUtils.clamp(c.crop.h, 0.05, 1);
+        c.crop.x = THREE.MathUtils.clamp(c.crop.x, 0, 1 - c.crop.w);
+        c.crop.y = THREE.MathUtils.clamp(c.crop.y, 0, 1 - c.crop.h);
+        c.ver = ++contentVer;
+        if(isLED) rebuildLED(o);
+      };
+      const mk = (label, key)=>numRow(label, c.crop[key]*100, 1, v=>{
+        c.crop[key] = v/100; applyCrop();
+      }, 0, 100, '%');
+      cs.appendChild(mk('영역 X','x'));
+      cs.appendChild(mk('영역 Y','y'));
+      cs.appendChild(mk('영역 폭','w'));
+      cs.appendChild(mk('영역 높이','h'));
+    }
   }
   const nn = document.createElement('div');
   nn.style.cssText='font-size:10px;color:var(--txt2);margin-top:6px;line-height:1.5';
@@ -1244,7 +1354,7 @@ function renderProps(){
       ()=>o.content,
       f=>{ setProjContent(o, f); renderProps(); },
       ()=>clearProjContent(o),
-      '테스트 그리드 모드에서 콘텐츠가 투사돼요. 파일은 JSON 저장에 포함되지 않아 씬을 불러오면 다시 올려야 해요.'));
+      '라이브 캡처: MadMapper·Resolume·Millumin의 출력창을 선택하면 실시간 매핑이 이 빔에 투사돼요 (GitHub Pages 링크에서 동작). 파일·연결은 JSON 저장에 포함되지 않아요.', false));
     const calc = document.createElement('div'); calc.className='sec';
     calc.innerHTML = `<div class="calc" id="projCalc"></div>`;
     right.appendChild(calc);
@@ -1300,7 +1410,7 @@ function renderProps(){
       ()=>o.ledSrc,
       f=>{ setLEDContent(o, f); renderProps(); },
       ()=>{ clearLEDContent(o); rebuildLED(o); },
-      '이미지·영상이 픽셀 그리드 아래에 표시돼요 (cover 방식). 파일은 JSON 저장에 포함되지 않아요.'));
+      '라이브 캡처로 매핑 프로그램 출력을 LED·TV에 실시간 표시할 수 있어요 (GitHub Pages에서 동작). 파일·연결은 JSON 저장에 포함되지 않아요.', true));
   }
   const g = document.createElement('div'); g.className='sec';
   g.appendChild(numRow('목표 조도', shared.uTargetLux.value, 10,
@@ -2284,7 +2394,9 @@ function updateMeasureLabel(){
 }
 function updateLEDVideos(){
   objects.forEach(o=>{
-    if(o.type==='led' && o.ledSrc && o.ledSrc.type==='video' && o.ledSrc.ready && !o.ledSrc.el.paused){
+    const s = o.ledSrc;
+    if(o.type==='led' && s && s.type==='video' && s.ready && !s.el.paused){
+      if(s.live && frame % 2 !== 0) return;   // 라이브는 30fps 상당
       const t = o.mesh.material.map;
       if(t && t.userData && t.userData.redraw) t.userData.redraw();
     }
