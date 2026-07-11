@@ -379,7 +379,7 @@ shared.uShadow = {value: shadowRT.texture};
 const depthMat = new THREE.MeshDepthMaterial({
   depthPacking:THREE.RGBADepthPacking, side:THREE.DoubleSide});
 let shadowDirty = true, shadowSig = '';
-function markShadowDirty(){ shadowDirty = true; }
+function markShadowDirty(){ shadowDirty = true; if(typeof scheduleAutosave === 'function') scheduleAutosave(); }
 function renderShadows(act){
   const prevBg = scene.background;
   scene.background = null;
@@ -2181,42 +2181,92 @@ function downloadDataURL(name, dataURL){
 }
 document.getElementById('btnSave').onclick = ()=>download('projector_simulator_scene.json', serialize(), 'application/json');
 document.getElementById('btnLoad').onclick = ()=>document.getElementById('fileIn').click();
+/* 씬 데이터 적용 — 파일 불러오기와 자동 복원이 공용 */
+function applySceneData(data){
+  [...objects].forEach(removeObj);
+  shared.uTargetLux.value = data.targetLux||150;
+  if(data.stage) Object.assign(stage, data.stage);
+  views = Array.isArray(data.views) ? data.views : [];
+  renderViews();
+  syncShadowBtn();
+  updateStage();
+  (data.objects||[]).forEach(so=>{
+    let o;
+    if(so.type==='proj'){
+      const lib = PROJ_LIB.find(l=>l.name===so.params.model) || PROJ_LIB[PROJ_LIB.length-1];
+      o = addProjector(lib);
+      if(so.color){ o.color = so.color; o.frust.material.color.setHex(so.color); }
+    } else if(so.type==='surf'){
+      o = so.params.kind==='model'
+        ? addModelFromText(so.name, so.params.objText||'', so.params.unit)
+        : addSurface(so.params.kind, so.name);
+      if(!o) return;
+    }
+    else { o = addLED({name:so.name, pitch:so.params.pitch, nits:so.params.nits}); }
+    Object.assign(o.params, so.params);
+    if(so.name) o.name = so.name;
+    o.visible = so.visible; o.mesh.visible = so.visible;
+    if(o.type==='surf') rebuild(o); else if(o.type==='led') rebuildLED(o); else sync(o);
+  });
+  select(null); refreshTree(); updateLegend();
+}
 document.getElementById('fileIn').onchange = e=>{
   const f = e.target.files[0]; if(!f) return;
   const rd = new FileReader();
   rd.onload = ()=>{
-    try{
-      const data = JSON.parse(rd.result);
-      [...objects].forEach(removeObj);
-      shared.uTargetLux.value = data.targetLux||150;
-      if(data.stage) Object.assign(stage, data.stage);
-      views = Array.isArray(data.views) ? data.views : [];
-      renderViews();
-      syncShadowBtn();
-      updateStage();
-      data.objects.forEach(so=>{
-        let o;
-        if(so.type==='proj'){
-          const lib = PROJ_LIB.find(l=>l.name===so.params.model) || PROJ_LIB[PROJ_LIB.length-1];
-          o = addProjector(lib);
-          if(so.color){ o.color = so.color; o.frust.material.color.setHex(so.color); }
-        } else if(so.type==='surf'){
-          o = so.params.kind==='model'
-            ? addModelFromText(so.name, so.params.objText||'', so.params.unit)
-            : addSurface(so.params.kind, so.name);
-          if(!o) return;
-        }
-        else { o = addLED({name:so.name, pitch:so.params.pitch, nits:so.params.nits}); }
-        Object.assign(o.params, so.params);
-        if(so.name) o.name = so.name;
-        o.visible = so.visible; o.mesh.visible = so.visible;
-        if(o.type==='surf') rebuild(o); else if(o.type==='led') rebuildLED(o); else sync(o);
-      });
-      select(null); refreshTree(); updateLegend();
-    }catch(err){ alert('JSON을 읽을 수 없어요: '+err.message); }
+    try{ applySceneData(JSON.parse(rd.result)); }
+    catch(err){ alert('JSON을 읽을 수 없어요: '+err.message); }
   };
   rd.readAsText(f); e.target.value='';
 };
+
+/* ---------- 자동 저장·복원 (이 브라우저에만 저장 — 기기·사용자별 독립) ---------- */
+const AUTOSAVE_KEY = 'projsim_autosave_v1';
+let autosaveTimer = null, autosaveReady = false; // 복원 결정 전에는 덮어쓰지 않음
+let autosaveWarned = false;
+function autosaveNow(){
+  if(!autosaveReady) return;
+  try{
+    localStorage.setItem(AUTOSAVE_KEY, serialize());
+  }catch(err){
+    if(!autosaveWarned){
+      autosaveWarned = true;
+      toast('자동 저장 용량 초과 — 대형 3D 모델 포함 씬은 상단 "저장 (JSON)"으로 파일 보관해 주세요.');
+    }
+  }
+}
+function scheduleAutosave(){
+  if(!autosaveReady) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(autosaveNow, 3000);   // 변경 후 3초 디바운스
+}
+setInterval(autosaveNow, 30000);                    // 30초 주기 보조 저장
+window.addEventListener('beforeunload', autosaveNow);
+(function restoreBanner(){
+  let saved = null;
+  try{
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if(raw){ const d = JSON.parse(raw); if(d && Array.isArray(d.objects) && d.objects.length) saved = d; }
+  }catch(err){ saved = null; }
+  if(!saved){ autosaveReady = true; return; }
+  const bn = document.createElement('div');
+  bn.style.cssText = 'position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:45;'+
+    'display:flex;gap:8px;align-items:center;background:rgba(23,23,23,.95);border:1px solid var(--beam);'+
+    'border-radius:10px;padding:10px 14px;font-size:12px;color:var(--txt);max-width:92%';
+  bn.innerHTML = '<span>이전 작업이 저장돼 있어요.</span>';
+  const b1 = document.createElement('button'); b1.className='tbtn primary'; b1.textContent='이어서 하기';
+  b1.onclick = ()=>{
+    try{ applySceneData(saved); }catch(err){ toast('복원 실패: '+err.message); }
+    autosaveReady = true; bn.remove();
+  };
+  const b2 = document.createElement('button'); b2.className='tbtn'; b2.textContent='새로 시작';
+  b2.onclick = ()=>{
+    try{ localStorage.removeItem(AUTOSAVE_KEY); }catch(err){}
+    autosaveReady = true; bn.remove();
+  };
+  bn.appendChild(b1); bn.appendChild(b2);
+  vpEl.appendChild(bn);
+})();
 
 /* ---------- 탑뷰 리그 도면 (PNG) ---------- */
 function exportTopView(){
