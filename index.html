@@ -262,11 +262,20 @@ const RES_PRESETS = [
 ];
 /* ---------- 무대·공간 전역 설정 ---------- */
 const AMB_PRESETS = [
-  {label:'암전 (공연·영화)', lux:2},
-  {label:'어두운 조광 (콘서트·이벤트)', lux:30},
-  {label:'일반 실내 (로비·전시)', lux:150},
-  {label:'밝은 실내 (매장·주간)', lux:400},
+  {label:'암전 (공연·영화)', lux:2,   nitRec:[40, 55, 150]},   // [최소, 적정 기준, 여유 상한]
+  {label:'어두운 조광 (콘서트·이벤트)', lux:30,  nitRec:[80, 130, 300]},
+  {label:'일반 실내 (로비·전시)', lux:150, nitRec:[180, 280, 600]},
+  {label:'밝은 실내 (매장·주간)', lux:400, nitRec:[350, 500, 1100]},
 ];
+/* 휘도(nit) 판정 — ProjectorCentral 스타일: 현재 주변광 환경 기준 */
+function nitVerdict(nits){
+  const rec = AMB_PRESETS[stage.ambPreset].nitRec;
+  const env = AMB_PRESETS[stage.ambPreset].label.split(' ')[0];
+  if(nits < rec[0]*0.6) return {zone:0, txt:`부족 — ${env} 기준 최소 ${rec[0]} nit 권장`, col:'var(--warn)'};
+  if(nits < rec[0])     return {zone:1, txt:`다소 어두움 — ${env} 기준 ${rec[0]}~${rec[2]} nit 권장`, col:'#E8B34B'};
+  if(nits <= rec[2])    return {zone:2, txt:`✓ ${env} 환경 적정 밝기`, col:'var(--ok)'};
+  return {zone:3, txt:`여유 충분 — 라이트 출력을 낮춰도 좋아요`, col:'#5AD1DE'};
+}
 const stage = {
   ambPreset:0, ambPct:100,      // 주변광 = preset.lux × pct%
   wallGain:1.0, wallMode:'rear',// 기본 벽 광학 (게인·리어 투과)
@@ -2395,7 +2404,8 @@ document.getElementById('btnPublish').onclick = ()=>{
     if(hit){
       const ok = hit.lux >= shared.uTargetLux.value;
       lines.push(`  투사거리 ${hit.d.toFixed(2)} m → 이미지 ${hit.w.toFixed(2)} × ${hit.h.toFixed(2)} m`);
-      lines.push(`  중심 조도 ${hit.lux.toFixed(0)} lux ${ok?'✓ 목표 충족':'⚠ 목표 미달'} · 휘도 ${hit.nits.toFixed(0)} nit (${hit.fl.toFixed(1)} fL, 게인 ${hit.gain.toFixed(2)}) · 콘트라스트 ${isFinite(hit.contrast)?hit.contrast.toFixed(1)+':1':'∞'} · ${hit.ppm.toFixed(0)} px/m`);
+      const nv2 = nitVerdict(hit.nits);
+      lines.push(`  중심 조도 ${hit.lux.toFixed(0)} lux ${ok?'✓ 목표 충족':'⚠ 목표 미달'} · 체감 밝기 ${hit.nits.toFixed(0)} nit (${hit.fl.toFixed(1)} fL, 게인 ${hit.gain.toFixed(2)}) — ${nv2.txt.replace('✓ ','')} · 콘트라스트 ${isFinite(hit.contrast)?hit.contrast.toFixed(1)+':1':'∞'} · ${hit.ppm.toFixed(0)} px/m`);
       const bl = computeBlend(o, hit);
       if(bl) lines.push(`  엣지 블렌드: ${bl.name}와 오버랩 ${bl.mm.toLocaleString()} mm · ${bl.px} px (${bl.pct}%)`);
     } else lines.push(`  ⚠ 중심선이 서페이스에 닿지 않음`);
@@ -2440,11 +2450,30 @@ function updateHUD(){
       const ok = hit.lux >= shared.uTargetLux.value;
       const cOk = hit.contrast >= 7; // 최소 권장 콘트라스트 근사
       const bl = computeBlend(selected, hit);
+      const nv = nitVerdict(hit.nits);
+      const rec = AMB_PRESETS[stage.ambPreset].nitRec;
+      // 게이지: log 스케일로 권장 구간을 가운데 배치
+      const lo = Math.log10(rec[0]*0.4), hi = Math.log10(rec[2]*2.5);
+      const pos = THREE.MathUtils.clamp((Math.log10(Math.max(hit.nits,1)) - lo)/(hi - lo)*100, 2, 98);
+      const g0 = (Math.log10(rec[0])-lo)/(hi-lo)*100, g1 = (Math.log10(rec[2])-lo)/(hi-lo)*100;
+      const gauge = `
+        <div style="margin:6px 0 2px;position:relative;height:8px;border-radius:4px;overflow:hidden;
+          background:linear-gradient(90deg,
+            var(--warn) 0%, #E8B34B ${g0*0.85}%, var(--ok) ${g0}%,
+            var(--ok) ${g1}%, #5AD1DE ${Math.min(g1+12,100)}%, #5AD1DE 100%)">
+        </div>
+        <div style="position:relative;height:8px;margin-top:-14px">
+          <div style="position:absolute;left:${pos}%;top:0;transform:translateX(-50%);
+            width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+            border-top:8px solid var(--txt)"></div>
+        </div>
+        <div style="font-size:10px;margin-top:8px;color:${nv.col}">${nv.txt}</div>`;
       pc.innerHTML = `
         <div class="cr"><span>투사 거리</span><b>${hit.d.toFixed(2)} m</b></div>
         <div class="cr"><span>이미지 크기</span><b>${hit.w.toFixed(2)} × ${hit.h.toFixed(2)} m</b></div>
-        <div class="cr"><span>중심 조도</span><b style="color:${ok?'var(--ok)':'var(--warn)'}">${hit.lux.toFixed(0)} lux</b></div>
-        <div class="cr"><span>휘도</span><b class="v2">${hit.nits.toFixed(0)} nit (${hit.fl.toFixed(1)} fL)</b></div>
+        <div class="cr"><span>체감 밝기</span><b style="color:${nv.col}">${hit.nits.toFixed(0)} nit (${hit.fl.toFixed(1)} fL)</b></div>
+        ${gauge}
+        <div class="cr" style="margin-top:6px"><span>중심 조도</span><b style="color:${ok?'var(--ok)':'var(--warn)'}">${hit.lux.toFixed(0)} lux</b></div>
         <div class="cr"><span>콘트라스트</span><b style="color:${cOk?'var(--ok)':'var(--warn)'}">${isFinite(hit.contrast)?hit.contrast.toFixed(1)+':1':'∞'}</b></div>
         <div class="cr"><span>픽셀 밀도</span><b>${hit.ppm.toFixed(0)} px/m</b></div>` +
         (bl ? `<div class="cr"><span>블렌드 오버랩</span><b style="color:#FF59D8">${bl.mm.toLocaleString()} mm · ${bl.px} px (${bl.pct}%)</b></div>` : '');
