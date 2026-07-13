@@ -18,25 +18,25 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:13px}
 #app{display:grid;grid-template-rows:44px 1fr;grid-template-columns:250px 1fr 300px;height:100%}
 /* ---------- top bar ---------- */
-#topbar{grid-column:1/4;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
-#logo{font-family:var(--mono);font-weight:600;font-size:14px;letter-spacing:.12em;color:var(--beam)}
+#topbar{grid-column:1/4;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+#logo{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.18em;color:var(--beam)}
 #logo span{color:var(--txt2);font-weight:400}
-.modes{display:flex;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px}
-.modes button{background:none;border:none;color:var(--txt2);font-family:var(--sans);font-size:12px;padding:4px 12px;border-radius:4px;cursor:pointer}
-.modes button.on{background:var(--panel2);color:var(--txt)}
+.modes{display:flex;gap:1px;background:var(--bg);border:1px solid var(--line);border-radius:2px;padding:1px}
+.modes button{background:none;border:none;color:var(--txt2);font-family:var(--mono);font-size:11px;letter-spacing:.02em;padding:5px 12px;border-radius:1px;cursor:pointer}
+.modes button.on{background:var(--panel2);color:var(--beam);box-shadow:inset 0 -2px 0 var(--beam)}
 #topbar .spacer{flex:1}
-.tbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--sans)}
-.tbtn:hover{border-color:var(--txt2)}
+.tbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:2px;padding:6px 13px;font-size:11.5px;cursor:pointer;font-family:var(--sans)}
+.tbtn:hover{background:#242424;border-color:#3A3A3A}
 .tbtn.primary{background:var(--beam);border-color:var(--beam);color:#04130D;font-weight:700}
 .tbtn.toggled{border-color:var(--beam);color:var(--beam)}
 /* ---------- left panel ---------- */
 #left{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
-.ptitle{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--txt2);padding:12px 14px 8px}
+.ptitle{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--txt2);padding:11px 14px 7px;text-transform:uppercase}
 #tree{overflow-y:auto;padding:0 8px;flex:0 0 auto;max-height:34%}
-.node{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12.5px}
+.node{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:2px;cursor:pointer;font-size:12px}
 .node:hover{background:var(--panel2)}
-.node.sel{background:#0E2A20;outline:1px solid var(--beam)}
-.node .dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+.node.sel{background:#1E1E1E;outline:none;box-shadow:inset 2px 0 0 var(--beam)}
+.node .dot{width:7px;height:7px;border-radius:1px;flex:0 0 auto}
 .node .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .node input.vis{width:14px;height:14px;accent-color:var(--beam);cursor:pointer;flex:0 0 auto}
 .node .del{color:var(--txt2);background:none;border:none;cursor:pointer;font-size:13px}
@@ -47,54 +47,62 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .libtabs{display:flex;gap:2px;padding:8px 8px 0}
 .libtabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--txt2);padding:6px 0;font-size:12px;cursor:pointer;font-family:var(--sans)}
 .libtabs button.on{color:var(--txt);border-bottom-color:var(--beam)}
-.libitem{margin:6px 8px;padding:9px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;cursor:pointer}
-.libitem:hover{border-color:var(--beam)}
+.libitem{margin:5px 8px;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:2px;cursor:pointer;border-left:2px solid var(--line)}
+.libitem:hover{background:#242424;border-left-color:var(--beam)}
 .libitem .t{font-size:12.5px;font-weight:500}
 .libitem .s{font-family:var(--mono);font-size:10.5px;color:var(--txt2);margin-top:2px}
 .libitem.led:hover{border-color:var(--led)}
+.libgroup{display:flex;align-items:center;gap:8px;margin:5px 8px 0;padding:8px 10px;cursor:pointer;
+  background:var(--bg);border:1px solid var(--line);border-radius:2px;user-select:none}
+.libgroup:hover{background:#1C1C1C}
+.libgroup .chev{color:var(--txt2);font-size:10px;width:10px}
+.libgroup .bn{font-size:12px;font-weight:600;letter-spacing:.02em}
+.libgroup .bc{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--txt2)}
+.libgroup.open{border-left:2px solid var(--beam)}
+.libgroup.open .chev{color:var(--beam)}
 /* ---------- viewport ---------- */
 #vp{position:relative;overflow:hidden}
 #vp canvas{display:block}
 #hud{position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:10.5px;color:var(--txt2);line-height:1.7;pointer-events:none;text-shadow:0 1px 2px #000}
 #vpLabels{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
-.vlab{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10.5px;color:#21F1A8;background:rgba(16,16,16,.82);border:1px solid rgba(33,241,168,.45);border-radius:4px;padding:2px 7px;white-space:nowrap}
+.vlab{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10.5px;color:#21F1A8;background:rgba(16,16,16,.88);border:1px solid rgba(33,241,168,.4);border-radius:1px;padding:2px 7px;white-space:nowrap}
 #camViews{position:absolute;top:10px;left:12px;z-index:6;display:flex;gap:6px;flex-wrap:wrap;max-width:70%}
-.vchip{background:rgba(23,23,23,.88);border:1px solid var(--line);color:var(--txt);border-radius:14px;padding:4px 10px;font-size:11px;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:5px}
-.vchip:hover{border-color:var(--beam)}
+.vchip{background:rgba(23,23,23,.92);border:1px solid var(--line);color:var(--txt);border-radius:2px;padding:3px 9px;font-size:10.5px;font-family:var(--mono);cursor:pointer;display:flex;align-items:center;gap:5px}
+.vchip:hover{background:#242424;border-color:#3A3A3A}
 .vchip.vadd{color:var(--beam);border-style:dashed}
 .vchip.vfix{color:var(--led);border-color:rgba(90,209,222,.35)}
 .vchip.vfix:hover{border-color:var(--led)}
 .vchip .vx{color:var(--txt2);font-size:12px;padding:0 1px}
 .vchip .vx:hover{color:var(--warn)}
-#legend{position:absolute;right:12px;bottom:12px;background:rgba(16,16,16,.88);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:none}
-#legend .bar{width:150px;height:10px;border-radius:5px;background:linear-gradient(90deg,#0C1440,#1460C8,#18B478,#E8D440,#E5645A);margin:6px 0 3px}
+#legend{position:absolute;right:12px;bottom:12px;background:rgba(16,16,16,.92);border:1px solid var(--line);border-radius:2px;padding:9px 11px;display:none}
+#legend .bar{width:150px;height:8px;border-radius:1px;background:linear-gradient(90deg,#0C1440,#1460C8,#18B478,#E8D440,#E5645A);margin:6px 0 3px}
 #legend .lb{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--txt2)}
 #legend .tt{font-size:10.5px;color:var(--txt)}
 /* ---------- right panel ---------- */
 #right{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto}
-.sec{padding:10px 14px;border-bottom:1px solid var(--line)}
+.sec{padding:9px 14px;border-bottom:1px solid var(--line)}
 .row{display:flex;align-items:center;gap:6px;margin:6px 0;min-width:0}
 .row label{flex:0 0 72px;color:var(--txt2);font-size:11px}
-.row input[type=number],.row input[type=text],.row select{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:5px;padding:5px 6px;font-family:var(--mono);font-size:11px}
+.row input[type=number],.row input[type=text],.row select{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:1px;padding:5px 6px;font-family:var(--mono);font-size:11px}
 .row input[type=range]{flex:1 1 40px;min-width:36px}
 .row input.num{flex:0 0 68px;text-align:right}
 .row .unit{flex:0 0 auto;font-family:var(--mono);font-size:10px;color:var(--txt2);min-width:18px}
 .row .rv{font-family:var(--mono);font-size:11px;color:var(--txt2);width:38px;text-align:right}
 .row input:focus,.row select:focus{outline:none;border-color:var(--beam)}
-.calc{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:8px}
-.calc .cr{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;margin:3px 0}
-.calc .cr b{color:var(--beam);font-weight:600}
+.calc{background:var(--panel2);border:1px solid var(--line);border-left:2px solid var(--beam);border-radius:2px;padding:10px;margin-top:8px}
+.calc .cr{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;margin:2.5px 0}
+.calc .cr b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
 .calc .cr .v2{color:var(--led)}
 .empty{color:var(--txt2);font-size:12px;padding:18px 14px;line-height:1.7}
 .chk{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--txt2)}
 /* ---------- publish modal ---------- */
 #modal{position:fixed;inset:0;background:rgba(8,8,8,.72);display:none;align-items:center;justify-content:center;z-index:50}
-#modal .box{width:min(680px,92vw);max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+#modal .box{width:min(680px,92vw);max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:20px}
 #modal h2{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--beam);margin-bottom:12px}
-#snapimg{width:100%;border-radius:8px;border:1px solid var(--line)}
-#report{font-family:var(--mono);font-size:11px;white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin:12px 0;line-height:1.7;color:var(--txt)}
+#snapimg{width:100%;border-radius:2px;border:1px solid var(--line)}
+#report{font-family:var(--mono);font-size:10.5px;white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:2px;padding:12px;margin:12px 0;line-height:1.7;color:var(--txt)}
 .mbtns{display:flex;gap:8px;justify-content:flex-end}
-::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:0}
 #vp canvas{touch-action:none}
 #mobilebar{display:none}
 #backdrop{display:none}
@@ -218,6 +226,14 @@ const LENS = {
     {name:'ET-D75LE30 · 2.4–4.7',  tr:[2.4,4.7],  shift:[60,40]},
     {name:'ET-D75LE40 · 4.6–7.4',  tr:[4.6,7.4],  shift:[60,40]},
   ],
+  dle: [   // Panasonic RZ990/790/690 계열 (1칩 DLP)
+    {name:'ET-DLE020 · 0.28–0.30 UST', tr:[0.28,0.30], shift:[10,5]},
+    {name:'ET-DLE060 · 0.60–0.80',     tr:[0.60,0.80], shift:[19,10]},
+    {name:'ET-DLE105 · 1.02–1.36',     tr:[1.02,1.36], shift:[28,10]},
+    {name:'표준렌즈 · 1.71–2.41',       tr:[1.71,2.41], shift:[30,15]},
+    {name:'ET-DLE250 · 2.4–3.6',       tr:[2.4,3.6],   shift:[30,15]},
+    {name:'ET-DLE450 · 5.4–8.6',       tr:[5.4,8.6],   shift:[30,15]},
+  ],
   barco: [
     {name:'TLD+ 0.8–1.16',  tr:[0.8,1.16], shift:[40,20]},
     {name:'TLD+ 1.25–1.6',  tr:[1.25,1.6], shift:[100,30]},
@@ -230,26 +246,97 @@ const LENS = {
     {name:'1.63–2.71:1', tr:[1.63,2.71], shift:[100,40]},
     {name:'2.71–3.89:1', tr:[2.71,3.89], shift:[100,40]},
   ],
-  epson: [
-    {name:'ELPLU03S · 0.65–0.78', tr:[0.65,0.78], shift:[15,5]},
-    {name:'ELPLM15 · 1.44–2.32',  tr:[1.44,2.32], shift:[60,18]},
-    {name:'ELPLM11 · 2.42–3.71',  tr:[2.42,3.71], shift:[60,18]},
-    {name:'ELPLL08 · 3.71–5.45',  tr:[3.71,5.45], shift:[60,18]},
+  sonyF85: [   // VPL-FHZ85/80 배요넷 렌즈군
+    {name:'VPLL-3007 · 0.65 고정',  tr:[0.65,0.65], shift:[20,10]},
+    {name:'VPLL-Z3010 · 1.00–1.39', tr:[1.00,1.39], shift:[55,25]},
+    {name:'표준렌즈 · 1.39–2.23',    tr:[1.39,2.23], shift:[70,32]},
+    {name:'VPLL-Z3024 · 2.34–3.19', tr:[2.34,3.19], shift:[70,32]},
+    {name:'VPLL-Z3032 · 3.18–4.84', tr:[3.18,4.84], shift:[70,32]},
+  ],
+  sonyF101: [  // VPL-FHZ101L 렌즈군
+    {name:'VPLL-3003 · 0.33 UST',   tr:[0.33,0.33], shift:[15,5]},
+    {name:'VPLL-Z4011 · 1.30–1.96', tr:[1.30,1.96], shift:[60,32]},
+    {name:'VPLL-Z4015 · 1.85–2.44', tr:[1.85,2.44], shift:[60,32]},
+    {name:'VPLL-Z4019 · 2.44–3.15', tr:[2.44,3.15], shift:[60,32]},
+    {name:'VPLL-Z4025 · 3.15–4.07', tr:[3.15,4.07], shift:[60,32]},
+    {name:'VPLL-Z4045 · 4.07–7.34', tr:[4.07,7.34], shift:[60,32]},
+  ],
+  sonyGTZ: [
+    {name:'VPLL-Z7008 · 0.80–1.02', tr:[0.80,1.02], shift:[50,20]},
+    {name:'VPLL-Z7013 · 1.35–2.70', tr:[1.35,2.70], shift:[50,20]},
+  ],
+  phz60: [ {name:'내장 줌렌즈 · 1.23–1.97', tr:[1.23,1.97], shift:[55,25]} ],
+  l530:  [ {name:'내장 줌렌즈 · 1.35–2.20', tr:[1.35,2.20], shift:[50,20]} ],
+  epsonS: [   // 보유 렌즈 실측표 기준 (≤10,000lm급 WUXGA)
+    {name:'ELPLU04 · 0.64–0.77',  tr:[0.64,0.77], shift:[24,10]},
+    {name:'ELPLU03S · 0.65–0.78', tr:[0.65,0.78], shift:[24,10]},
+    {name:'ELPLR04 · 0.77 리어 고정', tr:[0.77,0.77], shift:[0,0]},
+    {name:'ELPLW05 · 1.04–1.46',  tr:[1.04,1.46], shift:[67,30]},
+    {name:'ELPLW08 · 1.18–1.66',  tr:[1.18,1.66], shift:[67,30]},
+    {name:'ELPLM08 · 1.42–2.28',  tr:[1.42,2.28], shift:[67,30]},
+    {name:'ELPLW06 · 1.62–2.22',  tr:[1.62,2.22], shift:[67,30]},
+    {name:'ELPLM15 · 2.16–3.48',  tr:[2.16,3.48], shift:[67,30]},
+    {name:'ELPLM10 · 3.32–5.06',  tr:[3.32,5.06], shift:[67,30]},
+  ],
+  epsonL: [   // L1505UH/L1755U/L20000U 대형 클래스
+    {name:'ELPLU03S · 0.64–0.78', tr:[0.64,0.78], shift:[20,8]},
+    {name:'ELPLW05 · 1.18–1.66',  tr:[1.18,1.66], shift:[60,18]},
+    {name:'ELPLM08 · 1.44–2.32 표준', tr:[1.44,2.32], shift:[60,18]},
+    {name:'ELPLM10 · 2.42–3.71',  tr:[2.42,3.71], shift:[60,18]},
+    {name:'ELPLM11 · 3.52–5.41',  tr:[3.52,5.41], shift:[60,18]},
+    {name:'ELPLL08 · 5.30–7.40',  tr:[5.30,7.40], shift:[60,18]},
+  ],
+  epson: [   // EB-PU 시리즈 (스펙시트 확정치로 정정)
+    {name:'ELPLX02S · 0.35 UST',  tr:[0.35,0.35], shift:[20,8]},
+    {name:'ELPLU03S · 0.65–0.78', tr:[0.65,0.78], shift:[20,8]},
+    {name:'ELPLM15 · 1.57–2.56 표준', tr:[1.57,2.56], shift:[60,18]},
+    {name:'ELPLM10 · 2.42–3.71',  tr:[2.42,3.71], shift:[60,18]},
+    {name:'ELPLM11 · 3.52–5.41',  tr:[3.52,5.41], shift:[60,18]},
+    {name:'ELPLL08 · 5.19–7.38',  tr:[5.19,7.38], shift:[60,18]},
   ],
   dp: [
     {name:'0.84–1.03:1', tr:[0.84,1.03], shift:[40,15]},
     {name:'1.54–1.93:1', tr:[1.54,1.93], shift:[60,30]},
     {name:'1.93–2.90:1', tr:[1.93,2.9],  shift:[60,30]},
   ],
+  benqST:  [ {name:'내장 단초점 · 0.69–0.83', tr:[0.69,0.83], shift:[0,0]} ],
+  benqMS:  [ {name:'내장 줌렌즈 · 1.86–2.04', tr:[1.86,2.04], shift:[0,0]} ],
+  benqLW:  [ {name:'내장 단초점 · 0.49 고정',  tr:[0.49,0.49], shift:[0,0]} ],
 };
 /* ---------- 프로젝터 기종 라이브러리 — 밝기·해상도는 기종 고정값 ---------- */
 const PROJ_LIB = [
+  // ── Panasonic
   {name:'Panasonic PT-RQ35K', brand:'Panasonic 3-Chip DLP', lumens:30500, res:[3840,2400], lenses:LENS.pana},
+  {name:'Panasonic PT-RQ25K', brand:'Panasonic 3-Chip DLP', lumens:20000, res:[3840,2400], lenses:LENS.pana},
   {name:'Panasonic PT-RZ21K', brand:'Panasonic 3-Chip DLP', lumens:20000, res:[1920,1200], lenses:LENS.pana},
+  {name:'Panasonic PT-RZ990', brand:'Panasonic 1-Chip DLP', lumens:9400,  res:[1920,1200], lenses:LENS.dle},
+  {name:'Panasonic PT-RZ790', brand:'Panasonic 1-Chip DLP', lumens:7000,  res:[1920,1200], lenses:LENS.dle},
+  {name:'Panasonic PT-RZ690', brand:'Panasonic 1-Chip DLP', lumens:6000,  res:[1920,1200], lenses:LENS.dle},
+  // ── Sony
+  {name:'Sony VPL-GTZ380',  brand:'Sony SXRD 4K', lumens:10000, res:[4096,2160], lenses:LENS.sonyGTZ},
+  {name:'Sony VPL-FHZ101L', brand:'Sony 3LCD',    lumens:10000, res:[1920,1200], lenses:LENS.sonyF101},
+  {name:'Sony VPL-FHZ85',   brand:'Sony 3LCD',    lumens:7300,  res:[1920,1200], lenses:LENS.sonyF85},
+  {name:'Sony VPL-FHZ80',   brand:'Sony 3LCD',    lumens:6000,  res:[1920,1200], lenses:LENS.sonyF85},
+  {name:'Sony VPL-PHZ60',   brand:'Sony 3LCD',    lumens:6000,  res:[1920,1200], lenses:LENS.phz60},
+  // ── Epson (대형)
+  {name:'Epson EB-PU2220B', brand:'Epson 3LCD Laser', lumens:20000, res:[1920,1200], lenses:LENS.epson},
+  {name:'Epson EB-PU2216B', brand:'Epson 3LCD Laser', lumens:16000, res:[1920,1200], lenses:LENS.epson},
+  {name:'Epson EB-PU2213B', brand:'Epson 3LCD Laser', lumens:13000, res:[1920,1200], lenses:LENS.epson},
+  {name:'Epson EB-L20000U', brand:'Epson 3LCD Laser', lumens:20000, res:[1920,1200], lenses:LENS.epsonL},
+  {name:'Epson EB-L1755U',  brand:'Epson 3LCD Laser', lumens:15000, res:[1920,1200], lenses:LENS.epsonL},
+  {name:'Epson EB-L1505UH', brand:'Epson 3LCD Laser', lumens:12000, res:[1920,1200], lenses:LENS.epsonL},
+  // ── Epson (중소형·보유 렌즈군)
+  {name:'Epson EB-Z10000U', brand:'Epson 3LCD',       lumens:10000, res:[1920,1200], lenses:LENS.epsonS},
+  {name:'Epson EB-PU1007B', brand:'Epson 3LCD Laser', lumens:7000,  res:[1920,1200], lenses:LENS.epsonS},
+  {name:'Epson EB-L530U',   brand:'Epson 3LCD Laser', lumens:5200,  res:[1920,1200], lenses:LENS.l530},
+  // ── BenQ (고정렌즈)
+  {name:'BenQ TH682ST', brand:'BenQ DLP · 단초점', lumens:3000, res:[1920,1080], lenses:LENS.benqST},
+  {name:'BenQ LW820ST', brand:'BenQ DLP · 단초점', lumens:3600, res:[1280,800],  lenses:LENS.benqLW},
+  {name:'BenQ MS527',   brand:'BenQ DLP',          lumens:3300, res:[800,600],   lenses:LENS.benqMS},
+  // ── 기타
   {name:'Barco UDX-4K32',     brand:'Barco',    lumens:31000, res:[3840,2400], lenses:LENS.barco},
   {name:'Barco F80-4K12',     brand:'Barco',    lumens:12000, res:[3840,2160], lenses:LENS.barco},
   {name:'Christie Crimson WU25', brand:'Christie', lumens:25000, res:[1920,1200], lenses:LENS.christie},
-  {name:'Epson EB-PU2220B',   brand:'Epson 3LCD', lumens:20000, res:[1920,1200], lenses:LENS.epson},
   {name:'E-Vision Laser 15000 WU', brand:'Digital Projection', lumens:15000, res:[1920,1200], lenses:LENS.dp},
   {name:'커스텀 프로젝터', brand:'Custom', lumens:10000, res:[1920,1080],
    lenses:[{name:'커스텀 렌즈', tr:[0.5,8.0], shift:[100,50]}], custom:true},
@@ -1050,10 +1137,62 @@ function centerHit(o){
 /* ---------- UI: 라이브러리 ---------- */
 const libItems = document.getElementById('libItems');
 let libTab = 'proj';
+let projFilter = '';
+const projOpenBrands = new Set();   // 펼쳐진 브랜드
+function brandKey(item){ return item.name.split(' ')[0]; }
 function renderLib(){
   libItems.innerHTML='';
-  const list = libTab==='proj'?PROJ_LIB : libTab==='surf'?SURF_LIB : LED_LIB;
-  list.forEach(item=>{
+  // 프로젝터 탭: 기종 검색창
+  if(libTab==='proj'){
+    const sw = document.createElement('div');
+    sw.style.cssText = 'margin:6px 8px 2px';
+    const si = document.createElement('input');
+    si.type = 'search'; si.placeholder = '기종 검색 — 예: FHZ, RZ9, 단초점';
+    si.value = projFilter;
+    si.style.cssText = 'width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);'+
+      'color:var(--txt);border-radius:1px;padding:6px 8px;font-family:var(--mono);font-size:11px';
+    si.oninput = ()=>{ projFilter = si.value; renderLib(); 
+      const ni = libItems.querySelector('input'); if(ni){ ni.focus(); ni.setSelectionRange(ni.value.length, ni.value.length); } };
+    sw.appendChild(si); libItems.appendChild(sw);
+  }
+  let list = libTab==='proj'?PROJ_LIB : libTab==='surf'?SURF_LIB : LED_LIB;
+  const searching = libTab==='proj' && projFilter.trim();
+  if(searching){
+    const q = projFilter.trim().toLowerCase();
+    list = PROJ_LIB.filter(it=> it.name.toLowerCase().includes(q) || it.brand.toLowerCase().includes(q));
+    if(!list.length){
+      const no = document.createElement('div');
+      no.style.cssText = 'padding:14px;font-size:11px;color:var(--txt2)';
+      no.textContent = '검색 결과 없음 — 커스텀 프로젝터로 직접 스펙을 입력할 수 있어요.';
+      libItems.appendChild(no);
+    }
+  }
+  // 프로젝터 탭(검색 중 아님): 브랜드 아코디언
+  if(libTab==='proj' && !searching){
+    const groups = [];
+    list.forEach(item=>{
+      const k = brandKey(item);
+      let g = groups.find(x=>x.key===k);
+      if(!g){ g = {key:k, items:[]}; groups.push(g); }
+      g.items.push(item);
+    });
+    groups.forEach(g=>{
+      const open = projOpenBrands.has(g.key);
+      const hd = document.createElement('div');
+      hd.className = 'libgroup' + (open?' open':'');
+      hd.innerHTML = `<span class="chev">${open?'▾':'▸'}</span><span class="bn">${g.key}</span><span class="bc">${g.items.length}종</span>`;
+      hd.onclick = ()=>{
+        open ? projOpenBrands.delete(g.key) : projOpenBrands.add(g.key);
+        renderLib();
+      };
+      libItems.appendChild(hd);
+      if(open) g.items.forEach(item=>libItems.appendChild(makeLibItem(item)));
+    });
+    return;
+  }
+  list.forEach(item=>libItems.appendChild(makeLibItem(item)));
+}
+function makeLibItem(item){
     const el = document.createElement('div');
     el.className = 'libitem'+(libTab==='led'?' led':'');
     el.innerHTML = `<div class="t">${item.name}</div><div class="s">${
@@ -1067,8 +1206,7 @@ function renderLib(){
       else addLED(item);
       if(item.kind!=='model') openPropsIfMobile();
     };
-    libItems.appendChild(el);
-  });
+    return el;
 }
 document.querySelectorAll('.libtabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.libtabs button').forEach(x=>x.classList.remove('on'));
