@@ -26,6 +26,7 @@
 .restore-banner{position:absolute;left:16px;right:16px;bottom:70px;z-index:24;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;padding:14px 16px;background:#253a32f5;border:1px solid #658e7e;border-radius:10px;box-shadow:0 8px 32px #0005;font-size:11px;line-height:1.8}.restore-banner>span{flex:1;min-width:140px}.restore-banner .tbtn{min-height:36px}.row input[aria-invalid=true]{border-color:var(--warn)}
 #mobilebar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}#mobileSaveStatus{font-size:9px;font-weight:400}
 .catalog-revision{margin:8px 12px 4px;color:var(--txt2);font:9px var(--mono);line-height:1.6}.model-badge{display:inline-block;margin-left:7px;padding:1px 5px;border-radius:4px;background:#283d36;color:var(--beam);font-size:9px;vertical-align:middle}.optics-note{font-size:11px;color:var(--txt2);line-height:1.7;margin:8px 0;overflow-wrap:anywhere}.optics-detail{margin:8px 0;font-size:11px;line-height:1.6}.optics-detail summary{cursor:pointer;color:var(--beam)}.spec-link{display:inline-block;margin:4px 10px 4px 0;color:var(--beam)}.spec-migration{position:fixed;z-index:200;left:50%;bottom:20px;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));max-height:50vh;overflow:auto;box-sizing:border-box;padding:18px;background:var(--panel);border:1px solid var(--beam);border-radius:12px;box-shadow:0 12px 40px #0008;font-size:12px;line-height:1.7}.spec-migration summary{cursor:pointer;margin:8px 0}.spec-migration li{margin:8px 0;overflow-wrap:anywhere}.spec-migration-actions{display:flex;gap:8px;margin-top:12px}
+.projector-search-controls{margin:6px 8px 2px}.projector-search-row{display:flex;gap:6px;align-items:center}#projectorSearch{flex:1;min-width:0;width:0;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:7px 8px;font:11px var(--sans)}#clearProjectorSearch{flex:none;padding:7px 8px;font-size:10px}.search-hint{margin-top:7px;color:var(--txt2);font-size:10px;line-height:1.6;overflow-wrap:anywhere}.search-status{margin:7px 12px;color:var(--txt2);font-size:10px;line-height:1.6}.search-empty{padding:14px 12px;color:var(--txt2);font-size:11px;line-height:1.7}
 </style>
 </head>
 <body>
@@ -5998,11 +5999,19 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-26.2';
+const SPEC_REVISION = '2026-10-26.3';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
+function projectorSearchTerms(query){
+  const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
+  let text=String(query).normalize('NFKC').toLowerCase().replace(/e[\s-]+vision/g,'evision');
+  for(const [brand,...aliases] of brands){
+    text=text.replace(new RegExp([brand,...aliases].join('|'),'g'),' '+brand+' ');
+  }
+  return text.trim().split(/\s+/).map(normalizedProjectorText).filter(Boolean);
+}
 function matchesProjectorQuery(item,query){
   const haystack=normalizedProjectorText([item.name,item.brand,...(item.searchAliases||[])].join(' '));
-  const terms=String(query).trim().split(/\s+/).map(normalizedProjectorText).filter(Boolean);
+  const terms=projectorSearchTerms(query);
   return terms.length>0&&terms.every(term=>haystack.includes(term));
 }
 function projectorLibrary(p){return PROJ_LIB.find(l=>l.name===p.model)||PROJ_LIB[PROJ_LIB.length-1];}
@@ -6997,62 +7006,69 @@ function centerHit(o){
 const libItems = document.getElementById('libItems');
 let libTab = 'proj';
 let projFilter = '';
-const projOpenBrands = new Set(['Epson']);   // 펼쳐진 브랜드
+let projectorSearchComposing = false;
+const projOpenBrands = new Set(['Epson']);
 function brandKey(item){ return item.name.split(' ')[0]; }
 function renderLib(){
-  libItems.innerHTML='';
-  // 프로젝터 탭: 기종 검색창
+  let listRoot=libItems;
   if(libTab==='proj'){
-    const sw = document.createElement('div');
-    sw.style.cssText = 'margin:6px 8px 2px';
-    const si = document.createElement('input');
-    si.type = 'search'; si.placeholder = '기종 검색 — 예: EB PU1008, 단초점'; si.setAttribute('aria-label','프로젝터 기종 검색');
-    si.value = projFilter;
-    si.style.cssText = 'width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);'+
-      'color:var(--txt);border-radius:1px;padding:6px 8px;font-family:var(--mono);font-size:11px';
-    si.oninput = ()=>{ projFilter = si.value; renderLib(); 
-      const ni = libItems.querySelector('input'); if(ni){ ni.focus(); ni.setSelectionRange(ni.value.length, ni.value.length); } };
-    sw.appendChild(si); libItems.appendChild(sw);
-    const revision=document.createElement('div');revision.id='catalogRevision';revision.className='catalog-revision';
-    revision.textContent=`장비 목록 ${SPEC_REVISION} · ${PROJ_LIB.filter(m=>!m.custom).length}기종`;libItems.appendChild(revision);
+    let search=libItems.querySelector('#projectorSearch');
+    if(!search){
+      libItems.replaceChildren();
+      const controls=document.createElement('div');controls.className='projector-search-controls';
+      const row=document.createElement('div');row.className='projector-search-row';
+      search=document.createElement('input');search.id='projectorSearch';search.type='search';
+      search.placeholder='모델명 · 브랜드 검색';search.setAttribute('aria-label','프로젝터 기종 검색');
+      search.autocomplete='off';search.spellcheck=false;search.value=projFilter;
+      const clear=document.createElement('button');clear.id='clearProjectorSearch';clear.className='tbtn';clear.type='button';clear.textContent='지우기';
+      clear.setAttribute('aria-label','기종 검색어 지우기');
+      const update=()=>{projFilter=search.value;renderLib();};
+      search.addEventListener('compositionstart',()=>{projectorSearchComposing=true;});
+      search.addEventListener('compositionend',()=>{projectorSearchComposing=false;update();});
+      search.addEventListener('input',event=>{projFilter=search.value;if(!event.isComposing&&!projectorSearchComposing)renderLib();});
+      search.addEventListener('search',()=>{if(!projectorSearchComposing)update();});
+      clear.onclick=()=>{projectorSearchComposing=false;projFilter='';search.value='';renderLib();search.focus();};
+      row.append(search,clear);controls.appendChild(row);
+      const hint=document.createElement('div');hint.className='search-hint';hint.textContent='예: L210SF · U50 · LW820ST · 벤큐';controls.appendChild(hint);
+      const revision=document.createElement('div');revision.id='catalogRevision';revision.className='catalog-revision';
+      revision.textContent=`장비 목록 ${SPEC_REVISION} · ${PROJ_LIB.filter(m=>!m.custom).length}기종`;
+      const status=document.createElement('div');status.id='projectorSearchStatus';status.className='search-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+      const results=document.createElement('div');results.id='projectorResults';
+      libItems.append(controls,revision,status,results);
+    }
+    if(!projectorSearchComposing&&search.value!==projFilter)search.value=projFilter;
+    libItems.querySelector('#clearProjectorSearch').disabled=!projFilter;
+    listRoot=libItems.querySelector('#projectorResults');listRoot.replaceChildren();
+  }else{
+    projectorSearchComposing=false;libItems.replaceChildren();
   }
-  let list = libTab==='proj'?PROJ_LIB : libTab==='surf'?SURF_LIB : LED_LIB;
-  const searching = libTab==='proj' && projFilter.trim();
-  if(searching){
-    const q = projFilter.trim().toLowerCase();
-    list = PROJ_LIB.filter(it=>matchesProjectorQuery(it,q));
+  let list=libTab==='proj'?PROJ_LIB:libTab==='surf'?SURF_LIB:LED_LIB;
+  const searching=libTab==='proj'&&!!projFilter.trim();
+  if(searching)list=PROJ_LIB.filter(item=>matchesProjectorQuery(item,projFilter));
+  if(libTab==='proj'){
+    libItems.querySelector('#projectorSearchStatus').textContent=searching?`검색 결과 ${list.length}개`:'모든 브랜드에서 검색할 수 있어요.';
     if(!list.length){
-      const no = document.createElement('div');
-      no.style.cssText = 'padding:14px;font-size:11px;color:var(--txt2)';
-      no.textContent = '검색 결과 없음 — 커스텀 프로젝터로 직접 스펙을 입력할 수 있어요.';
-      libItems.appendChild(no);
+      const empty=document.createElement('div');empty.className='search-empty';
+      empty.textContent='일치하는 기종이 없어요. 모델명 일부(예: 210, U50, 820)로 검색해 보세요.';listRoot.appendChild(empty);
     }
   }
-  // 프로젝터 탭(검색 중 아님): 브랜드 아코디언
-  if(libTab==='proj' && !searching){
-    const groups = [];
+  if(libTab==='proj'&&!searching){
+    const groups=[];
     list.forEach(item=>{
-      const k = brandKey(item);
-      let g = groups.find(x=>x.key===k);
-      if(!g){ g = {key:k, items:[]}; groups.push(g); }
-      g.items.push(item);
+      const key=brandKey(item);let group=groups.find(g=>g.key===key);
+      if(!group){group={key,items:[]};groups.push(group);}group.items.push(item);
     });
-    groups.forEach(g=>{
-      const open = projOpenBrands.has(g.key);
-      const hd = document.createElement('div');
-      hd.className = 'libgroup' + (open?' open':'');
-      hd.innerHTML = `<span class="chev">${open?'▾':'▸'}</span><span class="bn">${g.key}</span><span class="bc">${g.items.length}종</span>`;
-      hd.onclick = ()=>{
-        open ? projOpenBrands.delete(g.key) : projOpenBrands.add(g.key);
-        renderLib();
-      };
-      libItems.appendChild(hd);
-      if(open) g.items.forEach(item=>libItems.appendChild(makeLibItem(item)));
+    groups.forEach(group=>{
+      const open=projOpenBrands.has(group.key),heading=document.createElement('div');
+      heading.className='libgroup'+(open?' open':'');
+      heading.innerHTML=`<span class="chev">${open?'▾':'▸'}</span><span class="bn">${group.key}</span><span class="bc">${group.items.length}종</span>`;
+      heading.onclick=()=>{open?projOpenBrands.delete(group.key):projOpenBrands.add(group.key);renderLib();};
+      listRoot.appendChild(heading);
+      if(open)group.items.forEach(item=>listRoot.appendChild(makeLibItem(item)));
     });
-    return;
-  }
-  list.forEach(item=>libItems.appendChild(makeLibItem(item)));
+  }else list.forEach(item=>listRoot.appendChild(makeLibItem(item)));
 }
+
 function makeLibItem(item){
     const el = document.createElement('div');
     el.className = 'libitem'+(libTab==='led'?' led':'');
@@ -8567,8 +8583,8 @@ function initializeState(){
   document.addEventListener('pointerdown',e=>{if(e.target===renderer.domElement || e.target.matches('input[type="range"]')){flushHistory();historyPointer=true;}},true);
   const finishPointer=()=>{if(historyPointer){historyPointer=false;queueMicrotask(()=>{commitHistory();scheduleAutosave();});}};
   window.addEventListener('pointerup',finishPointer,true);window.addEventListener('pointercancel',finishPointer,true);
-  document.addEventListener('input',()=>{scheduleHistory();scheduleAutosave();});
-  document.addEventListener('change',()=>queueMicrotask(()=>{commitHistory();scheduleAutosave();}));
+  document.addEventListener('input',e=>{if(e.target.closest('#libItems'))return;scheduleHistory();scheduleAutosave();});
+  document.addEventListener('change',e=>{if(e.target.closest('#libItems'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
   document.addEventListener('focusout',()=>queueMicrotask(commitHistory));
   document.addEventListener('click',e=>{
     if(e.target.closest('#btnUndo,#btnRedo,#btnSave,#mJson,#btnLoad,#fileIn,#mPng,#mTop,#mClose,#btnPublish,#viewModes,#btnMeasure,#btnBlend'))return;
