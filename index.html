@@ -28,6 +28,8 @@
 .catalog-revision{margin:8px 12px 4px;color:var(--txt2);font:9px var(--mono);line-height:1.6}.model-badge{display:inline-block;margin-left:7px;padding:1px 5px;border-radius:4px;background:#283d36;color:var(--beam);font-size:9px;vertical-align:middle}.optics-note{font-size:11px;color:var(--txt2);line-height:1.7;margin:8px 0;overflow-wrap:anywhere}.optics-detail{margin:8px 0;font-size:11px;line-height:1.6}.optics-detail summary{cursor:pointer;color:var(--beam)}.spec-link{display:inline-block;margin:4px 10px 4px 0;color:var(--beam)}.spec-migration{position:fixed;z-index:200;left:50%;bottom:20px;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));max-height:50vh;overflow:auto;box-sizing:border-box;padding:18px;background:var(--panel);border:1px solid var(--beam);border-radius:12px;box-shadow:0 12px 40px #0008;font-size:12px;line-height:1.7}.spec-migration summary{cursor:pointer;margin:8px 0}.spec-migration li{margin:8px 0;overflow-wrap:anywhere}.spec-migration-actions{display:flex;gap:8px;margin-top:12px}
 .projector-search-controls{margin:6px 8px 2px}.projector-search-row{display:flex;gap:6px;align-items:center}#projectorSearch{flex:1;min-width:0;width:0;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:7px 8px;font:11px var(--sans)}#clearProjectorSearch{flex:none;padding:7px 8px;font-size:10px}.search-hint{margin-top:7px;color:var(--txt2);font-size:10px;line-height:1.6;overflow-wrap:anywhere}.search-status{margin:7px 12px;color:var(--txt2);font-size:10px;line-height:1.6}.search-empty{padding:14px 12px;color:var(--txt2);font-size:11px;line-height:1.7}
 #right{overscroll-behavior:contain;overflow-anchor:none}#projCalc .cr{min-height:18px}#projCalc .cr>span{white-space:nowrap}#projCalc .cr>b{white-space:nowrap;font-size:10px}.nit-meter{position:relative;height:8px;border-radius:4px;margin:7px 0 0}.nit-marker{position:absolute;top:0;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid var(--txt)}.nit-status{font-size:10px;line-height:16px;height:32px;display:flex;align-items:center;overflow-wrap:anywhere}
+.ruler-panel{position:absolute;z-index:12;left:16px;top:160px;width:min(304px,calc(100% - 32px));max-height:calc(100% - 190px);overflow:auto;background:var(--panel);border:1px solid #75684d;border-radius:10px;box-shadow:0 8px 24px #0005;color:var(--txt);font-size:11px;overscroll-behavior:contain}.ruler-panel[hidden]{display:none}.ruler-panel>summary{cursor:pointer;padding:10px 12px;font-weight:500}.ruler-panel>summary span{float:right;color:#ffd18b;font:10px var(--mono);max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ruler-body{padding:0 12px 12px}.ruler-intro,.ruler-help{font-size:10px;line-height:1.6;color:var(--txt2)}.ruler-intro{margin-bottom:8px}.ruler-help{margin-top:10px}.ruler-endpoint{display:flex;gap:6px;margin:6px 0}.ruler-endpoint button{flex:none;padding:5px 8px;font-size:10px}.ruler-endpoint button[aria-pressed=true]{border-color:#ffd18b;color:#ffd18b}.ruler-panel select,.ruler-panel input{border:1px solid var(--line);border-radius:5px;padding:6px;background:var(--bg);color:var(--txt);font:10px var(--sans);min-width:0}.ruler-endpoint select{flex:1;width:0}.ruler-coordinates{margin:8px 0}.ruler-coordinates>summary{color:var(--txt2);cursor:pointer;font-size:10px}.ruler-coordinates fieldset{display:flex;gap:6px;border:0;padding:6px 0}.ruler-coordinates legend{color:#ffd18b;font-size:10px}.ruler-coordinates label{flex:1;min-width:0;color:var(--txt2);font-size:10px}.ruler-coordinates input{width:100%;margin-top:3px}.ruler-result{display:grid;gap:4px;margin:10px 0;font-variant-numeric:tabular-nums}.ruler-result strong{font:500 15px var(--mono);color:#ffd18b}.ruler-result span{font-size:10px;color:var(--txt2)}.ruler-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.ruler-actions .tbtn,.ruler-list-heading .tbtn,#rulerList .tbtn{padding:5px 7px;font-size:10px}.ruler-actions label{margin-left:auto;color:var(--txt2);font-size:10px}.ruler-list-heading{display:flex;justify-content:space-between;align-items:center;margin:12px 0 5px;color:var(--txt2);font-size:10px}#rulerList{list-style:none;max-height:140px;overflow:auto}#rulerList li{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}.ruler-item-text{flex:1;min-width:0;font-size:10px}.ruler-item-text b{display:block;color:#ffd18b;font:500 11px var(--mono);margin-top:4px}.ruler-item-text small{display:block;overflow-wrap:anywhere;color:var(--txt2);font-size:9px;line-height:1.6;margin-top:3px}.ruler-label{color:#ffd18b;border-color:#75684d;background:#24271f;z-index:1}.ruler-panel:not([open]){overflow:hidden}.ruler-panel:not([open])>summary{padding:10px 12px}@media(max-width:959px){.ruler-panel{left:12px;width:min(304px,calc(100% - 24px));max-height:calc(100% - 170px)}.ruler-panel input{font-size:16px}.ruler-panel .tbtn{min-height:36px}}
+
 </style>
 </head>
 <body>
@@ -6000,7 +6002,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-27.1';
+const SPEC_REVISION = '2026-10-27.2';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6860,6 +6862,7 @@ function removeObj(o){
   retainedObjects.add(o);
   if(o.content) retainedMedia.add(o.content);
   if(o.ledSrc) retainedMedia.add(o.ledSrc);
+  detachMeasurementsFromObject(o);
   scene.remove(o.mesh);objects=objects.filter(x=>x!==o);
   if(selected===o)select(null);
   refreshTree();commitHistory();reconcileMedia();
@@ -7723,74 +7726,220 @@ function finishPanel(){
   }
 }
 
-/* ---------- 측정 도구 ---------- */
-const measure = {on:false, p1:null, p2:null};
-function measureDot(){
-  const g = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8),
-    new THREE.MeshBasicMaterial({color:0x21F1A8, depthTest:false}));
-  g.renderOrder = 999; g.visible = false; g.layers.set(1);
-  scene.add(g); return g;
-}
-const mDot1 = measureDot(), mDot2 = measureDot();
-const mLineGeo = new THREE.BufferGeometry();
-mLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
-const mLine = new THREE.Line(mLineGeo,
-  new THREE.LineBasicMaterial({color:0x21F1A8, transparent:true, opacity:0.95, depthTest:false}));
-mLine.renderOrder = 999; mLine.visible = false; mLine.frustumCulled = false; mLine.layers.set(1);
-scene.add(mLine);
-const mLab = document.createElement('div');
-mLab.className = 'vlab';
-mLab.style.display = 'none';
-document.getElementById('vpLabels').appendChild(mLab);  // vpLabels const 선언 순서와 무관하게 DOM 직접 참조
-function measurableMeshes(){
-  const list = [];
-  if(sysWall.visible) list.push(sysWall);
-  if(sysFloor.visible) list.push(sysFloor);
-  objects.filter(o=>o.visible).forEach(o=>list.push(o.mesh));
-  return list;
-}
-function clearMeasure(){
-  measure.p1 = measure.p2 = null;
-  mDot1.visible = mDot2.visible = mLine.visible = false;
-  mLab.style.display = 'none';
-}
-function updateMeasureVisuals(){
-  mDot1.visible = !!measure.p1;
-  if(measure.p1) mDot1.position.copy(measure.p1);
-  mDot2.visible = !!measure.p2;
-  if(measure.p2) mDot2.position.copy(measure.p2);
-  if(measure.p1 && measure.p2){
-    const a = mLineGeo.attributes.position.array;
-    a[0]=measure.p1.x; a[1]=measure.p1.y; a[2]=measure.p1.z;
-    a[3]=measure.p2.x; a[4]=measure.p2.y; a[5]=measure.p2.z;
-    mLineGeo.attributes.position.needsUpdate = true;
-    mLine.visible = true;
-    const d = measure.p1.distanceTo(measure.p2);
-    const dv = new THREE.Vector3().subVectors(measure.p2, measure.p1);
-    mLab.innerHTML = `${Math.round(d*1000).toLocaleString()} mm<br>` +
-      `<span style="font-size:9px;opacity:.75">ΔX ${Math.round(dv.x*1000)} · ΔY ${Math.round(dv.y*1000)} · ΔZ ${Math.round(dv.z*1000)}</span>`;
-  } else {
-    mLine.visible = false; mLab.style.display = 'none';
+/* ---------- 줄자 · 치수선 ---------- */
+const measure={on:false,unit:'mm',items:[],draft:[null,null],active:0,invalidCoordinates:[false,false]};
+const rulerVisuals=new Map();
+const rulerDotGeometry=new THREE.SphereGeometry(1,8,6);
+const rulerMaterial=new THREE.MeshBasicMaterial({color:0xffd18b,depthTest:false});
+const rulerLineMaterial=new THREE.LineBasicMaterial({color:0xffd18b,depthTest:false,transparent:true,opacity:.95});
+const rulerPanel=document.createElement('details');
+rulerPanel.id='rulerPanel';rulerPanel.className='ruler-panel';rulerPanel.open=true;rulerPanel.hidden=true;
+rulerPanel.innerHTML=`<summary>줄자 <span id="rulerSummary">시작점 선택</span></summary>
+  <div class="ruler-body">
+    <div class="ruler-intro">두 점을 클릭하거나 기종·좌표를 지정하세요.<br>프로젝터는 렌즈 기준점에 연결됩니다.</div>
+    <div id="rulerEndpoints"></div>
+    <details class="ruler-coordinates"><summary>좌표로 지정 · mm</summary><div id="rulerCoordinates"></div></details>
+    <div class="ruler-result" aria-live="polite"><strong id="rulerDistance">거리 —</strong><span id="rulerComponents">수평 — · 높이차 —</span></div>
+    <div class="ruler-actions"><button id="rulerAdd" class="tbtn primary" disabled>치수선 추가</button><button id="rulerReset" class="tbtn">다시 재기</button><label>단위 <select id="rulerUnit" aria-label="줄자 표시 단위"><option value="mm">mm</option><option value="m">m</option></select></label></div>
+    <div class="ruler-list-heading"><span id="rulerCount">치수선 0 / 50</span><button id="rulerClear" class="tbtn" disabled>전체 삭제</button></div>
+    <ol id="rulerList"></ol>
+    <p class="ruler-help">제목을 누르면 접기 · 표면의 점은 위치 고정<br>드래그: 시점 회전 · Shift+드래그: 화면 이동<br>Esc: 찍던 점 취소 · 줄자를 꺼도 치수선은 유지</p>
+  </div>`;
+vpEl.appendChild(rulerPanel);
+const rulerSelects=[],rulerPointButtons=[],rulerCoordinateFields=[];
+['A','B'].forEach((letter,index)=>{
+  const row=document.createElement('div');row.className='ruler-endpoint';
+  const button=document.createElement('button');button.className='tbtn';button.textContent=letter+'점 찍기';button.setAttribute('aria-label','줄자 '+letter+'점 화면에서 선택');
+  button.onclick=()=>{measure.active=index;rulerPanel.open=false;renderRulerDraft();};
+  const select=document.createElement('select');select.setAttribute('aria-label','줄자 '+letter+'점 기준');
+  select.onchange=()=>{
+    measure.invalidCoordinates[index]=false;
+    if(select.value==='point'){measure.draft[index]=null;measure.active=index;}
+    else {const object=objects.find(o=>String(o.id)===select.value && o.type==='proj' && o.visible);if(object)measure.draft[index]={kind:'projector',object};measure.active=1-index;}
+    renderRulerDraft();
+  };
+  row.append(button,select);document.getElementById('rulerEndpoints').appendChild(row);rulerSelects.push(select);rulerPointButtons.push(button);
+  const coordinates=document.createElement('fieldset');const legend=document.createElement('legend');legend.textContent=letter+'점';coordinates.appendChild(legend);
+  const fields=[];
+  ['X','Y','Z'].forEach((axis,axisIndex)=>{
+    const label=document.createElement('label');label.textContent=axis;
+    const field=document.createElement('input');field.type='number';field.step='1';field.min='-1000000';field.max='1000000';field.placeholder='mm';field.setAttribute('aria-label','줄자 '+letter+'점 '+axis+' (mm)');
+    const commit=()=>{
+      const values=fields.map(f=>f.value.trim());
+      const invalid=values.length!==3 || values.some(v=>v==='' || !Number.isFinite(Number(v)) || Math.abs(Number(v))>1000000);
+      measure.invalidCoordinates[index]=invalid;
+      fields.forEach((input,i)=>input.setAttribute('aria-invalid',String(values[i]==='' || !Number.isFinite(Number(values[i])) || Math.abs(Number(values[i]))>1000000)));
+      if(invalid){document.getElementById('rulerAdd').disabled=true;return;}
+      measure.draft[index]={kind:'point',point:values.map(v=>Number(v)/1000)};measure.active=1-index;renderRulerDraft();
+    };
+    field.addEventListener('input',commit);field.addEventListener('change',commit);field.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commit();field.blur();}});
+    fields.push(field);label.appendChild(field);coordinates.appendChild(label);
+  });
+  document.getElementById('rulerCoordinates').appendChild(coordinates);rulerCoordinateFields.push(fields);
+});
+function measurementPoint(endpoint){
+  if(!endpoint)return null;
+  if(endpoint.kind==='projector'){
+    const p=endpoint.object?.params;
+    return p && objects.includes(endpoint.object)?new THREE.Vector3(p.x,p.y,p.z):null;
   }
+  return new THREE.Vector3(...endpoint.point);
+}
+function measurementMetrics(a,b){
+  const p=measurementPoint(a),q=measurementPoint(b);if(!p || !q)return null;
+  const dx=q.x-p.x,dy=q.y-p.y,dz=q.z-p.z;
+  return {a:p,b:q,distance:Math.hypot(dx,dy,dz),horizontal:Math.hypot(dx,dz),height:Math.abs(dy),dx,dy,dz};
+}
+function measurementLength(meters){return measure.unit==='m'?meters.toFixed(3)+' m':Math.round(meters*1000).toLocaleString()+' mm';}
+function measurementEndpointLabel(endpoint){
+  if(endpoint?.kind==='projector')return endpoint.object.name+' · 렌즈';
+  const p=measurementPoint(endpoint);return p?'('+[p.x,p.y,p.z].map(v=>Math.round(v*1000).toLocaleString()).join(', ')+') mm':'미지정';
+}
+function snapshotMeasurements(){
+  const snapshot=endpoint=>endpoint.kind==='projector'?{kind:'projector',objectIndex:objects.indexOf(endpoint.object)}:{kind:'point',point:endpoint.point.slice()};
+  return {unit:measure.unit,items:measure.items.map(item=>({id:item.id,name:item.name,a:snapshot(item.a),b:snapshot(item.b)}))};
+}
+function restoreMeasurements(data){
+  const restore=endpoint=>endpoint.kind==='projector'?{kind:'projector',object:objects[endpoint.objectIndex]}:{kind:'point',point:endpoint.point.slice()};
+  measure.unit=data?.unit||'mm';measure.items=(data?.items||[]).map(item=>({id:item.id,name:item.name,a:restore(item.a),b:restore(item.b)}));
+  clearMeasure();renderRulerList();refreshMeasurementOptions();updateMeasureLabel();
+}
+function detachMeasurementsFromObject(object){
+  const detach=endpoint=>endpoint?.kind==='projector' && endpoint.object===object?{kind:'point',point:[object.params.x,object.params.y,object.params.z]}:endpoint;
+  measure.items.forEach(item=>{item.a=detach(item.a);item.b=detach(item.b);});measure.draft=measure.draft.map(detach);
+  renderRulerList();renderRulerDraft();
+}
+function refreshMeasurementOptions(){
+  if(typeof rulerSelects==='undefined')return;
+  rulerSelects.forEach((select,index)=>{
+    const previous=measure.draft[index];select.replaceChildren();
+    const point=document.createElement('option');point.value='point';point.textContent=previous?.kind==='point'?'지정한 점 · 좌표':'화면의 점 / 좌표';select.appendChild(point);
+    objects.filter(o=>o.type==='proj' && (o.visible || previous?.object===o)).forEach(o=>{
+      const option=document.createElement('option');option.value=String(o.id);option.textContent=o.name+(o.visible?'':' (숨김)');select.appendChild(option);
+    });
+    select.value=previous?.kind==='projector'?String(previous.object.id):'point';
+  });
+}
+function renderRulerDraft(){
+  refreshMeasurementOptions();
+  const metrics=measurementMetrics(...measure.draft);
+  document.getElementById('rulerDistance').textContent=metrics?'직선 '+measurementLength(metrics.distance):'직선거리 —';
+  document.getElementById('rulerComponents').textContent=metrics?'수평 '+measurementLength(metrics.horizontal)+' · 높이차 '+measurementLength(metrics.height):'수평 — · 높이차 —';
+  document.getElementById('rulerSummary').textContent=metrics?measurementLength(metrics.distance):['A 시작점 선택','B 끝점 선택'][measure.active];
+  document.getElementById('rulerAdd').disabled=!metrics || metrics.distance<.0005 || measure.items.length>=50 || measure.invalidCoordinates.some(Boolean);
+  document.getElementById('rulerUnit').value=measure.unit;
+  rulerPointButtons.forEach((button,index)=>button.setAttribute('aria-pressed',String(measure.active===index)));
+  measure.draft.forEach((endpoint,index)=>{
+    const p=measurementPoint(endpoint);rulerCoordinateFields[index].forEach((field,axis)=>{
+      if(!measure.invalidCoordinates[index] && document.activeElement!==field){field.value=p?Number(([p.x,p.y,p.z][axis]*1000).toFixed(3)):'';field.removeAttribute('aria-invalid');}
+    });
+  });
+  updateMeasureLabel();
+}
+function clearMeasure(){measure.draft=[null,null];measure.active=0;measure.invalidCoordinates=[false,false];renderRulerDraft();}
+function addMeasurement(){
+  const metrics=measurementMetrics(...measure.draft);if(!metrics || metrics.distance<.0005 || measure.items.length>=50 || measure.invalidCoordinates.some(Boolean))return;
+  flushHistory();let id=1;const used=new Set(measure.items.map(item=>item.id));while(used.has(id))id++;
+  const clone=endpoint=>endpoint.kind==='projector'?{...endpoint}:{kind:'point',point:endpoint.point.slice()};
+  measure.items.push({id,name:'치수 '+id,a:clone(measure.draft[0]),b:clone(measure.draft[1])});
+  clearMeasure();renderRulerList();commitHistory();scheduleAutosave();
+}
+function removeMeasurement(id){flushHistory();measure.items=measure.items.filter(item=>item.id!==id);renderRulerList();renderRulerDraft();commitHistory();scheduleAutosave();}
+function renderRulerList(){
+  const list=document.getElementById('rulerList');list.replaceChildren();
+  measure.items.forEach(item=>{
+    const row=document.createElement('li');row.dataset.measurement=String(item.id);
+    const text=document.createElement('span');text.className='ruler-item-text';text.textContent=item.name;
+    const value=document.createElement('b');value.dataset.rulerValue=String(item.id);text.appendChild(value);
+    const components=document.createElement('small');components.dataset.rulerComponents=String(item.id);text.appendChild(components);
+    const detail=document.createElement('small');detail.textContent=measurementEndpointLabel(item.a)+' → '+measurementEndpointLabel(item.b);text.appendChild(detail);
+    const button=document.createElement('button');button.className='tbtn';button.textContent='삭제';button.setAttribute('aria-label',item.name+' 삭제');button.onclick=()=>removeMeasurement(item.id);
+    row.append(text,button);list.appendChild(row);
+  });
+  document.getElementById('rulerCount').textContent='치수선 '+measure.items.length+' / 50';
+  document.getElementById('rulerClear').disabled=!measure.items.length;updateMeasureLabel();
+}
+function measurableMeshes(){
+  const list=[];if(sysWall.visible)list.push(sysWall);if(sysFloor.visible)list.push(sysFloor);
+  objects.filter(o=>o.visible).forEach(o=>{
+    if(o.type==='proj')o.mesh.traverse(mesh=>{if(mesh.isMesh && mesh.visible && mesh.userData.oid===o.id)list.push(mesh);});
+    else list.push(o.mesh);
+  });return list;
+}
+function measurementHit(){
+  const hits=ray.intersectObjects(measurableMeshes(),true).filter(hit=>{
+    for(let mesh=hit.object;mesh;mesh=mesh.parent)if(!mesh.visible)return false;return true;
+  });
+  if(!hits.length)return null;
+  const hit=hits[0];let target=hit.object,object=null;
+  while(target && !object){if(target.userData.oid)object=objects.find(o=>o.id===target.userData.oid);target=target.parent;}
+  return object?.type==='proj'?{kind:'projector',object}:{kind:'point',point:[hit.point.x,hit.point.y,hit.point.z]};
 }
 function measureClick(){
-  const hits = ray.intersectObjects(measurableMeshes(), true);
-  if(!hits.length) return false;
-  const pt = hits[0].point.clone();
-  if(!measure.p1 || (measure.p1 && measure.p2)){ measure.p1 = pt; measure.p2 = null; }
-  else measure.p2 = pt;
-  updateMeasureVisuals();
-  return true;
+  const endpoint=measurementHit();if(!endpoint){toast('벽·바닥·오브젝트를 클릭하거나 좌표를 입력해 주세요.');return false;}
+  measure.invalidCoordinates[measure.active]=false;measure.draft[measure.active]=endpoint;measure.active=1-measure.active;renderRulerDraft();return true;
 }
-const btnMeasure = document.getElementById('btnMeasure');
-btnMeasure.onclick = ()=>{
-  measure.on = !measure.on;
-  btnMeasure.classList.toggle('toggled', measure.on);
-  if(!measure.on) clearMeasure();
+function createMeasurementVisual(){
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(6),3));
+  const line=new THREE.Line(geometry,rulerLineMaterial);line.layers.set(1);line.renderOrder=1000;line.frustumCulled=false;scene.add(line);
+  const dots=[0,1].map(()=>{const dot=new THREE.Mesh(rulerDotGeometry,rulerMaterial);dot.layers.set(1);dot.renderOrder=1001;scene.add(dot);return dot;});
+  const label=document.createElement('div');label.className='vlab ruler-label';document.getElementById('vpLabels').appendChild(label);
+  return {line,dots,label};
+}
+function updateMeasureLabel(){
+  const records=measure.items.map(item=>({key:String(item.id),item}));
+  if(measure.on && measure.draft.some(Boolean))records.push({key:'draft',item:{name:'측정 중',a:measure.draft[0],b:measure.draft[1]}});
+  const live=new Set(records.map(record=>record.key));
+  rulerVisuals.forEach((visual,key)=>{if(!live.has(key)){scene.remove(visual.line);visual.line.geometry.dispose();visual.dots.forEach(dot=>scene.remove(dot));visual.label.remove();rulerVisuals.delete(key);}});
+  records.forEach(({key,item})=>{
+    let visual=rulerVisuals.get(key);if(!visual){visual=createMeasurementVisual();rulerVisuals.set(key,visual);}
+    const points=[measurementPoint(item.a),measurementPoint(item.b)],metrics=measurementMetrics(item.a,item.b);
+    visual.dots.forEach((dot,index)=>{const point=points[index];dot.visible=!!point;if(point){dot.position.copy(point);dot.scale.setScalar(THREE.MathUtils.clamp(camera.position.distanceTo(point)*.004,.025,.3));}});
+    visual.line.visible=!!metrics;
+    if(!metrics){visual.label.style.display='none';return;}
+    const array=visual.line.geometry.attributes.position.array;array.set([metrics.a.x,metrics.a.y,metrics.a.z,metrics.b.x,metrics.b.y,metrics.b.z]);visual.line.geometry.attributes.position.needsUpdate=true;
+    const text=item.name+' · '+measurementLength(metrics.distance);if(visual.label.textContent!==text)visual.label.textContent=text;
+    placeLab(visual.label,new THREE.Vector3().addVectors(metrics.a,metrics.b).multiplyScalar(.5),true);
+    const value=document.querySelector(`[data-ruler-value="${key}"]`);if(value){const next=measurementLength(metrics.distance);if(value.textContent!==next)value.textContent=next;}
+    const components=document.querySelector(`[data-ruler-components="${key}"]`);if(components){const next='수평 '+measurementLength(metrics.horizontal)+' · 높이차 '+measurementLength(metrics.height);if(components.textContent!==next)components.textContent=next;}
+  });
+  // Draft readouts follow connected projector positions without replacing inputs.
+  if(measure.on){
+    const metrics=measurementMetrics(...measure.draft);
+    if(metrics){document.getElementById('rulerDistance').textContent='직선 '+measurementLength(metrics.distance);document.getElementById('rulerComponents').textContent='수평 '+measurementLength(metrics.horizontal)+' · 높이차 '+measurementLength(metrics.height);document.getElementById('rulerSummary').textContent=measurementLength(metrics.distance);}
+    measure.draft.forEach((endpoint,index)=>{if(endpoint?.kind!=='projector' || measure.invalidCoordinates[index])return;
+      const p=measurementPoint(endpoint);if(!p)return;
+      rulerCoordinateFields[index].forEach((field,axis)=>{if(document.activeElement!==field){const value=String(Number(([p.x,p.y,p.z][axis]*1000).toFixed(3)));if(field.value!==value)field.value=value;}});
+    });
+  }
+}
+function measurementReportLines(){
+  return measure.items.flatMap(item=>{const m=measurementMetrics(item.a,item.b);return m?[item.name+': 직선 '+measurementLength(m.distance)+' · 수평 '+measurementLength(m.horizontal)+' · 높이차 '+measurementLength(m.height),'  '+measurementEndpointLabel(item.a)+' → '+measurementEndpointLabel(item.b)]:[];});
+}
+function measurementSnapshotURL(){
+  const output=document.createElement('canvas'),source=renderer.domElement;output.width=source.width;output.height=source.height;
+  const ctx=output.getContext('2d'),scale=source.width/source.clientWidth;ctx.drawImage(source,0,0);ctx.scale(scale,scale);
+  ctx.font='12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  measure.items.forEach(item=>{const m=measurementMetrics(item.a,item.b);if(!m)return;
+    const p=toScreen(new THREE.Vector3().addVectors(m.a,m.b).multiplyScalar(.5));if(!p.vis)return;
+    const text=item.name+' · '+measurementLength(m.distance),width=ctx.measureText(text).width+18;
+    ctx.fillStyle='#202722';ctx.fillRect(p.x-width/2,p.y-13,width,26);ctx.fillStyle='#ffd18b';ctx.fillText(text,p.x,p.y);
+  });return output.toDataURL('image/png');
+}
+const btnMeasure=document.getElementById('btnMeasure');
+btnMeasure.textContent='줄자';btnMeasure.setAttribute('aria-label','줄자 측정');
+btnMeasure.onclick=()=>{
+  endCanvasDrag();measure.on=!measure.on;rulerPanel.hidden=!measure.on;btnMeasure.classList.toggle('toggled',measure.on);btnMeasure.setAttribute('aria-pressed',String(measure.on));
+  if(measure.on){refreshMeasurementOptions();renderRulerDraft();renderRulerList();layoutViewportTools();}else clearMeasure();
 };
-window.addEventListener('keydown', e=>{
-  if(e.key==='Escape' && measure.on) clearMeasure();
+document.getElementById('rulerAdd').onclick=addMeasurement;
+document.getElementById('rulerReset').onclick=clearMeasure;
+document.getElementById('rulerClear').onclick=()=>{if(!measure.items.length)return;flushHistory();measure.items=[];renderRulerList();renderRulerDraft();commitHistory();scheduleAutosave();};
+document.getElementById('rulerUnit').onchange=e=>{flushHistory();measure.unit=e.target.value;renderRulerDraft();updateMeasureLabel();commitHistory();scheduleAutosave();};
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && measure.on && !e.target.closest('input,textarea,select')){clearMeasure();e.preventDefault();}
 });
+
 
 /* ---------- 엣지 블렌드: 인접 프로젝터와의 오버랩 계산 ---------- */
 function intervalOverlap(a0,a1,b0,b1){ return Math.max(0,Math.min(a1,b1)-Math.max(a0,b0)); }
@@ -8156,7 +8305,8 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   pointers.set(e.pointerId,[e.clientX,e.clientY]);pinch={touch:e.pointerType==='touch'};
   downPos=[e.clientX,e.clientY];pointerStart=downPos.slice();moved=false;pendingHit=null;dragTarget=selected;
   setNDC(e);ray.setFromCamera(ndc,camera);
-  if(measure.on && e.button===0 && !e.shiftKey && measureClick()){endCanvasDrag();return;}
+  // Pick a ruler endpoint only on click release; dragging still controls the camera.
+  if(measure.on && e.button===0 && !e.shiftKey){dragMode='measure';renderer.domElement.setPointerCapture(e.pointerId);return;}
   if(gizmo.visible && selected?.params && e.button===0 && !e.shiftKey){
     const gh=ray.intersectObjects(gizmo.children,true).filter(h=>h.object.userData.axis);
     if(gh.length){
@@ -8237,7 +8387,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
     }return;
   }
   const dx=e.clientX-downPos[0],dy=e.clientY-downPos[1];
-  if(dragMode==='orbit'){
+  if(dragMode==='orbit' || (dragMode==='measure' && moved)){
     orbit.theta-=dx*.008;orbit.phi=THREE.MathUtils.clamp(orbit.phi-dy*.008,.02,1.75);applyCam();
   }else if(dragMode==='pan'){
     const sc=orbit.r*.0016,right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0),up=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
@@ -8256,7 +8406,10 @@ renderer.domElement.addEventListener('pointermove',e=>{
 });
 renderer.domElement.addEventListener('pointerup',e=>{
   if(!pointers.has(e.pointerId))return;
-  const clicked=dragMode==='orbit' && !moved && pointerOverCanvas(e),hit=pendingHit;
+  const releasedOnCanvas=pointerOverCanvas(e);
+  const clicked=dragMode==='orbit' && !moved && releasedOnCanvas,hit=pendingHit;
+  const measured=dragMode==='measure' && !moved && releasedOnCanvas;
+  if(measured){setNDC(e);ray.setFromCamera(ndc,camera);measureClick();}
   endCanvasDrag();if(clicked)select(hit||null);
 });
 renderer.domElement.addEventListener('lostpointercapture',e=>{if(pointers.has(e.pointerId))endCanvasDrag();});
@@ -8382,6 +8535,43 @@ function showSpecMigration(notes,raw){
   document.body.appendChild(box);
 }
 
+
+function normalizeMeasurementEndpoint(endpoint, sceneObjects, label){
+  if(!plainRecord(endpoint)) throw new Error(label+' 측정점 형식이 올바르지 않아요.');
+  if(endpoint.kind==='point'){
+    if(!Array.isArray(endpoint.point) || endpoint.point.length!==3)
+      throw new Error(label+' 측정 좌표는 X, Y, Z 세 값이 필요해요.');
+    return {kind:'point',point:Array.from(endpoint.point,value=>{
+      if(typeof value!=='number' || !Number.isFinite(value) || Math.abs(value)>1000)
+        throw new Error(label+' 측정 좌표는 -1000~1000m의 유한한 숫자여야 해요.');
+      return value;
+    })};
+  }
+  if(endpoint.kind==='projector'){
+    const index=endpoint.objectIndex;
+    if(!Number.isInteger(index) || index<0 || index>=sceneObjects.length || sceneObjects[index].type!=='proj')
+      throw new Error(label+'에 연결된 프로젝터를 찾을 수 없어요.');
+    return {kind:'projector',objectIndex:index};
+  }
+  throw new Error(label+' 측정점 종류가 올바르지 않아요.');
+}
+function normalizeMeasurements(raw, sceneObjects){
+  if(raw===undefined) return {unit:'mm',items:[]};
+  if(!plainRecord(raw) || !Array.isArray(raw.items) || raw.items.length>50)
+    throw new Error('줄자 치수는 올바른 목록 형식으로 최대 50개까지 저장할 수 있어요.');
+  const unit=sceneEnum(raw.unit,'mm',['mm','m'],'줄자 단위'),ids=new Set();
+  const items=raw.items.map((item,index)=>{
+    const label='치수 '+(index+1);
+    if(!plainRecord(item) || !Number.isSafeInteger(item.id) || item.id<1 || ids.has(item.id))
+      throw new Error(label+' 번호가 없거나 중복되어 있어요.');
+    ids.add(item.id);
+    return {id:item.id,name:sceneText(item.name,label,80,'치수 이름'),
+      a:normalizeMeasurementEndpoint(item.a,sceneObjects,label+' 시작점'),
+      b:normalizeMeasurementEndpoint(item.b,sceneObjects,label+' 끝점')};
+  });
+  return {unit,items};
+}
+
 function normalizeSceneData(data){
   if(!plainRecord(data) || !Array.isArray(data.objects)) throw new Error('프로젝터 시뮬레이터의 장면 JSON 파일을 선택해 주세요.');
   if(data.app!==undefined && data.app!=='Projector Simulator') throw new Error('다른 앱의 파일은 불러올 수 없어요.');
@@ -8440,10 +8630,10 @@ function normalizeSceneData(data){
     return {type,name:sceneText(so.name,type==='proj'?q.model:type==='surf'?q.kind:'LED',120,'오브젝트 이름'),params:q,
       visible:sceneBool(so.visible,true,'오브젝트 표시'),color:type==='proj'?sceneNumber(so.color,PCOLORS[(projectors-1)%PCOLORS.length],0,0xffffff,'프로젝터 색상',true):undefined};
   });
-  return {app:'Projector Simulator',v:5,specRevision:SPEC_REVISION,migrationNotes,targetLux:sceneNumber(data.targetLux,150,1,10000,'목표 조도'),stage:ns,views:nviews,objects:nobjects};
+  return {app:'Projector Simulator',v:5,specRevision:SPEC_REVISION,migrationNotes,targetLux:sceneNumber(data.targetLux,150,1,10000,'목표 조도'),stage:ns,views:nviews,objects:nobjects,measurements:normalizeMeasurements(data.measurements,nobjects)};
 }
 function serialize(){
-  return JSON.stringify({app:'Projector Simulator',v:5,specRevision:SPEC_REVISION,targetLux:shared.uTargetLux.value,stage,views,
+  return JSON.stringify({app:'Projector Simulator',v:5,specRevision:SPEC_REVISION,targetLux:shared.uTargetLux.value,stage,views,measurements:snapshotMeasurements(),
     objects:objects.map(o=>({type:o.type,name:o.name,params:o.params,visible:o.visible,color:o.type==='proj'?o.color:undefined}))},null,2);
 }
 function setSaveStatus(state, detail){
@@ -8469,12 +8659,12 @@ function mediaState(c){
   return {ref:c,id:mediaIds.get(c),crop:c.crop?{...c.crop}:null};
 }
 function captureHistoryState(){
-  return {stage:{...stage},targetLux:shared.uTargetLux.value,views:views.map(v=>({...v,tgt:[...v.tgt]})),selected,
+  return {stage:{...stage},targetLux:shared.uTargetLux.value,views:views.map(v=>({...v,tgt:[...v.tgt]})),selected,measurements:snapshotMeasurements(),
     objects:objects.map(o=>{retainedObjects.add(o);return {ref:o,id:o.id,name:o.name,params:{...o.params},visible:o.visible,color:o.color,
       content:mediaState(o.content),ledSrc:mediaState(o.ledSrc)};})};
 }
 function historyKey(s){
-  return JSON.stringify({stage:s.stage,targetLux:s.targetLux,views:s.views,objects:s.objects.map(x=>({id:x.id,name:x.name,
+  return JSON.stringify({stage:s.stage,targetLux:s.targetLux,views:s.views,measurements:s.measurements,objects:s.objects.map(x=>({id:x.id,name:x.name,
     params:{...x.params,objText:undefined},visible:x.visible,color:x.color,
     content:x.content?{id:x.content.id,crop:x.content.crop}:null,ledSrc:x.ledSrc?{id:x.ledSrc.id,crop:x.ledSrc.crop}:null}))});
 }
@@ -8560,6 +8750,7 @@ function restoreHistoryState(s){
       if(o.type==='proj'){o.frust.material.color.setHex(o.color);sync(o);}else if(o.type==='led')rebuildLED(o);else rebuild(o);
       return o;
     });
+    restoreMeasurements(s.measurements);
     selected=s.selected?.sys?s.selected:objects.includes(s.selected)?s.selected:null;
     updateStage();syncShadowBtn();renderViews();refreshTree();renderProps();updateLegend();
     reconcileMedia();
@@ -8571,7 +8762,7 @@ function redoScene(){flushHistory();if(historyIndex<historyEntries.length-1){his
 function applySceneData(raw){
   const data=normalizeSceneData(raw); // Validate the complete file before any scene mutation.
   flushHistory();
-  const old={objects,stage:{...stage},views,targetLux:shared.uTargetLux.value,selected,seq};
+  const old={objects,stage:{...stage},views,targetLux:shared.uTargetLux.value,selected,seq,measurements:snapshotMeasurements()};
   historyApplying=true;objects=[];
   try{
     Object.assign(stage,data.stage);views=data.views;shared.uTargetLux.value=data.targetLux;
@@ -8585,10 +8776,12 @@ function applySceneData(raw){
       if(o.type==='proj'){o.color=so.color;o.frust.material.color.setHex(so.color);sync(o);}
       else if(o.type==='led')rebuildLED(o);else rebuild(o);
     });
+    restoreMeasurements(data.measurements);
     updateStage();syncShadowBtn();renderViews();select(null);updateLegend();
   }catch(err){
     objects.forEach(releaseSceneObject);objects=old.objects;Object.assign(stage,old.stage);views=old.views;
     shared.uTargetLux.value=old.targetLux;seq=old.seq;selected=old.selected;
+    restoreMeasurements(old.measurements);
     updateStage();syncShadowBtn();renderViews();refreshTree();renderProps();updateLegend();
     throw err;
   }finally{historyApplying=false;}
@@ -8622,8 +8815,8 @@ function initializeState(){
   document.addEventListener('pointerdown',e=>{if(e.target.matches('input[type="range"]')){flushHistory();historyPointer=true;}},true);
   const finishPointer=()=>{if(historyPointer){historyPointer=false;queueMicrotask(()=>{commitHistory();scheduleAutosave();});}};
   window.addEventListener('pointerup',finishPointer,true);window.addEventListener('pointercancel',finishPointer,true);
-  document.addEventListener('input',e=>{if(e.target.closest('#libItems'))return;scheduleHistory();scheduleAutosave();});
-  document.addEventListener('change',e=>{if(e.target.closest('#libItems'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
+  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel'))return;scheduleHistory();scheduleAutosave();});
+  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
   document.addEventListener('focusout',()=>queueMicrotask(commitHistory));
   document.addEventListener('click',e=>{
     if(e.target.closest('#btnUndo,#btnRedo,#btnSave,#mJson,#btnLoad,#fileIn,#mPng,#mTop,#mClose,#btnPublish,#viewModes,#btnMeasure,#btnBlend'))return;
@@ -8773,7 +8966,7 @@ function exportTopViewInner(){
 /* ---------- Publish (스냅샷 + 리포트) ---------- */
 document.getElementById('btnPublish').onclick = ()=>{
   renderer.render(scene, camera);
-  const url = renderer.domElement.toDataURL('image/png');
+  const url = measurementSnapshotURL();
   document.getElementById('snapimg').src = url;
   const lines = [];
   const now = new Date();
@@ -8813,6 +9006,7 @@ document.getElementById('btnPublish').onclick = ()=>{
   const surfs = objects.filter(o=>o.type==='surf');
   if(surfs.length) lines.push(`서페이스 ${surfs.length}개: ` + surfs.map(s=>s.name).join(', '));
   lines.push('');
+  if(measure.items.length){lines.push('치수선 · 3D 직선거리');lines.push(...measurementReportLines());lines.push('');}
   lines.push('— Projector Simulator · designed & built by Moon —');
   document.getElementById('report').textContent = lines.join('\n');
   document.getElementById('modal').style.display = 'flex';
@@ -8843,6 +9037,8 @@ function updateHUD(){
 function layoutViewportTools(){
   const bar=document.querySelector('.viewport-tools');
   if(bar) camViewsEl.style.top=(bar.offsetTop+bar.offsetHeight+10)+'px';
+  const ruler=document.getElementById('rulerPanel');
+  if(ruler){const top=camViewsEl.offsetTop+camViewsEl.offsetHeight+10;ruler.style.top=top+'px';ruler.style.maxHeight=Math.max(72,vpEl.clientHeight-top-16)+'px';}
 }
 if(typeof ResizeObserver!=='undefined') new ResizeObserver(layoutViewportTools).observe(vpEl);
 window.addEventListener('resize',layoutViewportTools);
@@ -8875,12 +9071,6 @@ window.addEventListener('orientationchange', ()=>{ setTimeout(resize,150); setTi
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) setTimeout(resize,100); });
 resize();
 let frame = 0;
-function updateMeasureLabel(){
-  if(measure.p1 && measure.p2){
-    const mid = new THREE.Vector3().addVectors(measure.p1, measure.p2).multiplyScalar(0.5);
-    placeLab(mLab, mid, true);
-  }
-}
 function updateLEDVideos(){
   objects.forEach(o=>{
     const s = o.ledSrc;
