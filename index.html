@@ -42,6 +42,22 @@
 .human-create input[aria-invalid="true"]{border-color:var(--warn)}
 .human-create button{width:100%;min-height:34px}
 
+.surface-color-panel h3{margin:0 0 12px;font-size:12px;font-weight:600;color:var(--txt)}
+.surface-color-row{display:flex;gap:10px;align-items:center}
+.surface-color-picker{flex:none;width:48px;height:38px;padding:3px;cursor:pointer;border:1px solid var(--line);border-radius:7px;background:var(--bg)}
+.surface-hex-label{display:flex;align-items:center;gap:8px;flex:1;min-width:0;color:var(--txt2);font:10px var(--mono)}
+.surface-hex{width:0;min-width:0;flex:1;box-sizing:border-box;min-height:38px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--txt);font:12px var(--mono)}
+.surface-hex[aria-invalid="true"]{border-color:var(--warn)}
+.surface-color-palette{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px;margin-top:12px}
+.surface-swatch{min-width:0;height:26px;padding:0;border:1px solid #ffffff24;border-radius:5px;cursor:pointer;position:relative}
+.surface-swatch[aria-pressed="true"]{outline:2px solid var(--beam);outline-offset:2px}
+.surface-swatch[aria-pressed="true"]::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:14px;text-shadow:0 1px 3px #000,0 0 2px #000}
+.surface-color-panel :focus-visible{outline:2px solid var(--beam);outline-offset:3px}
+.surface-color-error{font-size:10px;line-height:1.6;color:var(--warn);margin:10px 0 0}
+.surface-color-error:empty{display:none}
+.surface-color-reset{margin-top:12px;font-size:10px;min-height:30px}
+.surface-color-note{font-size:10px;line-height:1.7;color:var(--txt2);margin:10px 0 0}
+
 #siteLocation{color:var(--beam);font:8px var(--sans);letter-spacing:0;margin-top:2px;line-height:1.25}
 </style>
 </head>
@@ -6015,7 +6031,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-29.1';
+const SPEC_REVISION = '2026-10-29.2';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6320,7 +6336,8 @@ uniform int uNum; uniform mat4 uVP[${MAXP}]; uniform vec3 uPos[${MAXP}];
 uniform vec3 uCol[${MAXP}]; uniform float uLum[${MAXP}];
 uniform vec3 uDir[${MAXP}]; uniform vec3 uRight[${MAXP}]; uniform vec3 uUp[${MAXP}];
 uniform float uTanH[${MAXP}]; uniform float uTanV[${MAXP}];
-uniform int uMode; uniform float uTargetLux; uniform vec3 uAlbedo; uniform float uAmbient;
+uniform int uMode; uniform float uTargetLux; uniform vec3 uAlbedo;
+uniform vec3 uSurfaceTint; uniform float uAmbient;
 uniform float uGloss; uniform float uRear;
 uniform sampler2D uShadow; uniform float uShadowOn; uniform float uBlendView;
 uniform sampler2D uAtlas; uniform float uHasC[${MAXP}];
@@ -6436,7 +6453,7 @@ void main(){
     col = ramp(totalE/(uTargetLux*2.0));
     if(totalE<0.5) col = uAlbedo*0.16;
   } else {
-    col = base + beam;
+    col = base + beam * uSurfaceTint;
     if(uBlendView > 0.5 && blendCnt > 1.5)
       col = mix(col, vec3(1.0, 0.35, 0.85), 0.45);   // 오버랩(블렌드) 존 강조
   }
@@ -6446,10 +6463,112 @@ void main(){
 const FLOOR_GLOSS = {value:0.1};   // 바닥 광택 (반사율 기반)
 const WALL_GLOSS = {value:0}, WALL_REAR = {value:1}; // 기본 벽 전용
 function surfGloss(gain){ return THREE.MathUtils.clamp((gain-1)/1.5, 0, 1); }
+/* ---------- 모델별 표면 색상 ---------- */
+const DEFAULT_SURFACE_COLOR = '#B9C2D0';
+const SURFACE_PALETTE = [
+  ['기본 회색', DEFAULT_SURFACE_COLOR], ['흰색', '#FFFFFF'],
+  ['차콜', '#343B3F'], ['민트', '#85DEC0'],
+  ['파랑', '#5D9CEC'], ['노랑', '#F4C95D'],
+  ['코랄', '#ED8B7B'], ['보라', '#B69AE5'],
+];
+function normalizeSurfaceColor(value){
+  if(typeof value!=='string')return null;
+  let hex=value.trim().replace(/^#/,'');
+  if(/^[0-9a-f]{3}$/i.test(hex))hex=hex.split('').map(c=>c+c).join('');
+  return /^[0-9a-f]{6}$/i.test(hex)?'#'+hex.toUpperCase():null;
+}
+function surfaceColor(p){return normalizeSurfaceColor(p.surfaceColor)||DEFAULT_SURFACE_COLOR;}
+function savedSurfaceColor(value){
+  if(value===undefined)return DEFAULT_SURFACE_COLOR;
+  const color=normalizeSurfaceColor(value);
+  if(!color)throw new Error('모델 색상은 #RRGGBB 형식의 HEX 코드로 지정해 주세요.');
+  return color;
+}
+function applySurfaceColor(o){
+  if(o.type!=='surf')return;
+  const uniforms=o.mesh.material.uniforms,color=surfaceColor(o.params);
+  uniforms.uAlbedo.value.set(color);
+  uniforms.uSurfaceTint.value.set(color);
+}
+function setSurfaceColor(o,value){
+  const color=normalizeSurfaceColor(value);
+  if(o.type!=='surf'||!color||color===surfaceColor(o.params))return false;
+  o.params.surfaceColor=color;
+  applySurfaceColor(o);
+  scheduleAutosave();
+  return true;
+}
+function createSurfaceColorControls(o){
+  const section=document.createElement('div');section.className='sec surface-color-panel';
+  const heading=document.createElement('h3');heading.textContent='모델 색상';
+  const row=document.createElement('div');row.className='surface-color-row';
+  const picker=document.createElement('input');picker.type='color';picker.className='surface-color-picker';
+  picker.setAttribute('aria-label','모델 색상표 열기');picker.title='색상표에서 선택';
+  const label=document.createElement('label');label.className='surface-hex-label';label.textContent='HEX';
+  const field=document.createElement('input');field.type='text';field.className='surface-hex';
+  field.placeholder='#B9C2D0';field.maxLength=7;field.spellcheck=false;field.autocomplete='off';
+  field.setAttribute('aria-label','모델 HEX 색상 코드');
+  const error=document.createElement('p');error.className='surface-color-error';error.id='surfaceColorError-'+o.id;
+  error.setAttribute('role','status');field.setAttribute('aria-describedby',error.id);
+  label.appendChild(field);row.append(picker,label);
+  const palette=document.createElement('div');palette.className='surface-color-palette';
+  palette.setAttribute('role','group');palette.setAttribute('aria-label','추천 색상');
+  let picking=false;
+  const swatches=[];
+  const refresh=()=>{
+    const color=surfaceColor(o.params);picker.value=color;field.value=color;
+    field.removeAttribute('aria-invalid');error.textContent='';
+    swatches.forEach(([button,hex])=>button.setAttribute('aria-pressed',String(hex===color)));
+  };
+  const finishPicking=()=>{if(picking){picking=false;commitHistory();scheduleAutosave();}};
+  const choose=value=>{
+    finishPicking();flushHistory();
+    if(setSurfaceColor(o,value))commitHistory();
+    refresh();
+  };
+  const commitHex=()=>{
+    const value=normalizeSurfaceColor(field.value);
+    if(!value){
+      field.setAttribute('aria-invalid','true');error.textContent='HEX 코드를 확인해 주세요. 예: #85DEC0';
+      return false;
+    }
+    choose(value);return true;
+  };
+  picker.addEventListener('input',()=>{
+    if(!picking){flushHistory();picking=true;}
+    setSurfaceColor(o,picker.value);refresh();
+  });
+  picker.addEventListener('change',()=>{
+    if(!picking)flushHistory();
+    setSurfaceColor(o,picker.value);picking=false;commitHistory();refresh();
+  });
+  picker.addEventListener('blur',finishPicking);
+  field.addEventListener('input',()=>{field.removeAttribute('aria-invalid');error.textContent='';});
+  field.addEventListener('change',commitHex);
+  field.addEventListener('blur',()=>{if(field.value!==surfaceColor(o.params))commitHex();});
+  field.addEventListener('keydown',event=>{
+    if(event.isComposing)return;
+    if(event.key==='Enter'){event.preventDefault();commitHex();}
+    else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();refresh();}
+  });
+  SURFACE_PALETTE.forEach(([name,hex])=>{
+    const button=document.createElement('button');button.type='button';button.className='surface-swatch';
+    button.style.backgroundColor=hex;button.title=name+' '+hex;
+    button.setAttribute('aria-label',name+' '+hex);button.onclick=()=>choose(hex);
+    swatches.push([button,hex]);palette.appendChild(button);
+  });
+  const reset=document.createElement('button');reset.type='button';reset.className='tbtn surface-color-reset';
+  reset.textContent='기본 색상으로';reset.onclick=()=>choose(DEFAULT_SURFACE_COLOR);
+  const note=document.createElement('p');note.className='surface-color-note';
+  note.textContent='선택한 모델 전체에 적용돼요. HEX 입력 후 Enter를 누르세요. 투사 영상에도 표면색이 반영되며, 조도 히트맵은 측정값 색상을 유지해요.';
+  section.append(heading,row,palette,error,reset,note);refresh();return section;
+}
+
 function makeSurfMat(albedoHex, glossEntry, rearEntry){
   return new THREE.ShaderMaterial({
     vertexShader:SURF_VERT, fragmentShader:SURF_FRAG, side:THREE.DoubleSide,
     uniforms:Object.assign({uAlbedo:{value:new THREE.Color(albedoHex)},
+                            uSurfaceTint:{value:new THREE.Color(0xFFFFFF)},
                             uGloss:glossEntry||{value:0},
                             uRear:rearEntry||{value:0}}, shared)
   });
@@ -6555,7 +6674,7 @@ function addSurface(kind, name, heightMeters){
   }
   const screenLike = (kind==='wall'||kind==='curve');
   const p = {kind, w:10, h:6, d:4, radius:6, angle:120, x:0, y:0, z:0, ry:0,
-             gain:1.0, pmode: screenLike ? 'rear' : 'front'};
+             gain:1.0, pmode: screenLike ? 'rear' : 'front', surfaceColor:DEFAULT_SURFACE_COLOR};
   if(isPerson)p.humanHeight=heightMeters??(kind==='woman'?1.6:1.75);
   const glossU = {value:0}, rearU = {value: p.pmode==='rear'?1:0};
   const mat = makeSurfMat(0xB9C2D0, glossU, rearU);
@@ -6564,12 +6683,14 @@ function addSurface(kind, name, heightMeters){
   p.y = mesh.position.y; p.z = -6;
   const o = {id:seq++, type:'surf', name:name||kind, mesh, params:p, visible:true, glossU, rearU};
   mesh.userData.oid = o.id;
+  applySurfOptics(o);
   scene.add(mesh); objects.push(o); select(o); refreshTree();
   return o;
 }
 /* 서페이스별 광학(게인·리어) → 셰이더 반영 */
 function applySurfOptics(o){
   if(o.type!=='surf' || !o.glossU) return;
+  applySurfaceColor(o);
   o.glossU.value = surfGloss(o.params.gain||1);
   o.rearU.value = o.params.pmode==='rear' ? 1 : 0;
 }
@@ -6684,12 +6805,13 @@ function addModelFromText(name, objText, unit){
     geo = parseOBJ(objText, uScale);
   }
   catch(err){ alert('.obj 파싱 실패: '+err.message); return null; }
-  const p = {kind:'model', x:0, y:0, z:-6, ry:0, scale:1, unit, objText, gain:1.0, pmode:'front'};
+  const p = {kind:'model', x:0, y:0, z:-6, ry:0, scale:1, unit, objText, gain:1.0, pmode:'front', surfaceColor:DEFAULT_SURFACE_COLOR};
   const glossU = {value:0}, rearU = {value:0};
   const mesh = new THREE.Mesh(geo, makeSurfMat(0xB9C2D0, glossU, rearU));
   mesh.position.set(p.x,p.y,p.z);
   const o = {id:seq++, type:'surf', name:name||'3D 모델', mesh, params:p, visible:true, glossU, rearU};
   mesh.userData.oid = o.id;
+  applySurfOptics(o);
   scene.add(mesh); objects.push(o); select(o); refreshTree();
   return o;
 }
@@ -7879,6 +8001,7 @@ function renderProps(){
     right.appendChild(calc);
   }
   if(o.type==='surf'){
+    right.appendChild(createSurfaceColorControls(o));
     const opt = document.createElement('div'); opt.className='sec';
     opt.appendChild(selRow('투사 방식', ['전면 (불투과)','리어 겸용 (투과)'], p.pmode==='rear'?1:0,
       v=>{p.pmode = v===1?'rear':'front'; applySurfOptics(o);}));
@@ -9033,6 +9156,7 @@ function normalizeSceneData(data){
       if(type==='surf'){
         q.kind=sceneEnum(p.kind,null,SURF_LIB.map(s=>s.kind),'표면 종류');
         if(!q.kind) throw new Error('표면 종류가 없어요.');
+        q.surfaceColor=savedSurfaceColor(p.surfaceColor);
         if(q.kind==='man'||q.kind==='woman')q.humanHeight=sceneNumber(p.humanHeight,q.kind==='woman'?1.6:1.75,0.3,3,'사람 키');
         q.gain=sceneNumber(p.gain,1,0.3,2.5,'스크린 게인');
         q.pmode=sceneEnum(p.pmode,['wall','curve'].includes(q.kind)?'rear':'front',['front','rear'],'투사 방식');
@@ -9242,9 +9366,9 @@ function initializeState(){
   document.addEventListener('pointerdown',e=>{if(e.target.matches('input[type="range"]')){flushHistory();historyPointer=true;}},true);
   const finishPointer=()=>{if(historyPointer){historyPointer=false;queueMicrotask(()=>{commitHistory();scheduleAutosave();});}};
   window.addEventListener('pointerup',finishPointer,true);window.addEventListener('pointercancel',finishPointer,true);
-  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input'))return;scheduleHistory();scheduleAutosave();});
-  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
-  document.addEventListener('focusout',()=>queueMicrotask(commitHistory));
+  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel'))return;scheduleHistory();scheduleAutosave();});
+  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
+  document.addEventListener('focusout',e=>{if(e.target.closest('.surface-color-panel'))return;queueMicrotask(commitHistory);});
   document.addEventListener('click',e=>{
     if(e.target.closest('#btnUndo,#btnRedo,#btnSave,#mJson,#btnLoad,#fileIn,#mPng,#mTop,#mClose,#btnPublish,#viewModes,#btnMeasure,#btnBlend'))return;
     queueMicrotask(commitHistory);
