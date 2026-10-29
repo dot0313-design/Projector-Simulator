@@ -58,6 +58,24 @@
 .surface-color-reset{margin-top:12px;font-size:10px;min-height:30px}
 .surface-color-note{font-size:10px;line-height:1.7;color:var(--txt2);margin:10px 0 0}
 
+.projector-placement>.ptitle{padding:0 0 10px;color:var(--beam)}
+.placement-pick,.placement-submit{width:100%;white-space:normal}
+.placement-pick[aria-pressed="true"]{color:var(--beam);border-color:var(--beam)}
+.placement-reference,.placement-preview,.placement-note{font-size:10px;line-height:1.7;color:var(--txt2);margin:10px 0;overflow-wrap:anywhere}
+.placement-reference{font-family:var(--mono);color:var(--beam)}
+.placement-preview{color:var(--beam);font-variant-numeric:tabular-nums;min-height:34px}
+.placement-preview.error{color:var(--warn)}
+.placement-field{display:flex;align-items:center;gap:8px;margin:10px 0;color:var(--txt2);font-size:11px}
+.placement-field>span:first-child{width:76px;flex:none}.placement-field>span:last-child{width:14px;flex:none}
+.placement-field input{width:0;flex:1;min-width:0;min-height:34px;padding:7px 8px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--txt);font:11px var(--mono)}
+.placement-field input[aria-invalid="true"]{border-color:var(--warn)}
+.placement-opposite{font-size:10px;padding:5px 8px;min-height:28px}
+.placement-pick-hint{position:absolute;z-index:18;left:16px;right:16px;bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:var(--panel);border:1px solid var(--beam);border-radius:9px;font-size:11px;line-height:1.6;box-shadow:0 8px 24px #0005}
+.placement-pick-hint[hidden]{display:none}.placement-pick-hint .tbtn{flex:none}
+.picking-placement canvas{cursor:crosshair}
+.placement-label{margin-top:-22px}
+@media(max-width:959px){.placement-field input{font-size:16px;min-height:38px}.placement-pick-hint{left:12px;right:12px;bottom:12px}}
+
 #siteLocation{color:var(--beam);font:8px var(--sans);letter-spacing:0;margin-top:2px;line-height:1.25}
 </style>
 </head>
@@ -6031,7 +6049,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-29.2';
+const SPEC_REVISION = '2026-10-29.3';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -7892,7 +7910,186 @@ function updateProjectorReadout(){
   });
 }
 
+/* ---------- 기준점으로 프로젝터 배치 ---------- */
+let placementPicking=null, placementVisual=null;
+function placementReference(p){
+  const point={x:p.placementX,y:p.placementY,z:p.placementZ};
+  return [point.x,point.y,point.z].every(Number.isFinite)?point:null;
+}
+function normalizePlacement(p){
+  const keys=['placementX','placementY','placementZ','placementDistance','placementHeight','placementBearing','placementAim'];
+  if(keys.every(key=>p[key]===undefined))return {};
+  if(!placementReference(p))throw new Error('배치 기준점의 X·Y·Z 좌표가 잘못됐어요.');
+  return {
+    placementX:sceneNumber(p.placementX,0,-60,60,'기준점 X'),
+    placementY:sceneNumber(p.placementY,0,0,40,'기준점 Y'),
+    placementZ:sceneNumber(p.placementZ,0,-60,60,'기준점 Z'),
+    placementDistance:sceneNumber(p.placementDistance,5,0,120,'배치 수평거리'),
+    placementHeight:sceneNumber(p.placementHeight,p.y??2,0,40,'배치 렌즈 높이'),
+    placementBearing:sceneNumber(p.placementBearing,0,-180,180,'배치 방향'),
+    placementAim:sceneBool(p.placementAim,true,'기준점 바라보기'),
+  };
+}
+function calculateProjectorPlacement(p,settings){
+  const point=placementReference(p);
+  if(!point)throw new Error('먼저 벽·바닥·모델에서 기준점을 선택해 주세요.');
+  const {distance,height,bearing,aim}=settings;
+  for(const [value,min,max,label] of [[distance,0,120,'수평거리'],[height,0,40,'렌즈 높이'],[bearing,-180,180,'배치 방향']]){
+    if(!Number.isFinite(value)||value<min||value>max)throw new Error(label+'는 '+min+'–'+max+' 사이로 입력해 주세요.');
+  }
+  if(typeof aim!=='boolean')throw new Error('기준점 바라보기 설정을 확인해 주세요.');
+  const angle=bearing*Math.PI/180;
+  const result={x:point.x+Math.sin(angle)*distance,y:height,z:point.z+Math.cos(angle)*distance};
+  if(Math.abs(result.x)>60+1e-9||Math.abs(result.z)>60+1e-9)throw new Error('배치 위치가 작업 범위(X·Z ±60m)를 벗어납니다. 거리나 방향을 바꿔 주세요.');
+  // Round numerical noise only; do not clamp a meaningful placement distance.
+  result.x=Number(result.x.toFixed(10));result.z=Number(result.z.toFixed(10));
+  if(Math.hypot(result.x-point.x,result.y-point.y,result.z-point.z)<0.000001)
+    throw new Error('기준점과 프로젝터가 같은 위치입니다. 거리 또는 높이를 바꿔 주세요.');
+  if(aim){
+    const dx=point.x-result.x,dy=point.y-result.y,dz=point.z-result.z;
+    result.yaw=Math.hypot(dx,dz)<0.000001?(p.yaw??bearing):Math.atan2(-dx,-dz)*180/Math.PI;
+    result.pitch=Math.atan2(dy,Math.hypot(dx,dz))*180/Math.PI;
+  }
+  return result;
+}
+function placementBearing(point,normal,projector,cameraPoint){
+  let dx=normal?.x||0,dz=normal?.z||0;
+  if(Math.hypot(dx,dz)>0.001){
+    const toward=(cameraPoint.x-point.x)*dx+(cameraPoint.y-point.y)*(normal.y||0)+(cameraPoint.z-point.z)*dz;
+    if(toward<0){dx=-dx;dz=-dz;}
+  }else{
+    dx=projector.x-point.x;dz=projector.z-point.z;
+    if(Math.hypot(dx,dz)<0.001){dx=cameraPoint.x-point.x;dz=cameraPoint.z-point.z;}
+    if(Math.hypot(dx,dz)<0.001){dx=0;dz=1;}
+  }
+  return Number((Math.atan2(dx,dz)*180/Math.PI).toFixed(2));
+}
+function setProjectorReference(o,point,bearing){
+  if(o.type!=='proj'||!objects.includes(o))throw new Error('배치할 프로젝터를 먼저 선택해 주세요.');
+  if(![point.x,point.y,point.z,bearing].every(Number.isFinite)||Math.abs(point.x)>60||Math.abs(point.z)>60||point.y<0||point.y>40||Math.abs(bearing)>180)
+    throw new Error('기준점은 X·Z ±60m, 높이 0–40m 안에서 선택해 주세요.');
+  flushHistory();
+  Object.assign(o.params,{placementX:point.x,placementY:point.y,placementZ:point.z,
+    placementDistance:o.params.placementDistance??5,placementHeight:o.params.placementHeight??o.params.y,
+    placementBearing:bearing,placementAim:o.params.placementAim??true});
+  commitHistory();scheduleAutosave();
+}
+function applyProjectorPlacement(o,settings){
+  if(o.type!=='proj'||!objects.includes(o)||selected!==o)throw new Error('배치할 프로젝터를 다시 선택해 주세요.');
+  const position=calculateProjectorPlacement(o.params,settings);
+  flushHistory();
+  Object.assign(o.params,position,{placementDistance:settings.distance,placementHeight:settings.height,
+    placementBearing:settings.bearing,placementAim:settings.aim});
+  sync(o);refreshTransformInputs();commitHistory();scheduleAutosave();
+  return position;
+}
+function cancelPlacementPick(){
+  placementPicking=null;vpEl.classList.remove('picking-placement');
+  const hint=document.getElementById('placementPickHint');if(hint)hint.hidden=true;
+  const button=right.querySelector('[data-placement-pick]');
+  if(button){button.textContent='화면에서 기준점 선택';button.setAttribute('aria-pressed','false');}
+}
+function beginPlacementPick(o){
+  if(placementPicking===o){cancelPlacementPick();return;}
+  if(selected!==o||o.type!=='proj'||!objects.includes(o))return;
+  endCanvasDrag();
+  if(measure.on)btnMeasure.click();
+  placementPicking=o;vpEl.classList.add('picking-placement');
+  let hint=document.getElementById('placementPickHint');
+  if(!hint){
+    hint=document.createElement('div');hint.id='placementPickHint';hint.className='placement-pick-hint';
+    const text=document.createElement('span');text.textContent='벽·바닥·모델을 클릭하세요. 드래그하면 시점이 회전합니다.';
+    const cancel=document.createElement('button');cancel.type='button';cancel.className='tbtn';cancel.textContent='선택 취소';
+    cancel.onclick=()=>{cancelPlacementPick();openPropsIfMobile();};hint.append(text,cancel);vpEl.appendChild(hint);
+  }
+  hint.hidden=false;
+  const button=right.querySelector('[data-placement-pick]');
+  if(button){button.textContent='기준점 선택 중 · 취소';button.setAttribute('aria-pressed','true');}
+  if(isMobile())setDrawer(null);
+}
+function placementClick(){
+  const o=placementPicking;
+  if(!o||selected!==o||!objects.includes(o)){cancelPlacementPick();return false;}
+  const meshes=[sysWall,sysFloor,...objects.filter(item=>item.type==='surf'&&item.visible).map(item=>item.mesh)];
+  const hits=ray.intersectObjects(meshes,true).filter(hit=>{
+    for(let mesh=hit.object;mesh;mesh=mesh.parent)if(mesh.visible===false)return false;
+    return true;
+  });
+  if(!hits.length){toast('벽·바닥·모델 표면을 클릭해 주세요.');return false;}
+  const hit=hits[0];
+  const normal=hit.face?hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize():null;
+  const bearing=placementBearing(hit.point,normal,o.params,camera.position);
+  try{setProjectorReference(o,hit.point,bearing);}
+  catch(error){toast(error.message);return false;}
+  cancelPlacementPick();renderProps();openPropsIfMobile();
+  toast('기준점을 선택했어요. 수평거리와 렌즈 높이를 입력하고 배치하세요.');return true;
+}
+function updatePlacementMarker(){
+  const point=selected?.type==='proj'&&selected.visible&&objects.includes(selected)?placementReference(selected.params):null;
+  if(!point){if(placementVisual){placementVisual.dot.visible=false;placementVisual.label.style.display='none';}return;}
+  if(!placementVisual){
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),new THREE.MeshBasicMaterial({color:0x8be4c5,depthTest:false,depthWrite:false}));
+    dot.layers.set(1);dot.renderOrder=1002;scene.add(dot);
+    const label=document.createElement('div');label.className='vlab placement-label';label.textContent='배치 기준점';
+    document.getElementById('vpLabels').appendChild(label);placementVisual={dot,label};
+  }
+  const vector=new THREE.Vector3(point.x,point.y,point.z);
+  placementVisual.dot.visible=true;placementVisual.dot.position.copy(vector);
+  placementVisual.dot.scale.setScalar(THREE.MathUtils.clamp(camera.position.distanceTo(vector)*.004,.025,.3));
+  placeLab(placementVisual.label,vector,true);
+}
+function createProjectorPlacementControls(o){
+  const p=o.params,point=placementReference(p);
+  const form=document.createElement('form');form.className='sec projector-placement';form.noValidate=true;
+  const title=document.createElement('div');title.className='ptitle';title.textContent='기준점 배치';
+  const pick=document.createElement('button');pick.type='button';pick.className='tbtn placement-pick';
+  pick.setAttribute('data-placement-pick','');pick.setAttribute('aria-pressed','false');pick.textContent='화면에서 기준점 선택';
+  pick.onclick=()=>beginPlacementPick(o);
+  const reference=document.createElement('p');reference.className='placement-reference';
+  reference.textContent=point?'기준점 X '+point.x.toFixed(3)+' · Y '+point.y.toFixed(3)+' · Z '+point.z.toFixed(3)+' m':'기준점을 먼저 선택해 주세요.';
+  const fields={};
+  const definitions=[['distance','수평거리',p.placementDistance??5,0,120,'m'],['height','렌즈 높이',p.placementHeight??p.y,0,40,'m'],['bearing','배치 방향',p.placementBearing??0,-180,180,'°']];
+  form.append(title,pick,reference);
+  definitions.forEach(([key,name,value,min,max,unit])=>{
+    const row=document.createElement('label');row.className='placement-field';
+    const label=document.createElement('span');label.textContent=name;
+    const input=document.createElement('input');input.type='number';input.step='any';input.min=min;input.max=max;input.value=value;
+    input.setAttribute('aria-label',name+' ('+unit+')');
+    const suffix=document.createElement('span');suffix.textContent=unit;row.append(label,input,suffix);form.appendChild(row);fields[key]=input;
+  });
+  const opposite=document.createElement('button');opposite.type='button';opposite.className='tbtn placement-opposite';opposite.textContent='반대쪽에 배치';
+  const aimLabel=document.createElement('label');aimLabel.className='chk';
+  const aim=document.createElement('input');aim.type='checkbox';aim.checked=p.placementAim??true;
+  const aimText=document.createElement('span');aimText.textContent='기준점 바라보기';aimLabel.append(aim,aimText);
+  const preview=document.createElement('p');preview.className='placement-preview';preview.setAttribute('role','status');
+  const submit=document.createElement('button');submit.type='submit';submit.className='tbtn primary placement-submit';submit.textContent='선택한 프로젝터 배치';
+  const note=document.createElement('p');note.className='placement-note';
+  note.textContent='거리는 기준점까지의 수평거리, 높이는 바닥에서 렌즈 중심까지입니다. 방향 0°=+Z, 90°=+X. 벽을 찍으면 보고 있는 쪽으로 방향을 맞춥니다. 바라보기는 광축 기준이며 렌즈 시프트·고정 오프셋에 따라 영상 중심은 달라질 수 있어요. 기준점은 공간에 고정됩니다.';
+  const read=()=>({distance:fields.distance.value.trim()===''?NaN:Number(fields.distance.value),height:fields.height.value.trim()===''?NaN:Number(fields.height.value),bearing:fields.bearing.value.trim()===''?NaN:Number(fields.bearing.value),aim:aim.checked});
+  const update=()=>{
+    const values=read();
+    definitions.forEach(([key,name,value,min,max])=>fields[key].setAttribute('aria-invalid',String(!Number.isFinite(values[key])||values[key]<min||values[key]>max)));
+    try{
+      const next=calculateProjectorPlacement(p,values),target=placementReference(p);
+      preview.textContent='배치 예정 X '+next.x.toFixed(2)+' · Y '+next.y.toFixed(2)+' · Z '+next.z.toFixed(2)+' m / 기준점까지 직선 '+Math.hypot(values.distance,target.y-next.y).toFixed(2)+' m';
+      preview.classList.remove('error');submit.disabled=false;
+    }catch(error){preview.textContent=error.message;preview.classList.toggle('error',!!point);submit.disabled=true;}
+  };
+  Object.values(fields).forEach(input=>input.addEventListener('input',update));aim.addEventListener('change',update);
+  opposite.onclick=()=>{const value=Number(fields.bearing.value);if(fields.bearing.value.trim()!==''&&Number.isFinite(value)){fields.bearing.value=((value+360)%360)-180;update();}};
+  form.onsubmit=event=>{
+    event.preventDefault();
+    try{applyProjectorPlacement(o,read());cancelPlacementPick();renderProps();toast('기준점에 맞춰 프로젝터를 배치했어요.');}
+    catch(error){preview.textContent=error.message;preview.classList.add('error');}
+  };
+  form.append(opposite,aimLabel,preview,submit,note);update();return form;
+}
+window.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&placementPicking){event.preventDefault();cancelPlacementPick();openPropsIfMobile();}
+});
+
 function renderProps(){
+  cancelPlacementPick();
   transformBindings.clear();
   if(!selected){ renderStage(); return; }
   if(selected.sys){ renderSysProps(selected.sys); return; }
@@ -7921,6 +8118,7 @@ function renderProps(){
     pos.appendChild(transformRow('ry', '회전 Y', p.ry, 1, v=>{p.ry=v; sync(o);}, -180, 180, '°'));
   }
   right.appendChild(pos);
+  if(o.type==='proj')right.appendChild(createProjectorPlacementControls(o));
 
   if(o.type==='proj'){
     const s = document.createElement('div'); s.className='sec';
@@ -8255,7 +8453,7 @@ function finishPanel(){
     }
     const label=section.querySelector('.row label')?.textContent||'';
     const heading=section.querySelector('.ptitle')?.textContent||'';
-    let title=heading.includes('CONTENT')?'콘텐츠':heading.includes('OBJ')?'공간 모델':
+    let title=section.classList.contains('projector-placement')?'기준점 배치':heading.includes('CONTENT')?'콘텐츠':heading.includes('OBJ')?'공간 모델':
       label==='X'?'위치 · 회전':label==='기종'?'프로젝터 · 렌즈':label==='투사 방식'?'표면 · 광학':
       label==='폭 W'||label==='반지름'||label==='스케일'?'크기 · 형태':label==='픽셀피치'?'LED 설정':
       label==='주변광 환경'?'주변광':label==='스크린(벽) 폭'?'무대 · 스크린':label==='목표 조도'?'시뮬레이션 설정':label==='표시'?'표시 상태':label==='스크린 게인'?'표면 · 위치':'';
@@ -8379,7 +8577,7 @@ function renderRulerDraft(){
       if(!measure.invalidCoordinates[index] && document.activeElement!==field){field.value=p?Number(([p.x,p.y,p.z][axis]*1000).toFixed(3)):'';field.removeAttribute('aria-invalid');}
     });
   });
-  updateMeasureLabel();
+  updateMeasureLabel();updatePlacementMarker();
 }
 function clearMeasure(){measure.draft=[null,null];measure.active=0;measure.invalidCoordinates=[false,false];renderRulerDraft();}
 function addMeasurement(){
@@ -8474,7 +8672,7 @@ function measurementSnapshotURL(){
 const btnMeasure=document.getElementById('btnMeasure');
 btnMeasure.textContent='줄자';btnMeasure.setAttribute('aria-label','줄자 측정');
 btnMeasure.onclick=()=>{
-  endCanvasDrag();measure.on=!measure.on;rulerPanel.hidden=!measure.on;btnMeasure.classList.toggle('toggled',measure.on);btnMeasure.setAttribute('aria-pressed',String(measure.on));
+  cancelPlacementPick();endCanvasDrag();measure.on=!measure.on;rulerPanel.hidden=!measure.on;btnMeasure.classList.toggle('toggled',measure.on);btnMeasure.setAttribute('aria-pressed',String(measure.on));
   if(measure.on){refreshMeasurementOptions();renderRulerDraft();renderRulerList();layoutViewportTools();}else clearMeasure();
 };
 document.getElementById('rulerAdd').onclick=addMeasurement;
@@ -8850,6 +9048,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   pointers.set(e.pointerId,[e.clientX,e.clientY]);pinch={touch:e.pointerType==='touch'};
   downPos=[e.clientX,e.clientY];pointerStart=downPos.slice();moved=false;pendingHit=null;dragTarget=selected;
   setNDC(e);ray.setFromCamera(ndc,camera);
+  if(placementPicking && e.button===0 && !e.shiftKey){dragMode='placement';renderer.domElement.setPointerCapture(e.pointerId);return;}
   // Pick a ruler endpoint only on click release; dragging still controls the camera.
   if(measure.on && e.button===0 && !e.shiftKey){dragMode='measure';renderer.domElement.setPointerCapture(e.pointerId);return;}
   if(gizmo.visible && selected?.params && e.button===0 && !e.shiftKey){
@@ -8932,7 +9131,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
     }return;
   }
   const dx=e.clientX-downPos[0],dy=e.clientY-downPos[1];
-  if(dragMode==='orbit' || (dragMode==='measure' && moved)){
+  if(dragMode==='orbit' || (['measure','placement'].includes(dragMode) && moved)){
     orbit.theta-=dx*.008;orbit.phi=THREE.MathUtils.clamp(orbit.phi-dy*.008,.02,1.75);applyCam();
   }else if(dragMode==='pan'){
     const sc=orbit.r*.0016,right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0),up=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
@@ -8954,6 +9153,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
   const releasedOnCanvas=pointerOverCanvas(e);
   const clicked=dragMode==='orbit' && !moved && releasedOnCanvas,hit=pendingHit;
   const measured=dragMode==='measure' && !moved && releasedOnCanvas;
+  if(dragMode==='placement' && !moved && releasedOnCanvas){setNDC(e);ray.setFromCamera(ndc,camera);placementClick();}
   if(measured){setNDC(e);ray.setFromCamera(ndc,camera);measureClick();}
   endCanvasDrag();if(clicked)select(hit||null);
 });
@@ -9147,7 +9347,7 @@ function normalizeSceneData(data){
     q.x=sceneNumber(p.x,0,-60,60,label+' X'); q.y=sceneNumber(p.y,2,0,40,label+' Y'); q.z=sceneNumber(p.z,-6,-60,60,label+' Z');
     if(type==='proj'){
       if(++projectors>MAXP) throw new Error('프로젝터는 최대 '+MAXP+'대까지 지원해요. 현재 작업은 그대로 유지돼요.');
-      Object.assign(q,normalizeProjectorSpec(p,version,migrationNotes));
+      Object.assign(q,normalizeProjectorSpec(p,version,migrationNotes),normalizePlacement(p));
       q.output=sceneNumber(p.output,100,0,100,'라이트 출력');
       q.yaw=sceneNumber(p.yaw,0,-180,180,'프로젝터 회전'); q.pitch=sceneNumber(p.pitch,0,-90,90,'프로젝터 기울기');
       q.on=sceneBool(p.on,true,'프로젝터 출력');
@@ -9287,6 +9487,7 @@ function scheduleHistory(){
 }
 function flushHistory(){if(historyReady && !historyApplying){clearTimeout(historyTimer);historyTimer=null;commitHistory();}}
 function restoreHistoryState(s){
+  cancelPlacementPick();
   cancelAllPendingBridge();
   historyApplying=true;
   try{
@@ -9311,6 +9512,7 @@ function undoScene(){flushHistory();if(historyIndex>0){historyIndex--;restoreHis
 function redoScene(){flushHistory();if(historyIndex<historyEntries.length-1){historyIndex++;restoreHistoryState(historyEntries[historyIndex]);}}
 function applySceneData(raw){
   const data=normalizeSceneData(raw); // Validate the complete file before any scene mutation.
+  cancelPlacementPick();
   cancelAllPendingBridge();
   flushHistory();
   const old={objects,stage:{...stage},views,targetLux:shared.uTargetLux.value,selected,seq,measurements:snapshotMeasurements()};
@@ -9366,9 +9568,9 @@ function initializeState(){
   document.addEventListener('pointerdown',e=>{if(e.target.matches('input[type="range"]')){flushHistory();historyPointer=true;}},true);
   const finishPointer=()=>{if(historyPointer){historyPointer=false;queueMicrotask(()=>{commitHistory();scheduleAutosave();});}};
   window.addEventListener('pointerup',finishPointer,true);window.addEventListener('pointercancel',finishPointer,true);
-  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel'))return;scheduleHistory();scheduleAutosave();});
-  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
-  document.addEventListener('focusout',e=>{if(e.target.closest('.surface-color-panel'))return;queueMicrotask(commitHistory);});
+  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel,.projector-placement'))return;scheduleHistory();scheduleAutosave();});
+  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel,.projector-placement'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
+  document.addEventListener('focusout',e=>{if(e.target.closest('.surface-color-panel,.projector-placement'))return;queueMicrotask(commitHistory);});
   document.addEventListener('click',e=>{
     if(e.target.closest('#btnUndo,#btnRedo,#btnSave,#mJson,#btnLoad,#fileIn,#mPng,#mTop,#mClose,#btnPublish,#viewModes,#btnMeasure,#btnBlend'))return;
     queueMicrotask(commitHistory);
@@ -9640,7 +9842,7 @@ function loop(){
   updateLEDVideos();
   updateGizmo();
   updateProjViz();
-  updateMeasureLabel();
+  updateMeasureLabel();updatePlacementMarker();
   if(frame++ % 12 === 0) updateHUD();
   renderer.render(scene, camera);
 }
