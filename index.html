@@ -76,6 +76,14 @@
 .placement-label{margin-top:-22px}
 @media(max-width:959px){.placement-field input{font-size:16px;min-height:38px}.placement-pick-hint{left:12px;right:12px;bottom:12px}}
 
+.model-material-controls{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.model-material-controls label{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--txt2);font-size:11px}
+.model-material-controls select{min-width:0;max-width:70%;min-height:34px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--txt);font-size:11px}
+.model-material-controls p,.model-material-controls details{font-size:10px;line-height:1.7;margin-top:9px;color:var(--txt2);overflow-wrap:anywhere}
+.model-material-controls .model-material-status{color:var(--beam)}
+.model-material-controls summary{cursor:pointer;color:var(--warn)}
+.model-material-controls ul{padding-left:18px}.model-material-controls li{margin:5px 0}
+
 #siteLocation{color:var(--beam);font:8px var(--sans);letter-spacing:0;margin-top:2px;line-height:1.25}
 </style>
 </head>
@@ -6049,7 +6057,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-29.4';
+const SPEC_REVISION = '2026-10-29.5';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6220,7 +6228,7 @@ const SURF_LIB = [
   {name:'성당 파사드', kind:'facade', sub:'아치 프리셋'},
   {name:'남성 스케일 피규어', kind:'man',   sub:'기본 키 175cm · 추가 후 변경 가능'},
   {name:'여성 스케일 피규어', kind:'woman', sub:'기본 키 160cm · 추가 후 변경 가능'},
-  {name:'3D 모델 가져오기', kind:'model', sub:'.obj — Blender 내보내기'},
+  {name:'3D 모델 가져오기', kind:'model', sub:'OBJ + MTL + 텍스처 함께 선택'},
 ];
 const LED_LIB = [
   {name:'LED 스크린 P2.6', pitch:2.6, nits:1200},
@@ -6340,22 +6348,24 @@ function renderShadows(act){
   scene.background = prevBg;
 }
 const SURF_VERT = `
-varying vec3 vW; varying vec3 vN;
+varying vec3 vW; varying vec3 vN; varying vec2 vModelUV;
 void main(){
   vec4 w = modelMatrix * vec4(position,1.0);
-  vW = w.xyz;
+  vW = w.xyz; vModelUV = uv;
   vN = normalize(mat3(modelMatrix) * normal);
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 const SURF_FRAG = `
 precision highp float;
-varying vec3 vW; varying vec3 vN;
+varying vec3 vW; varying vec3 vN; varying vec2 vModelUV;
 uniform int uNum; uniform mat4 uVP[${MAXP}]; uniform vec3 uPos[${MAXP}];
 uniform vec3 uCol[${MAXP}]; uniform float uLum[${MAXP}];
 uniform vec3 uDir[${MAXP}]; uniform vec3 uRight[${MAXP}]; uniform vec3 uUp[${MAXP}];
 uniform float uTanH[${MAXP}]; uniform float uTanV[${MAXP}];
 uniform int uMode; uniform float uTargetLux; uniform vec3 uAlbedo;
 uniform vec3 uSurfaceTint; uniform float uAmbient;
+uniform sampler2D uModelMap; uniform float uUseModelMap;
+uniform vec2 uModelUVScale; uniform vec2 uModelUVOffset; uniform float uModelClamp;
 uniform float uGloss; uniform float uRear;
 uniform sampler2D uShadow; uniform float uShadowOn; uniform float uBlendView;
 uniform sampler2D uAtlas; uniform float uHasC[${MAXP}];
@@ -6386,7 +6396,13 @@ void main(){
   vec3 N = normalize(vN);
   // Authored surface normal fixes the front/rear side, independently of the viewer.
   float ambF = clamp(uAmbient/(uTargetLux*2.0), 0.0, 0.85);
-  vec3 base = uAlbedo * (0.10 + 0.08*max(N.y,0.0) + ambF*0.8);
+  vec3 modelTexel = vec3(1.0);
+  if(uUseModelMap > 0.5){
+    vec2 modelUV = vModelUV * uModelUVScale + uModelUVOffset;
+    modelUV = uModelClamp > 0.5 ? clamp(modelUV,0.0,1.0) : fract(modelUV);
+    modelTexel = texture2D(uModelMap,modelUV).rgb;
+  }
+  vec3 base = uAlbedo * modelTexel * (0.10 + 0.08*max(N.y,0.0) + ambF*0.8);
   float totalE = uAmbient;
   vec3 beam = vec3(0.0);
   float blendCnt = 0.0;
@@ -6471,7 +6487,7 @@ void main(){
     col = ramp(totalE/(uTargetLux*2.0));
     if(totalE<0.5) col = uAlbedo*0.16;
   } else {
-    col = base + beam * uSurfaceTint;
+    col = base + beam * uSurfaceTint * modelTexel;
     if(uBlendView > 0.5 && blendCnt > 1.5)
       col = mix(col, vec3(1.0, 0.35, 0.85), 0.45);   // 오버랩(블렌드) 존 강조
   }
@@ -6481,6 +6497,575 @@ void main(){
 const FLOOR_GLOSS = {value:0.1};   // 바닥 광택 (반사율 기반)
 const WALL_GLOSS = {value:0}, WALL_REAR = {value:1}; // 기본 벽 전용
 function surfGloss(gain){ return THREE.MathUtils.clamp((gain-1)/1.5, 0, 1); }
+/* ---------- OBJ 재질 모듈 시작 ---------- */
+/* ---------- OBJ UV / 재질 그룹 · MTL 기본색 / 이미지 참조 ---------- */
+function modelTextLine(raw){
+  let quote=null;
+  for(let i=0;i<raw.length;i++){
+    const c=raw[i];
+    if(quote){if(c==='\\'&&raw[i+1]===quote){i++;continue;}if(c===quote)quote=null;}
+    else if((c==='"'||c==="'")&&(i===0||/\s/.test(raw[i-1])))quote=c;
+    else if(c==='#'&&(i===0||/\s/.test(raw[i-1])))return raw.slice(0,i).trim();
+  }
+  return raw.trim();
+}
+function modelTextTokens(text){
+  const tokens=[];let token='',quote=null,active=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(quote){
+      if(c===quote){quote=null;continue;}
+      if(c==='\\'&&text[i+1]===quote){token+=text[++i];continue;}
+      token+=c;continue;
+    }
+    if((c==='"'||c==="'")&&!active){quote=c;active=true;continue;}
+    if(/\s/.test(c)){if(active){tokens.push(token);token='';active=false;}continue;}
+    if(c==='\\'&&/\s/.test(text[i+1]||'')){token+=text[++i];active=true;continue;}
+    token+=c;active=true;
+  }
+  if(quote)throw new Error('모델 파일의 따옴표가 닫히지 않았어요.');
+  if(active)tokens.push(token);
+  return tokens;
+}
+function validateOBJMaterialText(text){
+  const maxChars=typeof SCENE_LIMITS==='undefined'?12*1024*1024:SCENE_LIMITS.modelChars;
+  const maxTriangles=typeof SCENE_LIMITS==='undefined'?150000:SCENE_LIMITS.modelTriangles;
+  if(typeof text!=='string'||!text.length||text.length>maxChars)throw new Error('OBJ 모델은 12MB 이하의 유효한 텍스트여야 해요.');
+  let vertices=0,normals=0,uvs=0,triangles=0,currentMaterial='';const materials=new Set();
+  const reference=(value,length,kind)=>{
+    if(!/^[+-]?\d+$/.test(value||''))throw new Error('OBJ '+kind+' 참조가 잘못됐어요.');
+    const n=Number(value);
+    if(!Number.isSafeInteger(n)||n===0||n>length||n< -length)throw new Error('OBJ '+kind+' 참조가 범위를 벗어났어요.');
+  };
+  const numeric=(fields,count,kind)=>{
+    if(fields.length<count||fields.slice(0,count).some(v=>v===''||!Number.isFinite(Number(v))||Math.abs(Number(v))>1e8))
+      throw new Error('OBJ '+kind+'에 잘못된 숫자가 있어요.');
+  };
+  for(const raw of text.replace(/\\\r?\n[ \t]*/g,' ').split(/\r?\n/)){
+    const line=modelTextLine(raw);if(!line)continue;
+    const split=line.search(/\s/),kind=split<0?line:line.slice(0,split),value=split<0?'':line.slice(split).trim();
+    if(kind==='v'||kind==='vn'){
+      numeric(value.split(/\s+/),3,kind==='v'?'좌표':'법선');if(kind==='v')vertices++;else normals++;
+    }else if(kind==='vt'){
+      const fields=value.split(/\s+/);numeric(fields,Math.min(fields.length,3),'UV');uvs++;
+    }else if(kind==='usemtl')currentMaterial=modelTextTokens(value).join(' ');
+    else if(kind==='mtllib')modelTextTokens(value);
+    else if(kind==='f'){
+      const fields=value.split(/\s+/);if(fields.length<3)throw new Error('OBJ 면에 꼭짓점이 부족해요.');
+      triangles+=fields.length-2;if(triangles>maxTriangles)throw new Error('OBJ 모델은 삼각형 150,000개 이하로 줄여 주세요.');
+      materials.add(currentMaterial);if(materials.size>128)throw new Error('OBJ 재질은 최대 128개까지 지원해요.');
+      for(const token of fields){
+        const refs=token.split('/');if(refs.length>3)throw new Error('OBJ 면 참조 형식이 잘못됐어요.');
+        reference(refs[0],vertices,'꼭짓점');
+        if(refs[1]!==undefined&&refs[1]!=='')reference(refs[1],uvs,'UV');
+        if(refs[2]!==undefined&&refs[2]!=='')reference(refs[2],normals,'법선');
+      }
+    }
+  }
+  if(!triangles)throw new Error('OBJ 모델에 면(f) 데이터가 없어요.');
+  return triangles;
+}
+function parseOBJ(text,unitScale){
+  const maxChars=typeof SCENE_LIMITS==='undefined'?12*1024*1024:SCENE_LIMITS.modelChars;
+  const maxTriangles=typeof SCENE_LIMITS==='undefined'?150000:SCENE_LIMITS.modelTriangles;
+  if(typeof text!=='string'||!text.length||text.length>maxChars)throw new Error('OBJ 모델은 12MB 이하의 유효한 텍스트여야 해요.');
+  const u=unitScale===undefined?1:unitScale;
+  if(!Number.isFinite(u)||u<=0)throw new Error('OBJ 단위 배율이 잘못됐어요.');
+  const V=[],N=[],T=[],pos=[],nor=[],uv=[],groups=[],materialNames=[],materialHasUV=[],materialLibraries=[];
+  const materialIndices=new Map();let currentMaterial='',allNormals=true,triangles=0;
+  const index=(value,length,kind)=>{
+    if(!/^[+-]?\d+$/.test(value||''))throw new Error('OBJ '+kind+' 참조가 잘못됐어요.');
+    const n=Number(value);
+    if(!Number.isSafeInteger(n)||n===0||n>length||n< -length)throw new Error('OBJ '+kind+' 참조가 범위를 벗어났어요.');
+    return n>0?n-1:length+n;
+  };
+  const numbers=(fields,count,kind)=>{
+    if(fields.length<count||fields.slice(0,count).some(v=>v===''||!Number.isFinite(Number(v))||Math.abs(Number(v))>1e8))
+      throw new Error('OBJ '+kind+'에 잘못된 숫자가 있어요.');
+    return fields.slice(0,count).map(Number);
+  };
+  for(const raw of text.replace(/\\\r?\n[ \t]*/g,' ').split(/\r?\n/)){
+    const line=modelTextLine(raw);if(!line)continue;
+    const split=line.search(/\s/),kind=split<0?line:line.slice(0,split),value=split<0?'':line.slice(split).trim();
+    if(kind==='v')V.push(numbers(value.split(/\s+/),3,'좌표'));
+    else if(kind==='vn')N.push(numbers(value.split(/\s+/),3,'법선'));
+    else if(kind==='vt'){
+      const fields=value.split(/\s+/);numbers(fields,1,'UV');
+      if(fields.length>1)numbers(fields,Math.min(fields.length,3),'UV');
+      T.push([Number(fields[0]),fields[1]===undefined?0:Number(fields[1])]);
+    }else if(kind==='usemtl')currentMaterial=modelTextTokens(value).join(' ');
+    else if(kind==='mtllib'){
+      modelTextTokens(value).forEach(name=>{if(name&&!materialLibraries.includes(name))materialLibraries.push(name);});
+    }else if(kind==='f'){
+      const fields=value.split(/\s+/);if(fields.length<3)throw new Error('OBJ 면에 꼭짓점이 부족해요.');
+      triangles+=fields.length-2;if(triangles>maxTriangles)throw new Error('OBJ 모델은 삼각형 150,000개 이하로 줄여 주세요.');
+      const face=fields.map(token=>{
+        const refs=token.split('/');if(refs.length>3)throw new Error('OBJ 면 참조 형식이 잘못됐어요.');
+        return [index(refs[0],V.length,'꼭짓점'),refs[1]===undefined||refs[1]===''?-1:index(refs[1],T.length,'UV'),
+          refs[2]===undefined||refs[2]===''?-1:index(refs[2],N.length,'법선')];
+      });
+      let mi=materialIndices.get(currentMaterial);
+      if(mi===undefined){
+        if(materialNames.length>=128)throw new Error('OBJ 재질은 최대 128개까지 지원해요.');
+        mi=materialNames.length;materialIndices.set(currentMaterial,mi);materialNames.push(currentMaterial);materialHasUV.push(true);
+      }
+      const start=pos.length/3,count=(face.length-2)*3,last=groups[groups.length-1];
+      if(last&&last.materialIndex===mi)last.count+=count;else groups.push({start,count,materialIndex:mi});
+      for(let k=1;k<face.length-1;k++)for(const [vi,ti,ni] of [face[0],face[k],face[k+1]]){
+        pos.push(...V[vi]);
+        if(ni>=0)nor.push(...N[ni]);else allNormals=false;
+        if(ti>=0)uv.push(...T[ti]);else{uv.push(0,0);materialHasUV[mi]=false;}
+      }
+    }
+  }
+  if(!pos.length)throw new Error('OBJ 모델에 면(f) 데이터가 없어요.');
+  // Opaque triangles may be grouped by material without changing appearance.
+  // This bounds draw calls even when usemtl alternates on every single face.
+  const counts=materialNames.map(()=>0);groups.forEach(group=>counts[group.materialIndex]+=group.count);
+  const starts=[];let start=0;counts.forEach(count=>{starts.push(start);start+=count;});
+  const cursors=starts.slice(),orderedPos=new Float32Array(pos.length),orderedUV=new Float32Array(uv.length);
+  const orderedNor=allNormals?new Float32Array(nor.length):null;
+  groups.forEach(group=>{
+    const destination=cursors[group.materialIndex];cursors[group.materialIndex]+=group.count;
+    for(let vertex=0;vertex<group.count;vertex++){
+      const from=group.start+vertex,to=destination+vertex;
+      for(let axis=0;axis<3;axis++){orderedPos[to*3+axis]=pos[from*3+axis];if(allNormals)orderedNor[to*3+axis]=nor[from*3+axis];}
+      orderedUV[to*2]=uv[from*2];orderedUV[to*2+1]=uv[from*2+1];
+    }
+  });
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(orderedPos,3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(orderedUV,2));
+  if(allNormals)g.setAttribute('normal',new THREE.Float32BufferAttribute(orderedNor,3));else g.computeVertexNormals();
+  counts.forEach((count,mi)=>g.addGroup(starts[mi],count,mi));
+  g.userData.materialNames=materialNames;g.userData.materialHasUV=materialHasUV;g.userData.materialLibraries=materialLibraries;
+  if(u!==1)g.scale(u,u,u);
+  g.computeBoundingBox();const bb=g.boundingBox;
+  g.translate(-(bb.min.x+bb.max.x)/2,-bb.min.y,-(bb.min.z+bb.max.z)/2);
+  return g;
+}
+function parseMTL(text){
+  if(typeof text!=='string'||!text.length||text.length>2*1024*1024)throw new Error('MTL은 2MB 이하의 유효한 텍스트여야 해요.');
+  const materials=[],warnings=[],indices=new Map();let material=null;
+  const warn=message=>{if(!warnings.includes(message))warnings.push(message);};
+  const numeric=value=>value!==undefined&&value!==''&&Number.isFinite(Number(value));
+  const mapValue=value=>{
+    const tokens=modelTextTokens(value);let i=0;
+    const map={path:'',offset:[0,0],scale:[1,1],clamp:false};
+    while(i<tokens.length&&/^-[a-z]+$/i.test(tokens[i])){
+      const option=tokens[i++].toLowerCase();
+      if(['-o','-s','-t'].includes(option)){
+        const values=[];while(i<tokens.length&&values.length<3&&numeric(tokens[i]))values.push(Number(tokens[i++]));
+        if(!values.length||values.some(n=>Math.abs(n)>1e8))throw new Error('MTL '+option+' 옵션 숫자가 잘못됐어요.');
+        if(option==='-o')map.offset=[values[0],values[1]??0];
+        else if(option==='-s')map.scale=[values[0],values[1]??1];
+        else warn('MTL 텍스처 난류(-t)는 적용하지 않습니다.');
+      }else if(option==='-clamp'){
+        const mode=tokens[i++]?.toLowerCase();if(!['on','off'].includes(mode))throw new Error('MTL -clamp는 on 또는 off여야 해요.');
+        map.clamp=mode==='on';
+      }else{
+        const counts={'-blendu':1,'-blendv':1,'-boost':1,'-mm':2,'-texres':1,'-imfchan':1,'-type':1,'-bm':1,'-cc':1,'-colorspace':1};
+        const count=counts[option];
+        if(count===undefined)throw new Error('MTL map_Kd의 '+option+' 옵션은 지원하지 않아요.');
+        if(i+count>=tokens.length)throw new Error('MTL '+option+' 옵션 또는 이미지 이름이 없어요.');
+        i+=count;warn('MTL map_Kd 옵션 '+option+'은 적용하지 않습니다.');
+      }
+    }
+    map.path=tokens.slice(i).join(' ').trim();
+    if(!map.path)throw new Error('MTL map_Kd에 이미지 파일 이름이 없어요.');
+    return map;
+  };
+  for(const raw of text.replace(/\\\r?\n[ \t]*/g,' ').split(/\r?\n/)){
+    const line=modelTextLine(raw);if(!line)continue;
+    const split=line.search(/\s/),key=(split<0?line:line.slice(0,split)).toLowerCase(),value=split<0?'':line.slice(split).trim();
+    if(key==='newmtl'){
+      const name=modelTextTokens(value).join(' ');if(!name||name.length>512)throw new Error('MTL 재질 이름이 없거나 너무 길어요.');
+      material={name,kd:[1,1,1],mapKd:null};
+      if(indices.has(name)){materials[indices.get(name)]=material;warn('중복된 MTL 재질 이름은 마지막 정의를 사용합니다.');}
+      else{if(materials.length>=128)throw new Error('MTL 재질은 최대 128개까지 지원해요.');indices.set(name,materials.length);materials.push(material);}
+    }else if(material){
+      if(key==='kd'){
+        const fields=value.split(/\s+/);
+        if(['spectral','xyz'].includes(fields[0]?.toLowerCase())){material.kd=[1,1,1];warn('MTL의 spectral/XYZ 기본색은 지원하지 않아 흰색으로 표시합니다.');continue;}
+        if(fields.length!==3||fields.some(v=>!numeric(v)||Number(v)<0||Number(v)>1))throw new Error('MTL Kd 기본색은 0–1 범위의 RGB 세 값이어야 해요.');
+        material.kd=fields.map(Number);
+      }else if(key==='map_kd')material.mapKd=mapValue(value);
+      else if(key==='d'||key==='tr'){
+        const fields=modelTextTokens(value),opacity=Number(fields[fields.length-1]);
+        if(!Number.isFinite(opacity)||opacity<0||opacity>1)throw new Error('MTL 투명도 값이 잘못됐어요.');
+        if((key==='d'&&opacity<1)||(key==='tr'&&opacity>0))warn('MTL 투명도는 적용하지 않습니다. 모델과 그림자는 불투명하게 표시됩니다.');
+      }else if(['map_d','map_bump','bump','norm','normal','disp','decal','map_ks','map_ns','refl','map_ke','map_ka'].includes(key))
+        warn('MTL의 '+key+' 맵은 적용하지 않습니다. 기본색(map_Kd) 이미지만 지원합니다.');
+      else if(key==='ke'&&value.split(/\s+/).some(v=>Number(v)>0))warn('MTL 자체 발광은 적용하지 않습니다.');
+    }
+  }
+  if(!materials.length)throw new Error('MTL에 newmtl 재질 정의가 없어요.');
+  return {materials,warnings};
+}
+
+/* ---------- 로컬 OBJ · MTL · 텍스처 묶음 ---------- */
+const MODEL_ASSET_LIMITS=Object.freeze({files:128,inputBytes:64*1024*1024,objBytes:12*1024*1024,
+  mtlBytes:1024*1024,materials:128,textures:32,textureChars:12*1024*1024,textureEdge:2048,
+  decodedPixels:64*1024*1024,warnings:256});
+const validatedModelAssets=new WeakSet();
+function modelAssetRecord(value){return value!==null&&typeof value==='object'&&!Array.isArray(value);}
+function modelAssetPath(value){
+  let path=String(value).trim();
+  if((path.startsWith('"')&&path.endsWith('"'))||(path.startsWith("'")&&path.endsWith("'")))path=path.slice(1,-1);
+  path=path.replace(/\\/g,'/').normalize('NFC');
+  const parts=[];
+  for(const part of path.split('/')){
+    if(!part||part==='.')continue;
+    if(part==='..'&&parts.length&&parts.at(-1)!=='..')parts.pop();
+    else parts.push(part);
+  }
+  return parts.join('/');
+}
+function modelAssetRemotePath(value){
+  const path=String(value).trim();
+  return /^\/\//.test(path)||(/^[a-z][a-z0-9+.-]*:/i.test(path)&&!(/^[a-z]:[\\/]/i.test(path)));
+}
+function resolveModelAsset(path,fromPath,records){
+  if(modelAssetRemotePath(path))return null;
+  const clean=modelAssetPath(path),directory=fromPath.includes('/')?fromPath.slice(0,fromPath.lastIndexOf('/')+1):'';
+  const candidates=[modelAssetPath(directory+clean),clean];
+  const single=matches=>{
+    if(matches.length>1)throw new Error('파일 이름이 겹쳐 구분할 수 없어요: '+path+' · 폴더 불러오기를 사용하거나 이름을 다르게 지정해 주세요.');
+    return matches[0]||null;
+  };
+  for(const candidate of candidates){const found=single(records.filter(record=>record.path===candidate));if(found)return found;}
+  for(const candidate of candidates){const found=single(records.filter(record=>record.path.toLowerCase()===candidate.toLowerCase()));if(found)return found;}
+  const basename=clean.split('/').at(-1);
+  const exact=single(records.filter(record=>record.path.split('/').at(-1)===basename));if(exact)return exact;
+  return single(records.filter(record=>record.path.split('/').at(-1).toLowerCase()===basename.toLowerCase()));
+}
+function modelDirectiveValue(line){
+  let quote=null;
+  for(let i=0;i<line.length;i++){
+    const character=line[i];
+    if(quote){if(character==='\\'&&line[i+1]===quote){i++;continue;}if(character===quote)quote=null;}
+    else if((character==='"'||character==="'")&&(i===0||/\s/.test(line[i-1])))quote=character;
+    else if(character==='#'&&(i===0||/\s/.test(line[i-1])))return line.slice(0,i).trim();
+  }
+  return line.trim();
+}
+function modelLibraryReferences(objText,fromPath,mtlRecords){
+  const references=[];
+  for(const raw of objText.split(/\r?\n/)){
+    const line=modelDirectiveValue(raw),match=/^mtllib\s+(.+)$/i.exec(line);
+    if(!match)continue;
+    const value=match[1].trim();
+    // Some exporters omit quotes around one MTL filename containing spaces.
+    if(resolveModelAsset(value,fromPath,mtlRecords)){references.push(value);continue;}
+    const tokens=modelTextTokens(value);
+    if(tokens.length>1&&!tokens.every(token=>/\.mtl$/i.test(token)))references.push(value);
+    else references.push(...tokens);
+  }
+  return [...new Set(references)];
+}
+async function readModelAssetText(file){
+  if(typeof file.text==='function')return file.text();
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));
+    reader.onerror=()=>reject(new Error('파일을 읽지 못했어요: '+file.name));
+    reader.readAsText(file);
+  });
+}
+function modelRasterDimensions(data,mime){
+  const byte=index=>data.charCodeAt(index),u16=index=>(byte(index)<<8)|byte(index+1);
+  const u32=index=>byte(index)*16777216+byte(index+1)*65536+byte(index+2)*256+byte(index+3);
+  const le32=index=>(byte(index)+byte(index+1)*256+byte(index+2)*65536+byte(index+3)*16777216)>>>0;
+  if(mime==='image/png'){
+    if(data.length<33||data.slice(0,8)!=='\x89PNG\r\n\x1a\n'||data.slice(12,16)!=='IHDR')throw new Error('PNG 텍스처 형식이 올바르지 않아요.');
+    return [u32(16),u32(20)];
+  }
+  if(mime==='image/jpeg'){
+    if(data.length<4||byte(0)!==255||byte(1)!==216)throw new Error('JPEG 텍스처 형식이 올바르지 않아요.');
+    const frames=new Set([192,193,194,195,197,198,199,201,202,203,205,206,207]);
+    let cursor=2;
+    while(cursor<data.length){
+      if(byte(cursor++)!==255)throw new Error('JPEG 텍스처 헤더가 올바르지 않아요.');
+      while(cursor<data.length&&byte(cursor)===255)cursor++;
+      const marker=byte(cursor++);
+      if(marker===217||marker===218)break;
+      if(marker===1||(marker>=208&&marker<=215))continue;
+      if(cursor+2>data.length)break;
+      const size=u16(cursor);if(size<2||cursor+size>data.length)break;
+      if(frames.has(marker)&&size>=8)return [u16(cursor+5),u16(cursor+3)];
+      cursor+=size;
+    }
+    throw new Error('JPEG 텍스처 크기를 확인할 수 없어요.');
+  }
+  if(mime==='image/webp'){
+    if(data.length<30||data.slice(0,4)!=='RIFF'||data.slice(8,12)!=='WEBP')throw new Error('WebP 텍스처 형식이 올바르지 않아요.');
+    for(let cursor=12;cursor+8<=data.length;){
+      const tag=data.slice(cursor,cursor+4),size=le32(cursor+4),start=cursor+8;
+      if(start+size>data.length)break;
+      if(tag==='VP8X'&&size>=10)return [1+byte(start+4)+byte(start+5)*256+byte(start+6)*65536,1+byte(start+7)+byte(start+8)*256+byte(start+9)*65536];
+      if(tag==='VP8L'&&size>=5&&byte(start)===47)return [1+byte(start+1)+((byte(start+2)&63)<<8),1+(byte(start+2)>>6)+(byte(start+3)<<2)+((byte(start+4)&15)<<10)];
+      if(tag==='VP8 '&&size>=10&&data.slice(start+3,start+6)==='\x9d\x01\x2a')return [(byte(start+6)|(byte(start+7)<<8))&16383,(byte(start+8)|(byte(start+9)<<8))&16383];
+      cursor=start+size+(size%2);
+    }
+    throw new Error('WebP 텍스처 크기를 확인할 수 없어요.');
+  }
+  throw new Error('PNG·JPEG·WebP 텍스처만 지원해요.');
+}
+function normalizeModelAssets(raw){
+  if(raw===undefined||raw===null)return null;
+  if(validatedModelAssets.has(raw))return raw;
+  const invalid=message=>{throw new Error('모델 재질: '+message);};
+  if(!modelAssetRecord(raw)||raw.version!==1||!Array.isArray(raw.materials)||!Array.isArray(raw.textures)||!Array.isArray(raw.warnings))invalid('저장 형식이 올바르지 않아요.');
+  if(raw.materials.length>MODEL_ASSET_LIMITS.materials||raw.textures.length>MODEL_ASSET_LIMITS.textures||raw.warnings.length>MODEL_ASSET_LIMITS.warnings)invalid('재질·텍스처 개수가 너무 많아요.');
+  const text=(value,max,label)=>{
+    if(typeof value!=='string'||!value.trim()||value.length>max||/[\u0000-\u0008]/.test(value))invalid(label+' 이름 또는 형식이 올바르지 않아요.');
+    return value;
+  };
+  const vector=(value,count,min,max,label)=>{
+    if(!Array.isArray(value)||value.length!==count||Array.from(value).some(n=>typeof n!=='number'||!Number.isFinite(n)||n<min||n>max))invalid(label+' 값이 올바르지 않아요.');
+    return Object.freeze([...value]);
+  };
+  let chars=0;const ids=new Set();
+  const textures=Array.from(raw.textures,texture=>{
+    if(!modelAssetRecord(texture))invalid('텍스처 정보가 올바르지 않아요.');
+    const id=text(texture.id,80,'텍스처');
+    if(!/^[a-z0-9._-]+$/i.test(id)||ids.has(id))invalid('텍스처 번호가 겹치거나 올바르지 않아요.');ids.add(id);
+    if(typeof texture.data!=='string'||(chars+=texture.data.length)>MODEL_ASSET_LIMITS.textureChars)invalid('텍스처 합계는 저장 데이터 기준 12MB 이하로 줄여 주세요.');
+    const match=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]*={0,2})$/.exec(texture.data);
+    if(!match||!match[2].length||match[2].length%4)invalid('이미지 데이터가 올바르지 않아요.');
+    let decoded;try{decoded=atob(match[2]);}catch(error){invalid('이미지 데이터가 손상됐어요.');}
+    const [width,height]=modelRasterDimensions(decoded,match[1]);
+    if(!Number.isInteger(texture.width)||!Number.isInteger(texture.height)||width!==texture.width||height!==texture.height||width<1||height<1||Math.max(width,height)>MODEL_ASSET_LIMITS.textureEdge)invalid('텍스처 크기는 실제 이미지와 일치하고 가로·세로 2048px 이하여야 해요.');
+    return Object.freeze({id,data:texture.data,width,height});
+  });
+  const names=new Set();
+  const materials=Array.from(raw.materials,material=>{
+    if(!modelAssetRecord(material))invalid('재질 정보가 올바르지 않아요.');
+    const name=text(material.name,512,'재질');if(names.has(name))invalid('재질 이름이 겹쳐요: '+name);names.add(name);
+    const map=material.map===null?null:text(material.map,80,'텍스처 참조');if(map!==null&&!ids.has(map))invalid('재질이 가리키는 텍스처가 없어요.');
+    if(typeof material.clamp!=='boolean')invalid('텍스처 반복 설정이 올바르지 않아요.');
+    return Object.freeze({name,kd:vector(material.kd,3,0,1,'기본 색상'),map,
+      offset:vector(material.offset,2,-1e6,1e6,'텍스처 이동'),scale:vector(material.scale,2,-1e6,1e6,'텍스처 배율'),clamp:material.clamp});
+  });
+  const warnings=Array.from(raw.warnings,warning=>text(warning,1000,'안내'));
+  const result=Object.freeze({version:1,materials:Object.freeze(materials),textures:Object.freeze(textures),warnings:Object.freeze(warnings)});
+  validatedModelAssets.add(result);return result;
+}
+async function prepareModelTexture(file){
+  const url=URL.createObjectURL(file),image=new Image();
+  let timer;
+  try{
+    await new Promise((resolve,reject)=>{
+      timer=setTimeout(()=>reject(new Error('이미지를 읽는 데 시간이 너무 오래 걸려요.')),15000);
+      image.onload=()=>resolve();image.onerror=()=>reject(new Error('이미지 파일을 읽지 못했어요.'));
+      image.src=url;
+    });
+    const width=image.naturalWidth||image.width,height=image.naturalHeight||image.height;
+    if(!width||!height||width*height>MODEL_ASSET_LIMITS.decodedPixels)throw new Error('원본 이미지는 64메가픽셀 이하로 줄여 주세요.');
+    const ratio=Math.min(1,MODEL_ASSET_LIMITS.textureEdge/Math.max(width,height));
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*ratio));canvas.height=Math.max(1,Math.round(height*ratio));
+    const context=canvas.getContext('2d');if(!context)throw new Error('텍스처 변환을 시작하지 못했어요.');
+    context.drawImage(image,0,0,canvas.width,canvas.height);
+    const mime=/\.jpe?g$/i.test(file.name)?'image/jpeg':'image/png';
+    const data=canvas.toDataURL(mime,0.94);
+    canvas.width=canvas.height=1;
+    return {data,width:Math.max(1,Math.round(width*ratio)),height:Math.max(1,Math.round(height*ratio)),resized:ratio<1};
+  }finally{
+    clearTimeout(timer);image.onload=image.onerror=null;image.src='';URL.revokeObjectURL(url);
+  }
+}
+async function buildOBJBundle(files,unit){
+  const list=Array.from(files||[]),warnings=[];
+  if(!list.length||list.length>MODEL_ASSET_LIMITS.files)throw new Error('OBJ·MTL·이미지 파일을 함께 선택해 주세요. 한 번에 최대 128개까지 불러올 수 있어요.');
+  if(!['m','cm','mm'].includes(unit))throw new Error('모델 단위는 m·cm·mm 중 하나로 선택해 주세요.');
+  let inputBytes=0;
+  const records=list.map(file=>{
+    if(!file||typeof file.name!=='string'||!Number.isFinite(file.size)||file.size<0)throw new Error('선택한 파일 정보를 읽지 못했어요.');
+    inputBytes+=file.size;
+    const path=modelAssetPath(file.webkitRelativePath||file.name);
+    if(!path||path.length>2000)throw new Error('파일 경로가 너무 길거나 올바르지 않아요.');
+    return {file,path};
+  });
+  if(inputBytes>MODEL_ASSET_LIMITS.inputBytes)throw new Error('선택한 파일 합계는 64MB 이하로 줄여 주세요.');
+  const objs=records.filter(record=>/\.obj$/i.test(record.path));
+  if(objs.length!==1)throw new Error('한 번에 OBJ 파일 하나와 해당 MTL·이미지 파일들을 선택해 주세요.');
+  const obj=objs[0];if(obj.file.size>MODEL_ASSET_LIMITS.objBytes)throw new Error('OBJ 파일은 12MB 이하로 줄여 주세요.');
+  const objText=await readModelAssetText(obj.file);
+  const mtlRecords=records.filter(record=>/\.mtl$/i.test(record.path));
+  const refs=modelLibraryReferences(objText,obj.path,mtlRecords),mtls=[];
+  if(!refs.length)mtls.push(...mtlRecords);
+  else for(const ref of refs){
+    const found=resolveModelAsset(ref,obj.path,mtlRecords);
+    if(found){if(!mtls.includes(found))mtls.push(found);}
+    else warnings.push('MTL 파일을 찾지 못했어요: '+ref+' · 해당 파일도 함께 선택해 주세요.');
+  }
+  const imageRecords=records.filter(record=>/\.(png|jpe?g|webp)$/i.test(record.path));
+  const materials=[],textures=[],textureByRecord=new Map(),materialNames=new Set();let textureChars=0;
+  for(const mtl of mtls){
+    if(mtl.file.size>MODEL_ASSET_LIMITS.mtlBytes)throw new Error('MTL 파일은 각각 1MB 이하로 줄여 주세요: '+mtl.path);
+    const parsed=parseMTL(await readModelAssetText(mtl.file));
+    warnings.push(...parsed.warnings);
+    for(const source of parsed.materials){
+      if(materialNames.has(source.name))throw new Error('MTL 사이에 같은 재질 이름이 있어요: '+source.name+' · 이름을 다르게 지정해 주세요.');
+      materialNames.add(source.name);
+      if(materialNames.size>MODEL_ASSET_LIMITS.materials)throw new Error('한 모델의 재질은 최대 128개까지 불러올 수 있어요.');
+      const material={name:source.name,kd:source.kd,map:null,offset:[0,0],scale:[1,1],clamp:false};
+      if(source.mapKd){
+        const map=source.mapKd;Object.assign(material,{offset:map.offset,scale:map.scale,clamp:map.clamp});
+        const image=resolveModelAsset(map.path,mtl.path,imageRecords);
+        if(!image)warnings.push('텍스처를 찾지 못했어요: '+map.path+' · PNG·JPEG·WebP 이미지도 함께 선택해 주세요.');
+        else{
+          if(!textureByRecord.has(image)){
+            if(textures.length>=MODEL_ASSET_LIMITS.textures)throw new Error('한 모델의 텍스처는 최대 32개까지 불러올 수 있어요.');
+            let prepared=null;
+            try{prepared=await prepareModelTexture(image.file);}
+            catch(error){warnings.push('텍스처 '+image.path+': '+error.message+' 기본 재질 색상으로 표시해요.');}
+            if(prepared){
+              textureChars+=prepared.data.length;
+              if(textureChars>MODEL_ASSET_LIMITS.textureChars)throw new Error('텍스처 합계는 저장 데이터 기준 12MB 이하로 줄여 주세요. 이미지 개수나 해상도를 줄여 주세요.');
+              const texture={id:'texture-'+(textures.length+1),data:prepared.data,width:prepared.width,height:prepared.height};
+              textures.push(texture);textureByRecord.set(image,texture.id);
+              if(prepared.resized)warnings.push('텍스처 '+image.path+': 긴 변을 2048px로 줄였어요.');
+            }else textureByRecord.set(image,null);
+          }
+          material.map=textureByRecord.get(image);
+        }
+      }
+      materials.push(material);
+    }
+  }
+  const uniqueWarnings=[...new Set(warnings)].map(warning=>String(warning).slice(0,1000));
+  if(uniqueWarnings.length>MODEL_ASSET_LIMITS.warnings){uniqueWarnings.length=MODEL_ASSET_LIMITS.warnings-1;uniqueWarnings.push('일부 추가 재질 안내는 생략했어요.');}
+  const assets=normalizeModelAssets({version:1,materials,textures,warnings:uniqueWarnings});
+  return {name:obj.file.name.replace(/\.obj$/i,''),objText,unit,assets};
+}
+
+/* ---------- OBJ 원본 재질 · 텍스처 생명주기 ---------- */
+const modelAssetIds=new WeakMap();let modelAssetSequence=1;
+let modelImportEpoch=0,modelImportBusy=false;
+function modelAssetsHistoryId(assets){
+  if(!assets)return 0;
+  if(!modelAssetIds.has(assets))modelAssetIds.set(assets,modelAssetSequence++);
+  return modelAssetIds.get(assets);
+}
+function hasModelMaterials(o){return o.params.kind==='model'&&!!o.params.modelAssets?.materials.length;}
+function modelOriginalMode(o){return hasModelMaterials(o)&&o.params.materialMode!=='solid';}
+function modelAssetMemory(assets){return assets?assets.textures.reduce((sum,t)=>sum+t.width*t.height*8,0):0;}
+function checkModelImportBudget(objText,assets){
+  const payload=new Blob([serialize()]).size+new Blob([JSON.stringify({objText,modelAssets:assets})]).size+4096;
+  if(payload>SCENE_LIMITS.fileBytes)throw new Error('텍스처를 포함한 장면이 40MB를 넘습니다. 이미지 크기나 모델 수를 줄여 주세요.');
+  const active=objects.reduce((sum,o)=>sum+modelAssetMemory(o.params.modelAssets),0);
+  if(active+modelAssetMemory(assets)>192*1024*1024)throw new Error('장면의 텍스처가 너무 큽니다. 이미지 수나 크기를 줄여 주세요.');
+}
+function makeModelMaterialBundle(geometry,assets,glossU,rearU){
+  if(!assets?.materials.length)return {material:makeSurfMat(0xB9C2D0,glossU,rearU),resources:[],warnings:assets?.warnings||[]};
+  const definitions=new Map(assets.materials.map(m=>[m.name,m]));
+  const images=new Map(assets.textures.map(t=>[t.id,t])),resources=new Map();
+  const names=geometry.userData.materialNames||[''],uvFlags=geometry.userData.materialHasUV||[];
+  const warnings=[...assets.warnings];
+  const material=names.map((name,index)=>{
+    const definition=definitions.get(name);
+    const mat=makeSurfMat(0xB9C2D0,glossU,rearU);
+    let resource=null;
+    if(!definition){if(name)warnings.push('재질 정의를 찾지 못함: '+name);}
+    else if(definition.map){
+      if(!uvFlags[index])warnings.push('UV 좌표가 없어 텍스처 대신 재질 색상 사용: '+name);
+      else{
+        resource=resources.get(definition.map);
+        if(!resource){
+          const image=images.get(definition.map);
+          const texture=new THREE.Texture();texture.flipY=true;texture.generateMipmaps=false;
+          texture.wrapS=texture.wrapT=THREE.ClampToEdgeWrapping;
+          texture.minFilter=texture.magFilter=THREE.LinearFilter;
+          resource={definition:image,texture,image:null,ready:false,error:false,released:false,timer:null};resources.set(definition.map,resource);
+        }
+      }
+    }
+    mat.userData=mat.userData||{};
+    mat.userData.modelSource={kd:definition?.kd||[185/255,194/255,208/255],resource,
+      offset:definition?.offset||[0,0],scale:definition?.scale||[1,1],clamp:!!definition?.clamp};
+    return mat;
+  });
+  return {material,resources:[...resources.values()],warnings:[...new Set(warnings)]};
+}
+function loadModelTextures(o){
+  for(const resource of o._modelTextures||[]){
+    const image=new Image();resource.image=image;
+    const finish=ok=>{
+      clearTimeout(resource.timer);resource.timer=null;image.onload=image.onerror=null;
+      if(resource.released||o._released)return;
+      resource.ready=ok;resource.error=!ok;
+      if(ok){resource.texture.image=image;resource.texture.needsUpdate=true;}
+      applySurfaceColor(o);updateModelMaterialStatus(o);
+    };
+    image.onload=()=>finish(image.naturalWidth===resource.definition.width&&image.naturalHeight===resource.definition.height);
+    image.onerror=()=>finish(false);resource.timer=setTimeout(()=>finish(false),15000);
+    image.src=resource.definition.data;
+  }
+}
+function releaseModelTextures(o){
+  for(const resource of o._modelTextures||[]){
+    if(resource.released)continue;
+    resource.released=true;clearTimeout(resource.timer);
+    if(resource.image){resource.image.onload=resource.image.onerror=null;resource.image.src='';}
+    resource.texture.dispose();resource.texture.image=null;resource.image=null;
+  }
+  o._modelTextures=[];
+}
+function modelMaterialStatusText(o){
+  const resources=o._modelTextures||[],ready=resources.filter(r=>r.ready).length,errors=resources.filter(r=>r.error).length;
+  return '원본 재질 '+(o.params.modelAssets?.materials.length||0)+'개 · 텍스처 '+ready+'/'+resources.length+'개'+
+    (errors?' · '+errors+'개 표시 실패 (재질 색상으로 대체)':ready<resources.length?' · 불러오는 중':'');
+}
+function updateModelMaterialStatus(o){
+  if(selected!==o)return;
+  const mode=document.getElementById('modelMaterialMode-'+o.id);
+  if(mode)mode.value=modelOriginalMode(o)?'original':'solid';
+  const status=document.getElementById('modelMaterialStatus-'+o.id);if(status)status.textContent=modelMaterialStatusText(o);
+}
+function createModelMaterialControls(o,refresh){
+  if(!hasModelMaterials(o)){
+    if(!o._modelWarnings?.length)return null;
+  }
+  const box=document.createElement('div');box.className='model-material-controls';
+  if(hasModelMaterials(o)){
+    const label=document.createElement('label');label.textContent='재질 표시';
+    const select=document.createElement('select');select.id='modelMaterialMode-'+o.id;select.setAttribute('aria-label','모델 재질 표시 방식');
+    for(const [value,text] of [['original','원본 재질 · 텍스처'],['solid','지정한 단색']]){
+      const option=document.createElement('option');option.value=value;option.textContent=text;select.appendChild(option);
+    }
+    select.value=modelOriginalMode(o)?'original':'solid';
+    select.onchange=()=>{flushHistory();o.params.materialMode=select.value;applySurfaceColor(o);commitHistory();scheduleAutosave();refresh();};
+    label.appendChild(select);box.appendChild(label);
+    const status=document.createElement('p');status.id='modelMaterialStatus-'+o.id;status.className='model-material-status';
+    status.textContent=modelMaterialStatusText(o);box.appendChild(status);
+    const help=document.createElement('p');help.textContent='색상표나 HEX를 바꾸면 단색으로 전환됩니다. 위 메뉴에서 원본을 다시 선택할 수 있어요. 텍스처는 장면 JSON에 함께 저장됩니다.';box.appendChild(help);
+  }
+  const warnings=o._modelWarnings||[];
+  if(warnings.length){
+    const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent='재질 불러오기 안내 '+warnings.length+'건';details.appendChild(summary);
+    const list=document.createElement('ul');for(const warning of warnings){const item=document.createElement('li');item.textContent=warning;list.appendChild(item);}details.appendChild(list);box.appendChild(details);
+  }
+  return box;
+}
+function cancelModelImport(){modelImportEpoch++;modelImportBusy=false;}
+async function importOBJFiles(files,unit){
+  if(modelImportBusy){toast('모델 파일을 처리하고 있어요. 잠시 기다려 주세요.');return null;}
+  if(!files.length)return null;
+  const token=++modelImportEpoch;modelImportBusy=true;toast('OBJ와 재질·텍스처를 읽고 있어요.',5000);
+  try{
+    const bundle=await buildOBJBundle(files,unit);
+    if(token!==modelImportEpoch)return null;
+    checkModelImportBudget(bundle.objText,bundle.assets);
+    flushHistory();
+    const o=addModelFromText(bundle.name,bundle.objText,bundle.unit,bundle.assets);
+    if(!o)throw new Error('모델을 추가하지 못했어요.');
+    commitHistory();scheduleAutosave();markShadowDirty();openPropsIfMobile();
+    toast(o._modelWarnings?.length?'모델을 불러왔어요. 오른쪽 재질 안내를 확인해 주세요.':'모델과 재질을 불러왔어요.');return o;
+  }catch(error){if(token===modelImportEpoch)toast(error.message||'모델을 읽지 못했어요.',8000);return null;}
+  finally{if(token===modelImportEpoch)modelImportBusy=false;}
+}
+
+/* ---------- OBJ 재질 모듈 끝 ---------- */
 /* ---------- 모델별 표면 색상 ---------- */
 const DEFAULT_SURFACE_COLOR = '#B9C2D0';
 const SURFACE_PALETTE = [
@@ -6504,14 +7089,27 @@ function savedSurfaceColor(value){
 }
 function applySurfaceColor(o){
   if(o.type!=='surf')return;
-  const uniforms=o.mesh.material.uniforms,color=surfaceColor(o.params);
-  uniforms.uAlbedo.value.set(color);
-  uniforms.uSurfaceTint.value.set(color);
+  const original=modelOriginalMode(o),color=surfaceColor(o.params);
+  const materials=Array.isArray(o.mesh.material)?o.mesh.material:[o.mesh.material];
+  for(const mat of materials){
+    const uniforms=mat.uniforms,source=mat.userData?.modelSource;
+    if(original&&source){
+      uniforms.uAlbedo.value.setRGB(...source.kd);uniforms.uSurfaceTint.value.setRGB(...source.kd);
+    }else{uniforms.uAlbedo.value.set(color);uniforms.uSurfaceTint.value.set(color);}
+    if(uniforms.uModelMap){
+      uniforms.uUseModelMap.value=original&&source?.resource?.ready?1:0;
+      uniforms.uModelMap.value=source?.resource?.ready?source.resource.texture:null;
+      uniforms.uModelUVScale.value=source?.scale||[1,1];uniforms.uModelUVOffset.value=source?.offset||[0,0];
+      uniforms.uModelClamp.value=source?.clamp?1:0;
+    }
+  }
+  updateModelMaterialStatus(o);
 }
 function setSurfaceColor(o,value){
   const color=normalizeSurfaceColor(value);
-  if(o.type!=='surf'||!color||color===surfaceColor(o.params))return false;
+  if(o.type!=='surf'||!color||(color===surfaceColor(o.params)&&!modelOriginalMode(o)))return false;
   o.params.surfaceColor=color;
+  if(hasModelMaterials(o))o.params.materialMode='solid';
   applySurfaceColor(o);
   scheduleAutosave();
   return true;
@@ -6579,7 +7177,9 @@ function createSurfaceColorControls(o){
   reset.textContent='기본 색상으로';reset.onclick=()=>choose(DEFAULT_SURFACE_COLOR);
   const note=document.createElement('p');note.className='surface-color-note';
   note.textContent='선택한 모델 전체에 적용돼요. HEX 입력 후 Enter를 누르세요. 투사 영상에도 표면색이 반영되며, 조도 히트맵은 측정값 색상을 유지해요.';
-  section.append(heading,row,palette,error,reset,note);refresh();return section;
+  section.append(heading,row,palette,error,reset,note);
+  const modelControls=createModelMaterialControls(o,refresh);if(modelControls)section.appendChild(modelControls);
+  refresh();return section;
 }
 
 function makeSurfMat(albedoHex, glossEntry, rearEntry){
@@ -6587,6 +7187,8 @@ function makeSurfMat(albedoHex, glossEntry, rearEntry){
     vertexShader:SURF_VERT, fragmentShader:SURF_FRAG, side:THREE.DoubleSide,
     uniforms:Object.assign({uAlbedo:{value:new THREE.Color(albedoHex)},
                             uSurfaceTint:{value:new THREE.Color(0xFFFFFF)},
+                            uModelMap:{value:null},uUseModelMap:{value:0},
+                            uModelUVScale:{value:[1,1]},uModelUVOffset:{value:[0,0]},uModelClamp:{value:0},
                             uGloss:glossEntry||{value:0},
                             uRear:rearEntry||{value:0}}, shared)
   });
@@ -6772,76 +7374,39 @@ function surfGeo(p){
   }
 }
 /* ---------- 3D 모델 임포트 (.obj) ---------- */
-function parseOBJ(text, unitScale){
-  const V=[], N=[], pos=[], nor=[];
-  const lines = text.split('\n');
-  for(let li=0; li<lines.length; li++){
-    const l = lines[li].split('#')[0].trim();
-    if(/^v\s/.test(l)){
-      const t = l.split(/\s+/); V.push([+t[1],+t[2],+t[3]]);
-    } else if(/^vn\s/.test(l)){
-      const t = l.split(/\s+/); N.push([+t[1],+t[2],+t[3]]);
-    } else if(/^f\s/.test(l)){
-      const t = l.split(/\s+/).slice(1);
-      const idx = t.map(s=>{
-        const a = s.split('/');
-        const vi = parseInt(a[0]); const ni = a[2]?parseInt(a[2]):0;
-        return [vi>0?vi-1:V.length+vi, ni>0?ni-1:(ni<0?N.length+ni:-1)];
-      });
-      for(let k=1;k<idx.length-1;k++){        // 팬 삼각분할
-        [idx[0],idx[k],idx[k+1]].forEach(([vi,ni])=>{
-          const v = V[vi]; if(!v) return;
-          pos.push(v[0],v[1],v[2]);
-          if(ni>=0 && N[ni]) nor.push(N[ni][0],N[ni][1],N[ni][2]);
-        });
-      }
-    }
-  }
-  if(!pos.length) throw new Error('면(f) 데이터가 없어요');
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
-  if(nor.length === pos.length) g.setAttribute('normal', new THREE.Float32BufferAttribute(nor,3));
-  else g.computeVertexNormals();
-  // 단위 적용 (실측 스케일) + 바닥(y=0) 정렬 · XZ 센터링
-  const u = unitScale||1;
-  if(u!==1) g.scale(u,u,u);
-  g.computeBoundingBox();
-  const bb = g.boundingBox;
-  const cx = (bb.min.x+bb.max.x)/2, cz = (bb.min.z+bb.max.z)/2;
-  g.translate(-cx, -bb.min.y, -cz);
-  return g;
-}
-function addModelFromText(name, objText, unit){
+function addModelFromText(name, objText, unit, modelAssets){
   if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
   unit = unit || stage.unit;
   const uScale = unit==='mm'?0.001 : unit==='cm'?0.01 : 1;
   let geo;
   try{
+    modelAssets=normalizeModelAssets(modelAssets);
     const triangles=validateModelText(objText);
     const existing=objects.filter(o=>o.params.kind==='model').reduce((sum,o)=>sum+o.mesh.geometry.attributes.position.count/3,0);
     if(existing+triangles>SCENE_LIMITS.totalTriangles)throw new Error('장면의 OBJ 모델은 합계 삼각형 300,000개 이하로 줄여 주세요.');
     geo = parseOBJ(objText, uScale);
   }
   catch(err){ alert('.obj 파싱 실패: '+err.message); return null; }
-  const p = {kind:'model', x:0, y:0, z:-6, ry:0, scale:1, unit, objText, gain:1.0, pmode:'front', surfaceColor:DEFAULT_SURFACE_COLOR};
+  const p = {kind:'model', x:0, y:0, z:-6, ry:0, scale:1, unit, objText, gain:1.0, pmode:'front', surfaceColor:DEFAULT_SURFACE_COLOR,modelAssets,materialMode:modelAssets?.materials.length?'original':'solid'};
   const glossU = {value:0}, rearU = {value:0};
-  const mesh = new THREE.Mesh(geo, makeSurfMat(0xB9C2D0, glossU, rearU));
+  const bundle=makeModelMaterialBundle(geo,modelAssets,glossU,rearU);
+  const mesh = new THREE.Mesh(geo, bundle.material);
   mesh.position.set(p.x,p.y,p.z);
-  const o = {id:seq++, type:'surf', name:name||'3D 모델', mesh, params:p, visible:true, glossU, rearU};
+  const o = {id:seq++, type:'surf', name:name||'3D 모델', mesh, params:p, visible:true, glossU, rearU,_modelTextures:bundle.resources,_modelWarnings:bundle.warnings};
   mesh.userData.oid = o.id;
   applySurfOptics(o);
   scene.add(mesh); objects.push(o); select(o); refreshTree();
+  loadModelTextures(o);
   return o;
 }
-const objFileIn = document.createElement('input');
-objFileIn.type='file'; objFileIn.accept='.obj'; objFileIn.style.display='none';
-document.body.appendChild(objFileIn);
-objFileIn.onchange = e=>{
-  const f = e.target.files[0]; if(!f) return;
-  if(f.size > 12*1024*1024){ alert('12MB 이하 .obj만 지원해요 (Blender에서 Decimate 후 내보내기 추천)'); e.target.value=''; return; }
-  const rd = new FileReader();
-  rd.onload = ()=>addModelFromText(f.name.replace(/\.obj$/i,''), rd.result);
-  rd.readAsText(f); e.target.value='';
+const objFileIn=document.createElement('input');objFileIn.type='file';
+objFileIn.multiple=true;objFileIn.accept='.obj,.mtl,.png,.jpg,.jpeg,.webp';objFileIn.style.display='none';
+const objFolderIn=document.createElement('input');objFolderIn.type='file';objFolderIn.multiple=true;
+objFolderIn.setAttribute('webkitdirectory','');objFolderIn.style.display='none';
+document.body.append(objFileIn,objFolderIn);
+for(const input of [objFileIn,objFolderIn])input.onchange=event=>{
+  const files=Array.from(event.target.files||[]),unit=stage.unit;event.target.value='';
+  importOBJFiles(files,unit);
 };
 
 function effLumens(o){
@@ -6925,13 +7490,15 @@ function ledTexture(p, src){
 /* ---------- 오브젝트 복제 ---------- */
 function duplicateObj(o){
   let d = null;
-  const saved = JSON.parse(JSON.stringify(o.params));
+  const saved = JSON.parse(JSON.stringify({...o.params,modelAssets:undefined}));
+  if(o.params.modelAssets)saved.modelAssets=o.params.modelAssets;
+  if(o.params.kind==='model'&&o.params.modelAssets){try{checkModelImportBudget(o.params.objText,o.params.modelAssets);}catch(error){toast(error.message);return null;}}
   if(o.type==='proj'){
     const lib = PROJ_LIB.find(l=>l.name===o.params.model) || PROJ_LIB[PROJ_LIB.length-1];
     d = addProjector(lib);
   } else if(o.type==='surf'){
     d = o.params.kind==='model'
-      ? addModelFromText(o.name, o.params.objText||'', o.params.unit)
+      ? addModelFromText(o.name, o.params.objText||'', o.params.unit, o.params.modelAssets)
       : addSurface(o.params.kind, o.name);
   } else {
     d = addLED({name:o.name, pitch:o.params.pitch, nits:o.params.nits});
@@ -8368,7 +8935,7 @@ function renderStage(){
   d.innerHTML = `<div class="ptitle" style="padding:0 0 6px">공간(무대) 모델 — OBJ</div>`;
   const dr = document.createElement('div'); dr.className='row';
   const btn = document.createElement('button'); btn.className='tbtn'; btn.style.flex='1';
-  btn.textContent = '공간 모델 불러오기…';
+  btn.textContent = 'OBJ·MTL·이미지 선택…';
   btn.onclick = ()=>objFileIn.click();
   const usel = document.createElement('select'); usel.style.flex='0 0 92px';
   [['m','단위: m'],['cm','단위: cm'],['mm','단위: mm']].forEach(([v,t])=>{
@@ -8378,9 +8945,11 @@ function renderStage(){
   usel.onchange = ()=>{stage.unit = usel.value;};
   dr.appendChild(btn); dr.appendChild(usel);
   d.appendChild(dr);
+  const folderButton=document.createElement('button');folderButton.className='tbtn';folderButton.textContent='모델 폴더 불러오기…';
+  folderButton.onclick=()=>objFolderIn.click();d.appendChild(folderButton);
   const note = document.createElement('div');
   note.style.cssText='font-size:10.5px;color:var(--txt2);margin-top:6px;line-height:1.6';
-  note.textContent = 'Blender 내보내기 단위에 맞춰 선택하면 실측 스케일로 배치돼요.';
+  note.textContent = 'OBJ 1개와 MTL·텍스처 이미지(PNG/JPG/WebP)를 함께 선택하거나 폴더로 불러오세요. MTL만으로는 이미지가 포함되지 않습니다. 내보내기 단위를 맞추면 실측 크기로 배치돼요. 기본색·컬러 텍스처를 지원하며 투명·노멀·범프 효과는 적용하지 않습니다.';
   d.appendChild(note);
   right.appendChild(d);
 
@@ -9200,33 +9769,7 @@ function sceneEnum(value, fallback, allowed, label){
   if(!allowed.includes(value)) throw new Error(label+' 값이 지원되지 않아요.');
   return value;
 }
-function validateModelText(text){
-  if(typeof text!=='string' || !text.length || text.length>SCENE_LIMITS.modelChars)
-    throw new Error('OBJ 모델은 12MB 이하의 유효한 텍스트여야 해요.');
-  let vertices=0, normals=0, triangles=0;
-  for(const raw of text.split('\n')){
-    const line=raw.split('#')[0].trim(); if(!line) continue;
-    const fields=line.split(/\s+/), kind=fields[0];
-    if(kind==='v' || kind==='vn'){
-      if(fields.length<4 || fields.slice(1,4).some(v=>!Number.isFinite(Number(v)) || Math.abs(Number(v))>1e8))
-        throw new Error('OBJ 좌표에 잘못된 숫자가 있어요.');
-      if(kind==='v') vertices++; else normals++;
-    }else if(kind==='f'){
-      if(fields.length<4) throw new Error('OBJ 면에 꼭짓점이 부족해요.');
-      triangles+=fields.length-3;
-      if(triangles>SCENE_LIMITS.modelTriangles) throw new Error('OBJ 모델은 삼각형 150,000개 이하로 줄여 주세요.');
-      for(const token of fields.slice(1)){
-        const refs=token.split('/');
-        const vi=Number(refs[0]), ni=refs[2]===undefined || refs[2]==='' ? null : Number(refs[2]);
-        if(!Number.isInteger(vi) || vi===0 || vi>vertices || vi < -vertices ||
-          (ni!==null && (!Number.isInteger(ni) || ni===0 || ni>normals || ni < -normals)))
-          throw new Error('OBJ 면의 꼭짓점 또는 법선 참조가 잘못됐어요.');
-      }
-    }
-  }
-  if(!triangles) throw new Error('OBJ 모델에 면 데이터가 없어요.');
-  return triangles;
-}
+function validateModelText(text){return validateOBJMaterialText(text);}
 function normalizeProjectorSpec(p,version,notes){
   const requested=sceneText(p.model,'커스텀 프로젝터',120,'프로젝터 기종');
   const known=PROJ_LIB.find(l=>l.name===requested),lib=known||PROJ_LIB[PROJ_LIB.length-1];
@@ -9364,6 +9907,8 @@ function normalizeSceneData(data){
         if(q.kind==='model'){
           totalTriangles+=validateModelText(p.objText);
           if(totalTriangles>SCENE_LIMITS.totalTriangles) throw new Error('장면의 OBJ 모델은 합계 삼각형 300,000개 이하로 줄여 주세요.');
+          q.modelAssets=normalizeModelAssets(p.modelAssets);
+          q.materialMode=sceneEnum(p.materialMode,q.modelAssets?.materials.length?'original':'solid',['original','solid'],'모델 재질 표시');
           q.objText=p.objText; q.unit=sceneEnum(p.unit,'m',['m','cm','mm'],'모델 단위'); q.scale=sceneNumber(p.scale,1,0.05,10,'모델 스케일');
         }else{
           for(const [key,def,min,max] of [['w',10,0.1,60],['h',6,0.1,40],['d',4,0.1,60],['radius',6,0.1,30],['angle',120,10,360]])
@@ -9378,6 +9923,10 @@ function normalizeSceneData(data){
     return {type,name:sceneText(so.name,type==='proj'?q.model:type==='surf'?q.kind:'LED',120,'오브젝트 이름'),params:q,
       visible:sceneBool(so.visible,true,'오브젝트 표시'),color:type==='proj'?sceneNumber(so.color,PCOLORS[(projectors-1)%PCOLORS.length],0,0xffffff,'프로젝터 색상',true):undefined};
   });
+  if(nobjects.some(o=>o.params.modelAssets)){
+    if(new Blob([JSON.stringify(data)]).size>SCENE_LIMITS.fileBytes)throw new Error('텍스처를 포함한 장면 JSON은 40MB 이하로 줄여 주세요.');
+    if(nobjects.reduce((sum,o)=>sum+modelAssetMemory(o.params.modelAssets),0)>192*1024*1024)throw new Error('장면의 텍스처가 너무 큽니다. 이미지 수나 크기를 줄여 주세요.');
+  }
   return {app:'Projector Simulator',v:5,specRevision:SPEC_REVISION,migrationNotes,targetLux:sceneNumber(data.targetLux,150,1,10000,'목표 조도'),stage:ns,views:nviews,objects:nobjects,measurements:normalizeMeasurements(data.measurements,nobjects)};
 }
 function serialize(){
@@ -9389,7 +9938,7 @@ function setSaveStatus(state, detail){
   const labels={saved:'저장됨',pending:'저장 대기',saving:'저장 중',error:'저장 실패',restore:'복원 대기'};
   el.dataset.state=state; el.textContent=labels[state]||state;
   const mobile=document.getElementById('mobileSaveStatus');if(mobile){mobile.textContent=labels[state]||state;mobile.style.color=state==='error'?'var(--warn)':'var(--txt2)';}
-  el.title=(detail||'이 브라우저에 장면을 자동 저장합니다.')+' 이미지·영상 파일과 라이브 연결은 JSON·자동 저장에 포함되지 않습니다.';
+  el.title=(detail||'이 브라우저에 장면을 자동 저장합니다.')+' OBJ 재질·텍스처는 함께 저장됩니다. 프로젝터·LED 콘텐츠의 이미지·영상과 라이브 연결은 제외됩니다.';
 }
 function download(name,blobOrStr,mime){
   const blob=blobOrStr instanceof Blob?blobOrStr:new Blob([blobOrStr],{type:mime});
@@ -9413,7 +9962,7 @@ function captureHistoryState(){
 }
 function historyKey(s){
   return JSON.stringify({stage:s.stage,targetLux:s.targetLux,views:s.views,measurements:s.measurements,objects:s.objects.map(x=>({id:x.id,name:x.name,
-    params:{...x.params,objText:undefined},visible:x.visible,color:x.color,
+    params:{...x.params,objText:undefined,modelAssets:undefined,modelAssetsId:modelAssetsHistoryId(x.params.modelAssets)},visible:x.visible,color:x.color,
     content:x.content?{id:x.content.id,crop:x.content.crop,flipX:x.content.flipX,flipY:x.content.flipY}:null,ledSrc:x.ledSrc?{id:x.ledSrc.id,crop:x.ledSrc.crop,flipX:x.ledSrc.flipX,flipY:x.ledSrc.flipY}:null}))});
 }
 function updateHistoryButtons(){
@@ -9423,7 +9972,7 @@ function updateHistoryButtons(){
 }
 function releaseSceneObject(o){
   if(!o || o._released) return;
-  o._released=true; scene.remove(o.mesh);
+  o._released=true; releaseModelTextures(o);scene.remove(o.mesh);
   o.mesh.traverse(m=>{
     if(m.geometry) m.geometry.dispose();
     const materials=Array.isArray(m.material)?m.material:[m.material];
@@ -9467,6 +10016,12 @@ function retainedByteEstimate(){
   historyEntries.forEach(s=>s.objects.forEach(x=>{os.add(x.ref);if(x.content)ms.add(x.content.ref);if(x.ledSrc)ms.add(x.ledSrc.ref);}));
   let bytes=0;ms.forEach(c=>{bytes+=(c.size||0)*1.4;});
   os.forEach(o=>{if(o.mesh)o.mesh.traverse(m=>{if(m.geometry)Object.values(m.geometry.attributes).forEach(a=>bytes+=a.array.byteLength);});});
+  const packages=new Set();
+  os.forEach(o=>{
+    bytes+=(o._modelTextures||[]).reduce((sum,r)=>sum+r.definition.width*r.definition.height*8,0);
+    if(o.params.modelAssets)packages.add(o.params.modelAssets);
+  });
+  packages.forEach(assets=>{bytes+=assets.textures.reduce((sum,t)=>sum+t.data.length*2,0);});
   return bytes;
 }
 function commitHistory(){
@@ -9488,6 +10043,7 @@ function scheduleHistory(){
 }
 function flushHistory(){if(historyReady && !historyApplying){clearTimeout(historyTimer);historyTimer=null;commitHistory();}}
 function restoreHistoryState(s){
+  cancelModelImport();
   cancelPlacementPick();
   cancelAllPendingBridge();
   historyApplying=true;
@@ -9513,6 +10069,7 @@ function undoScene(){flushHistory();if(historyIndex>0){historyIndex--;restoreHis
 function redoScene(){flushHistory();if(historyIndex<historyEntries.length-1){historyIndex++;restoreHistoryState(historyEntries[historyIndex]);}}
 function applySceneData(raw){
   const data=normalizeSceneData(raw); // Validate the complete file before any scene mutation.
+  cancelModelImport();
   cancelPlacementPick();
   cancelAllPendingBridge();
   flushHistory();
@@ -9523,7 +10080,7 @@ function applySceneData(raw){
     data.objects.forEach(so=>{
       let o;
       if(so.type==='proj')o=addProjector(PROJ_LIB.find(l=>l.name===so.params.model)||PROJ_LIB[PROJ_LIB.length-1]);
-      else if(so.type==='surf')o=so.params.kind==='model'?addModelFromText(so.name,so.params.objText,so.params.unit):addSurface(so.params.kind,so.name);
+      else if(so.type==='surf')o=so.params.kind==='model'?addModelFromText(so.name,so.params.objText,so.params.unit,so.params.modelAssets):addSurface(so.params.kind,so.name);
       else o=addLED({name:so.name,pitch:so.params.pitch,nits:so.params.nits,w:so.params.w,h:so.params.h});
       if(!o)throw new Error('오브젝트를 만들지 못했어요.');
       o.params={...so.params};o.name=so.name;o.visible=so.visible;o.mesh.visible=so.visible;
