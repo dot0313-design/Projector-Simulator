@@ -104,7 +104,7 @@
       <div class="libtabs">
         <button class="on" data-t="proj">프로젝터</button>
         <button data-t="surf">서페이스</button>
-        <button data-t="led">LED</button>
+        <button data-t="led">LED</button><button data-t="light">조명</button>
       </div>
       <div id="libItems"></div>
     </div>
@@ -6057,7 +6057,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-29.5';
+const SPEC_REVISION = '2026-10-29.6';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6217,6 +6217,7 @@ const stage = {
   stageW:14, stageD:12,
   floorRefl:14, wallOn:true, floorOn:true, shadows:true, derate:100, capFps:30,
   unit:'m',                     // 모델 임포트 단위
+  lightShadowQuality:'medium', // 무대 조명 그림자 품질
 };
 const STAGE_DEFAULTS = Object.freeze({...stage});
 function ambientLux(){ return AMB_PRESETS[stage.ambPreset].lux * stage.ambPct/100; }
@@ -6347,6 +6348,276 @@ function renderShadows(act){
   scene.overrideMaterial = null;
   scene.background = prevBg;
 }
+/* ---------- 무대 조명: 범용 퍼넬 / ERS / PAR (배치·분위기용 근사) ---------- */
+const MAX_STAGE_LIGHTS = 8;
+const STAGE_LIGHT_LIB = [
+  {kind:'fresnel', name:'퍼넬 · Fresnel', sub:'부드러운 원형 빛 · 조사각 조절', beamAngle:45, edge:65, color:'#FFE1B3', referenceFlux:8000},
+  {kind:'ers', name:'ERS · 프로파일', sub:'선명한 원형 빛 · 4방향 셔터', beamAngle:26, edge:8, color:'#FFE1B3', referenceFlux:6000},
+  {kind:'par', name:'PAR · LED PAR', sub:'타원형 워시 · 색상 조절', beamAngle:45, edge:35, color:'#FFFFFF', referenceFlux:9000},
+];
+function createStageLightParams(kind){
+  const fixture=typeof kind==='string'?kind:(kind?.kind||kind?.fixture);
+  const preset=STAGE_LIGHT_LIB.find(item=>item.kind===fixture);
+  if(!preset)throw new Error('지원하지 않는 무대 조명 종류입니다.');
+  return {fixture:preset.kind,x:0,y:5,z:4,yaw:0,pitch:-40,intensity:70,color:preset.color,
+    beamAngle:preset.beamAngle,edge:preset.edge,on:true,castShadow:true,
+    shutterLeft:0,shutterRight:0,shutterTop:0,shutterBottom:0};
+}
+function stageLightOptics(p){
+  const preset=STAGE_LIGHT_LIB.find(item=>item.kind===p.fixture)||STAGE_LIGHT_LIB[0];
+  const clamp=(value,min,max,fallback)=>Number.isFinite(value)?Math.max(min,Math.min(max,value)):fallback;
+  const beamAngle=clamp(p.beamAngle,5,100,preset.beamAngle),tan=Math.tan(beamAngle*Math.PI/360);
+  const ellipse=preset.kind==='par'?.72:1;
+  return {tan,ellipse,type:preset.kind==='ers'?1:preset.kind==='par'?2:0,
+    // These reference outputs define generic previews, not any manufacturer's photometric data.
+    power:preset.referenceFlux*(clamp(p.intensity,0,100,70)/100)/(Math.PI*tan*tan*ellipse),
+    edge:clamp(p.edge,0,100,preset.edge)/100,
+    cuts:['shutterLeft','shutterRight','shutterTop','shutterBottom'].map(key=>clamp(p[key],0,1,0))};
+}
+function activeStageLights(){
+  return objects.filter(o=>o.type==='light'&&o.visible&&o.params.on&&o.params.intensity>0).slice(0,MAX_STAGE_LIGHTS);
+}
+function stageLightStatus(o){
+  if(!o.visible)return {active:false,reason:'숨김'};
+  if(!o.params.on)return {active:false,reason:'조명 꺼짐'};
+  if(o.params.intensity<=0)return {active:false,reason:'밝기 0%'};
+  if(!activeStageLights().includes(o))return {active:false,reason:'동시 조명 '+MAX_STAGE_LIGHTS+'대 초과'};
+  return {active:true,reason:'조명 켜짐'};
+}
+function addStageLight(libOrKind){
+  if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
+  if(objects.filter(o=>o.type==='light').length>=MAX_STAGE_LIGHTS){toast('무대 조명은 최대 '+MAX_STAGE_LIGHTS+'대까지 배치할 수 있어요. 사용하지 않는 조명을 삭제해 주세요.');return null;}
+  const p=createStageLightParams(libOrKind),preset=STAGE_LIGHT_LIB.find(item=>item.kind===p.fixture);
+  const g=new THREE.Group(),bodyMaterial=new THREE.MeshStandardMaterial({color:0x283337,roughness:.72});
+  const depth=p.fixture==='ers'?.8:p.fixture==='par'?.36:.55;
+  const radius=p.fixture==='ers'?.19:.24;
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,depth,20),bodyMaterial);
+  body.rotation.x=Math.PI/2;body.position.z=depth/2+.09;g.add(body);
+  const ring=new THREE.Mesh(new THREE.CylinderGeometry(radius+.025,radius+.025,.07,24),bodyMaterial);
+  ring.rotation.x=Math.PI/2;ring.position.z=.075;g.add(ring);
+  const lightLens=new THREE.Mesh(new THREE.CircleGeometry(radius*.85,32),new THREE.MeshBasicMaterial({color:p.color,side:THREE.DoubleSide}));
+  lightLens.rotation.y=Math.PI;lightLens.position.z=.032;g.add(lightLens);
+  const yokeGeometry=new THREE.BoxGeometry(.055,.42,.09);
+  for(const side of [-1,1]){
+    const arm=new THREE.Mesh(yokeGeometry,bodyMaterial);arm.position.set(side*(radius+.09),.16,depth*.55);g.add(arm);
+  }
+  const bridge=new THREE.Mesh(new THREE.BoxGeometry((radius+.09)*2+.05,.055,.09),bodyMaterial);
+  bridge.position.set(0,.37,depth*.55);g.add(bridge);
+  const guide=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:p.color,transparent:true,opacity:.35,depthWrite:false}));
+  guide.raycast=()=>{};g.add(guide);
+  const o={id:seq++,type:'light',name:preset.name,mesh:g,params:p,visible:true,guide,lightLens,
+    cam:new THREE.PerspectiveCamera(p.beamAngle,1,.05,180)};
+  g.traverse(child=>{child.layers.set(1);if(child!==guide)child.userData.oid=o.id;});
+  updateStageLight(o);scene.add(g);objects.push(o);select(o);refreshTree();return o;
+}
+function updateStageLight(o){
+  const p=o.params,optic=stageLightOptics(p);
+  const poseSig=[p.fixture,p.x,p.y,p.z,p.pitch,p.yaw,p.beamAngle].join('|');
+  if(o._lightProjectionSig!==poseSig){
+    o._lightProjectionSig=poseSig;
+    o.mesh.position.set(p.x,p.y,p.z);
+    o.mesh.rotation.set(THREE.MathUtils.degToRad(p.pitch),THREE.MathUtils.degToRad(p.yaw),0,'YXZ');
+    o.mesh.updateMatrixWorld(true);
+    o.cam.near=.05;o.cam.far=180;o.cam.aspect=1;o.cam.fov=p.beamAngle;
+    o.cam.position.copy(o.mesh.position);o.cam.rotation.copy(o.mesh.rotation);
+    o.cam.updateProjectionMatrix();o.cam.updateMatrixWorld(true);
+    if(!o._forward){o._forward=new THREE.Vector3();o._right=new THREE.Vector3();o._up=new THREE.Vector3();}
+    o._forward.set(0,0,-1).applyEuler(o.mesh.rotation);
+    o._right.set(1,0,0).applyEuler(o.mesh.rotation);
+    o._up.set(0,1,0).applyEuler(o.mesh.rotation);
+  }
+  const shapeSig=[p.fixture,p.beamAngle].join('|');
+  if(o._lightGuideSig!==shapeSig){
+    o._lightGuideSig=shapeSig;
+    const dist=5,r=dist*optic.tan,points=[];
+    const add=(x,y,z)=>points.push(x,y,z);
+    for(let i=0;i<48;i++){
+      const a=i*Math.PI/24,b=(i+1)*Math.PI/24;
+      add(Math.cos(a)*r,Math.sin(a)*r*optic.ellipse,-dist);
+      add(Math.cos(b)*r,Math.sin(b)*r*optic.ellipse,-dist);
+      if(i%12===0){add(0,0,0);add(Math.cos(a)*r,Math.sin(a)*r*optic.ellipse,-dist);}
+    }
+    let attr=o.guide.geometry.getAttribute('position');
+    if(!attr){attr=new THREE.Float32BufferAttribute(new Float32Array(points.length),3);o.guide.geometry.setAttribute('position',attr);}
+    attr.array.set(points);attr.needsUpdate=true;
+    o.guide.geometry.computeBoundingSphere();
+  }
+  if(!o._lightColor)o._lightColor=new THREE.Color();
+  o._lightColor.set(p.color);
+  o.guide.material.color.copy(o._lightColor);
+  o.guide.visible=typeof selected!=='undefined'&&selected===o&&!!p.on&&p.intensity>0;
+  o.lightLens.material.color.copy(o._lightColor).multiplyScalar(p.on ? (.15+.85*p.intensity/100) : .08);
+  o.mesh.visible=o.visible;
+}
+
+// Packed vec4 arrays keep the additional fragment uniform budget to 80 vec4 slots.
+const stageLightUniforms={
+  uStageLightCount:{value:0},
+  uStageLightVP:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Matrix4())},
+  uStageLightPosPower:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Vector4())},
+  uStageLightDirEdge:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Vector4())},
+  uStageLightRightTan:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Vector4())},
+  uStageLightUpType:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Vector4())},
+  uStageLightColorShadow:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Vector4())},
+  uStageLightCuts:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Vector4())},
+  uStageLightShadow:{value:null},uStageLightTexel:{value:new THREE.Vector2(1/2048,1/1024)},
+};
+Object.assign(shared,stageLightUniforms);
+let stageLightShadowRT=null,stageLightShadowTile=0,stageLightShadowSignature='',stageLightOccluders='';
+function stageLightOccluderSignature(){
+  const parts=[];
+  const roots=[sysWall,sysFloor,...objects.filter(o=>o.type==='surf'||o.type==='led').map(o=>o.mesh)];
+  for(const root of roots){
+    if(!root.visible)continue;
+    root.traverse(mesh=>{
+      if(!mesh.geometry||!mesh.visible||!mesh.layers.test({mask:1}))return;
+      const p=mesh.position,q=mesh.quaternion,s=mesh.scale,g=mesh.geometry;
+      parts.push([mesh.uuid,g.uuid,g.attributes.position?.version||0,p.x,p.y,p.z,q.x,q.y,q.z,q.w,s.x,s.y,s.z].join(','));
+    });
+  }
+  return parts.join(';');
+}
+function ensureStageLightShadowTarget(quality){
+  const desired=Math.min(quality==='high'?1024:512,Math.floor(renderer.capabilities.maxTextureSize/4));
+  if(stageLightShadowRT&&desired===stageLightShadowTile)return;
+  if(stageLightShadowRT)stageLightShadowRT.dispose();
+  stageLightShadowTile=desired;
+  stageLightShadowRT=new THREE.WebGLRenderTarget(desired*4,desired*2,{
+    minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,format:THREE.RGBAFormat,depthBuffer:true,stencilBuffer:false});
+  stageLightShadowRT.texture.generateMipmaps=false;
+  stageLightUniforms.uStageLightShadow.value=stageLightShadowRT.texture;
+  stageLightUniforms.uStageLightTexel.value.set(1/(desired*4),1/(desired*2));
+  stageLightShadowSignature='';
+}
+function renderStageLightShadows(act){
+  const rt=stageLightShadowRT,previous={background:scene.background,override:scene.overrideMaterial,
+    target:renderer.getRenderTarget(),viewport:renderer.getViewport(new THREE.Vector4()),
+    scissor:renderer.getScissor(new THREE.Vector4()),scissorTest:renderer.getScissorTest(),
+    color:renderer.getClearColor(new THREE.Color()),alpha:renderer.getClearAlpha(),autoClear:renderer.autoClear};
+  try{
+    scene.background=null;scene.overrideMaterial=depthMat;renderer.setClearColor(0xffffff,1);renderer.autoClear=true;
+    rt.scissorTest=true;
+    for(let i=0;i<act.length;i++){
+      if(!act[i].params.castShadow)continue;
+      const col=i%4,row=Math.floor(i/4),tile=stageLightShadowTile;
+      rt.viewport.set(col*tile,row*tile,tile,tile);rt.scissor.set(col*tile,row*tile,tile,tile);
+      renderer.setRenderTarget(rt);renderer.clear(true,true,false);renderer.render(scene,act[i].cam);
+    }
+  }finally{
+    scene.background=previous.background;scene.overrideMaterial=previous.override;
+    renderer.setRenderTarget(previous.target);renderer.setViewport(previous.viewport);renderer.setScissor(previous.scissor);
+    renderer.setScissorTest(previous.scissorTest);renderer.setClearColor(previous.color,previous.alpha);renderer.autoClear=previous.autoClear;
+  }
+}
+function pushStageLightUniforms(forceDirty=false){
+  objects.filter(o=>o.type==='light').forEach(updateStageLight);
+  const act=activeStageLights(),quality=stage.lightShadowQuality||'medium';
+  const shadows=stage.shadows!==false&&quality!=='off'&&act.some(o=>o.params.castShadow);
+  stageLightUniforms.uStageLightCount.value=act.length;
+  if(shadows){
+    ensureStageLightShadowTarget(quality);
+    if(forceDirty||!stageLightOccluders)stageLightOccluders=stageLightOccluderSignature();
+    const sig=quality+'|'+stageLightOccluders+'|'+act.map(o=>o.id+':'+o._lightProjectionSig+':'+!!o.params.castShadow).join(';');
+    if(sig!==stageLightShadowSignature){renderStageLightShadows(act);stageLightShadowSignature=sig;}
+  }else{
+    // Make any re-enabled shadow rebuild even after edits while the shadows were off.
+    stageLightOccluders='';stageLightShadowSignature='';
+    if(stageLightShadowRT&&quality==='off'){
+      stageLightShadowRT.dispose();stageLightShadowRT=null;stageLightShadowTile=0;stageLightUniforms.uStageLightShadow.value=null;
+    }
+  }
+  act.forEach((o,i)=>{
+    const p=o.params,optic=stageLightOptics(p),pos=o.mesh.position,dir=o._forward,right=o._right,up=o._up,col=o._lightColor;
+    stageLightUniforms.uStageLightVP.value[i].multiplyMatrices(o.cam.projectionMatrix,o.cam.matrixWorldInverse);
+    stageLightUniforms.uStageLightPosPower.value[i].set(pos.x,pos.y,pos.z,optic.power);
+    stageLightUniforms.uStageLightDirEdge.value[i].set(dir.x,dir.y,dir.z,optic.edge);
+    stageLightUniforms.uStageLightRightTan.value[i].set(right.x,right.y,right.z,optic.tan);
+    stageLightUniforms.uStageLightUpType.value[i].set(up.x,up.y,up.z,optic.type);
+    stageLightUniforms.uStageLightColorShadow.value[i].set(col.r,col.g,col.b,shadows&&p.castShadow?1:0);
+    stageLightUniforms.uStageLightCuts.value[i].set(...optic.cuts);
+  });
+}
+const STAGE_LIGHT_FRAG_DECL=`
+uniform int uStageLightCount;
+uniform mat4 uStageLightVP[${MAX_STAGE_LIGHTS}];
+uniform vec4 uStageLightPosPower[${MAX_STAGE_LIGHTS}];
+uniform vec4 uStageLightDirEdge[${MAX_STAGE_LIGHTS}];
+uniform vec4 uStageLightRightTan[${MAX_STAGE_LIGHTS}];
+uniform vec4 uStageLightUpType[${MAX_STAGE_LIGHTS}];
+uniform vec4 uStageLightColorShadow[${MAX_STAGE_LIGHTS}];
+uniform vec4 uStageLightCuts[${MAX_STAGE_LIGHTS}];
+uniform sampler2D uStageLightShadow;
+uniform vec2 uStageLightTexel;
+float stageLightStoredDistance(vec2 uv){
+  vec4 packedDepth=texture2D(uStageLightShadow,uv);
+  float depth=dot(packedDepth,(255.0/256.0)/vec4(16777216.0,65536.0,256.0,1.0));
+  return .05*180.0/max(180.0-depth*(180.0-.05),.05);
+}
+`;
+const STAGE_LIGHT_FRAG_EVAL=`
+  // Stage lights stay outside the projector-only lux/overlap diagnostics.
+  vec3 stageLightContribution=vec3(0.0);
+  if(uMode!=1){
+    vec3 stageN=gl_FrontFacing?N:-N;
+    for(int lightIndex=0;lightIndex<${MAX_STAGE_LIGHTS};lightIndex++){
+      if(lightIndex>=uStageLightCount)break;
+      vec4 lp=uStageLightPosPower[lightIndex],ld=uStageLightDirEdge[lightIndex];
+      vec4 lr=uStageLightRightTan[lightIndex],lu=uStageLightUpType[lightIndex];
+      vec4 lc=uStageLightColorShadow[lightIndex],cuts=uStageLightCuts[lightIndex];
+      vec4 lightClip=uStageLightVP[lightIndex]*vec4(vW,1.0);
+      if(lightClip.w<=0.0)continue;
+      vec3 lightNDC=lightClip.xyz/lightClip.w;
+      if(abs(lightNDC.x)>1.0||abs(lightNDC.y)>1.0||lightNDC.z>1.0||lightNDC.z< -1.0)continue;
+      vec3 toLight=lp.xyz-vW;
+      float dist=length(toLight),cosine=max(dot(stageN,toLight/max(dist,.0001)),0.0);
+      if(cosine<=.001)continue;
+      float ellipse=lu.w>1.5?.72:1.0;
+      float r=length(vec2(lightNDC.x,lightNDC.y/ellipse));
+      float inner=1.0-max(.008,ld.w*.85);
+      float mask=1.0-smoothstep(inner,1.0,r);
+      if(lu.w>.5&&lu.w<1.5){
+        if(cuts.x+cuts.y>=1.0||cuts.z+cuts.w>=1.0)continue;
+        float feather=max(.002,ld.w*.12);
+        mask*=smoothstep(-1.0+2.0*cuts.x,-1.0+2.0*cuts.x+feather,lightNDC.x);
+        mask*=1.0-smoothstep(1.0-2.0*cuts.y-feather,1.0-2.0*cuts.y,lightNDC.x);
+        mask*=1.0-smoothstep(1.0-2.0*cuts.z-feather,1.0-2.0*cuts.z,lightNDC.y);
+        mask*=smoothstep(-1.0+2.0*cuts.w,-1.0+2.0*cuts.w+feather,lightNDC.y);
+      }
+      if(mask<=.0001)continue;
+      float visibility=1.0,axialD=dot(vW-lp.xyz,ld.xyz);
+      if(lc.w>.5){
+        float fi=float(lightIndex);
+        vec2 tile=vec2(.25,.5),offset=vec2(mod(fi,4.0)*.25,floor(fi/4.0)*.5);
+        vec2 lo=offset+uStageLightTexel*.5,hi=offset+tile-uStageLightTexel*.5;
+        vec2 suv=offset+(lightNDC.xy*.5+.5)*tile;
+        vec2 center=clamp((floor(suv/uStageLightTexel)+.5)*uStageLightTexel,lo,hi);
+        float blocker=stageLightStoredDistance(center);
+        float radius=.65+clamp((axialD-blocker)*(.25+ld.w*.8),0.0,2.4);
+        float bias=.002+.004*(1.0-cosine),sum=0.0,weights=0.0;
+        vec3 centerRay=(vW-lp.xyz)/max(axialD,.0001);
+        float planeD=dot(stageN,vW-lp.xyz);
+        for(int sy=-1;sy<=1;sy++){
+          for(int sx=-1;sx<=1;sx++){
+            vec2 sampleUV=clamp(suv+vec2(float(sx),float(sy))*uStageLightTexel*radius,lo,hi);
+            sampleUV=clamp((floor(sampleUV/uStageLightTexel)+.5)*uStageLightTexel,lo,hi);
+            vec2 delta=(sampleUV-suv)/tile;
+            vec3 sampleRay=centerRay+lr.xyz*(2.0*lr.w*delta.x)+lu.xyz*(2.0*lr.w*delta.y);
+            float denom=dot(stageN,sampleRay);
+            float receiver=abs(denom)>.0001?planeD/denom:axialD;
+            receiver=clamp(receiver,max(.05,axialD-2.0),axialD+2.0);
+            float weight=(sx==0?2.0:1.0)*(sy==0?2.0:1.0);
+            sum+=step(receiver-bias,stageLightStoredDistance(sampleUV))*weight;weights+=weight;
+          }
+        }
+        visibility=sum/weights;
+      }
+      float level=min(6.0,lp.w*cosine/max(dist*dist,.0625)/max(uTargetLux,1.0));
+      stageLightContribution+=lc.rgb*level*mask*visibility;
+    }
+  }
+`;
+/* ---------- 무대 조명 코어 끝 ---------- */
+
 const SURF_VERT = `
 varying vec3 vW; varying vec3 vN; varying vec2 vModelUV;
 void main(){
@@ -6369,6 +6640,7 @@ uniform vec2 uModelUVScale; uniform vec2 uModelUVOffset; uniform float uModelCla
 uniform float uGloss; uniform float uRear;
 uniform sampler2D uShadow; uniform float uShadowOn; uniform float uBlendView;
 uniform sampler2D uAtlas; uniform float uHasC[${MAXP}];
+${STAGE_LIGHT_FRAG_DECL}
 const float UnpackDownscale = 255. / 256.;
 const vec3 PackFactors3 = vec3(256.*256.*256., 256.*256., 256.);
 const vec4 UnpackFactors4 = UnpackDownscale / vec4(PackFactors3, 1.);
@@ -6482,12 +6754,13 @@ void main(){
     }
     else if(uMode==2) beam += vec3(1.0)*b*0.85;
   }
+  ${STAGE_LIGHT_FRAG_EVAL}
   vec3 col;
   if(uMode==1){
     col = ramp(totalE/(uTargetLux*2.0));
     if(totalE<0.5) col = uAlbedo*0.16;
   } else {
-    col = base + beam * uSurfaceTint * modelTexel;
+    col = base + beam * uSurfaceTint * modelTexel + stageLightContribution * uAlbedo * modelTexel;
     if(uBlendView > 0.5 && blendCnt > 1.5)
       col = mix(col, vec3(1.0, 0.35, 0.85), 0.45);   // 오버랩(블렌드) 존 강조
   }
@@ -7496,6 +7769,8 @@ function duplicateObj(o){
   if(o.type==='proj'){
     const lib = PROJ_LIB.find(l=>l.name===o.params.model) || PROJ_LIB[PROJ_LIB.length-1];
     d = addProjector(lib);
+  } else if(o.type==='light'){
+    d = addStageLight(o.params.fixture);
   } else if(o.type==='surf'){
     d = o.params.kind==='model'
       ? addModelFromText(o.name, o.params.objText||'', o.params.unit, o.params.modelAssets)
@@ -8041,6 +8316,7 @@ function updateProjector(o){
   o._up.set(0,1,0).applyEuler(o.mesh.rotation);
 }
 function pushUniforms(){
+  pushStageLightUniforms(shadowDirty);
   const act = activeProjectors();
   shared.uNum.value = act.length;
   act.forEach((o,i)=>{
@@ -8140,6 +8416,7 @@ let projectorSearchComposing = false;
 const projOpenBrands = new Set(['Epson']);
 function brandKey(item){ return item.name.split(' ')[0]; }
 function renderLib(){
+  if(libTab==='light'){projectorSearchComposing=false;libItems.replaceChildren();renderStageLightLibrary(libItems);return;}
   let listRoot=libItems;
   if(libTab==='proj'){
     let search=libItems.querySelector('#projectorSearch');
@@ -8247,9 +8524,9 @@ function refreshTree(){
   });
   objects.forEach(o=>{
     const n = document.createElement('div');
-    n.className = 'node'+(selected===o?' sel':'');
+    n.className = 'node'+(selected===o?' sel':'');n.dataset.objectId=String(o.id);
     const col = o.type==='proj' ? '#'+o.color.toString(16).padStart(6,'0')
-              : o.type==='led' ? 'var(--led)' : '#8B95A7';
+              : o.type==='light' ? o.params.color : o.type==='led' ? 'var(--led)' : '#8B95A7';
     n.innerHTML = `<span class="dot" style="background:${col}"></span>
       <span class="nm"></span>
       <input type="checkbox" class="vis" ${o.visible?'checked':''} title="표시">
@@ -8282,7 +8559,7 @@ function refreshTree(){
 const right = document.getElementById('right');
 function select(o){
   selected = o;
-  objects.forEach(x=>{ if(x.type==='proj') x.frust.material.opacity = (x===o?0.95:0.4); });
+  objects.forEach(x=>{ if(x.type==='proj') x.frust.material.opacity = (x===o?0.95:0.4); if(x.type==='light'&&x.guide)x.guide.visible=x===o&&x.params.on; });
   refreshTree(); renderProps();
 }
 function numRow(label, val, step, cb, min, max, unit, factor){
@@ -8445,7 +8722,7 @@ function createProjectorReadout(){
     ['lux','중심 조도'],['contrast','콘트라스트'],['density','픽셀 밀도'],['blend','블렌드 오버랩']];
   card.innerHTML=labels.map(([key,label],index)=>
     (index===3?'<div class="nit-meter"><div class="nit-marker"></div></div><div class="nit-status"></div>':'')+
-    `<div class="cr"><span>${label}</span><b data-metric="${key}">—</b></div>`).join('');
+    `<div class="cr"><span>${label}</span><b data-metric="${key}">—</b></div>`).join('')+'<p class="optics-note">무대 조명은 시각 미리보기입니다. 표시된 조도·대비와 히트맵 수치에는 합산되지 않습니다.</p>';
   return card;
 }
 function updateProjectorReadout(){
@@ -8511,7 +8788,7 @@ function calculateProjectorPlacement(p,settings){
   // Round numerical noise only; do not clamp a meaningful placement distance.
   result.x=Number(result.x.toFixed(10));result.z=Number(result.z.toFixed(10));
   if(Math.hypot(result.x-point.x,result.y-point.y,result.z-point.z)<0.000001)
-    throw new Error('기준점과 프로젝터가 같은 위치입니다. 거리 또는 높이를 바꿔 주세요.');
+    throw new Error('기준점과 광원이 같은 위치입니다. 거리 또는 높이를 바꿔 주세요.');
   if(aim){
     const dx=point.x-result.x,dy=point.y-result.y,dz=point.z-result.z;
     result.yaw=Math.hypot(dx,dz)<0.000001?(p.yaw??bearing):Math.atan2(-dx,-dz)*180/Math.PI;
@@ -8532,7 +8809,7 @@ function placementBearing(point,normal,projector,cameraPoint){
   return Number((Math.atan2(dx,dz)*180/Math.PI).toFixed(2));
 }
 function setProjectorReference(o,point,bearing){
-  if(o.type!=='proj'||!objects.includes(o))throw new Error('배치할 프로젝터를 먼저 선택해 주세요.');
+  if(!['proj','light'].includes(o.type)||!objects.includes(o))throw new Error('배치할 프로젝터 또는 조명을 먼저 선택해 주세요.');
   if(![point.x,point.y,point.z,bearing].every(Number.isFinite)||Math.abs(point.x)>60||Math.abs(point.z)>60||point.y<0||point.y>40||Math.abs(bearing)>180)
     throw new Error('기준점은 X·Z ±60,000 mm, 높이 0–40,000 mm 안에서 선택해 주세요.');
   flushHistory();
@@ -8542,7 +8819,7 @@ function setProjectorReference(o,point,bearing){
   commitHistory();scheduleAutosave();
 }
 function applyProjectorPlacement(o,settings){
-  if(o.type!=='proj'||!objects.includes(o)||selected!==o)throw new Error('배치할 프로젝터를 다시 선택해 주세요.');
+  if(!['proj','light'].includes(o.type)||!objects.includes(o)||selected!==o)throw new Error('배치할 프로젝터 또는 조명을 다시 선택해 주세요.');
   const position=calculateProjectorPlacement(o.params,settings);
   flushHistory();
   Object.assign(o.params,position,{placementDistance:settings.distance,placementHeight:settings.height,
@@ -8558,7 +8835,7 @@ function cancelPlacementPick(){
 }
 function beginPlacementPick(o){
   if(placementPicking===o){cancelPlacementPick();return;}
-  if(selected!==o||o.type!=='proj'||!objects.includes(o))return;
+  if(selected!==o||!['proj','light'].includes(o.type)||!objects.includes(o))return;
   endCanvasDrag();
   if(measure.on)btnMeasure.click();
   placementPicking=o;vpEl.classList.add('picking-placement');
@@ -8589,10 +8866,10 @@ function placementClick(){
   try{setProjectorReference(o,hit.point,bearing);}
   catch(error){toast(error.message);return false;}
   cancelPlacementPick();renderProps();openPropsIfMobile();
-  toast('기준점을 선택했어요. 수평거리와 렌즈 높이를 입력하고 배치하세요.');return true;
+  toast(o.type==='light'?'기준점을 선택했어요. 현재 위치에서 바라보거나 거리·높이를 입력해 배치하세요.':'기준점을 선택했어요. 수평거리와 렌즈 높이를 입력하고 배치하세요.');return true;
 }
 function updatePlacementMarker(){
-  const point=selected?.type==='proj'&&selected.visible&&objects.includes(selected)?placementReference(selected.params):null;
+  const point=['proj','light'].includes(selected?.type)&&selected.visible&&objects.includes(selected)?placementReference(selected.params):null;
   if(!point){if(placementVisual){placementVisual.dot.visible=false;placementVisual.label.style.display='none';}return;}
   if(!placementVisual){
     const dot=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),new THREE.MeshBasicMaterial({color:0x8be4c5,depthTest:false,depthWrite:false}));
@@ -8616,7 +8893,7 @@ function createProjectorPlacementControls(o){
   const reference=document.createElement('p');reference.className='placement-reference';
   reference.textContent=point?'기준점 X '+displayMM(point.x)+' · Y '+displayMM(point.y)+' · Z '+displayMM(point.z)+' mm':'기준점을 먼저 선택해 주세요.';
   const fields={};
-  const definitions=[['distance','수평거리',p.placementDistance??5,0,120,'mm',1000],['height','렌즈 높이',p.placementHeight??p.y,0,40,'mm',1000],['bearing','배치 방향',p.placementBearing??0,-180,180,'°',1]];
+  const definitions=[['distance','수평거리',p.placementDistance??5,0,120,'mm',1000],['height',o.type==='light'?'조명 높이':'렌즈 높이',p.placementHeight??p.y,0,40,'mm',1000],['bearing','배치 방향',p.placementBearing??0,-180,180,'°',1]];
   form.append(title,pick,reference);
   definitions.forEach(([key,name,value,min,max,unit,factor])=>{
     const row=document.createElement('label');row.className='placement-field';
@@ -8630,9 +8907,10 @@ function createProjectorPlacementControls(o){
   const aim=document.createElement('input');aim.type='checkbox';aim.checked=p.placementAim??true;
   const aimText=document.createElement('span');aimText.textContent='기준점 바라보기';aimLabel.append(aim,aimText);
   const preview=document.createElement('p');preview.className='placement-preview';preview.setAttribute('role','status');
-  const submit=document.createElement('button');submit.type='submit';submit.className='tbtn primary placement-submit';submit.textContent='선택한 프로젝터 배치';
+  const submit=document.createElement('button');submit.type='submit';submit.className='tbtn primary placement-submit';submit.textContent=o.type==='light'?'선택한 조명 배치':'선택한 프로젝터 배치';
   const note=document.createElement('p');note.className='placement-note';
   note.textContent='거리·높이·좌표는 mm 단위입니다. 거리는 기준점까지의 수평거리, 높이는 바닥에서 렌즈 중심까지입니다. 방향 0°=+Z, 90°=+X. 벽을 찍으면 보고 있는 쪽으로 방향을 맞춥니다. 바라보기는 광축 기준이며 렌즈 시프트·고정 오프셋에 따라 영상 중심은 달라질 수 있어요. 기준점은 공간에 고정됩니다.';
+  if(o.type==='light')note.textContent='거리·높이·좌표는 mm입니다. 수평거리는 기준점부터, 조명 높이는 바닥부터 렌즈 중심까지입니다. 방향 0°=+Z, 90°=+X. 바라보기를 켜면 선택한 점으로 빛의 중심을 맞춥니다. 기준점은 공간에 고정되고 배치는 한 번 적용됩니다.';
   const read=()=>({distance:fields.distance.value.trim()===''?NaN:Number(fields.distance.value)/1000,height:fields.height.value.trim()===''?NaN:Number(fields.height.value)/1000,bearing:fields.bearing.value.trim()===''?NaN:Number(fields.bearing.value),aim:aim.checked});
   const update=()=>{
     const values=read();
@@ -8647,7 +8925,7 @@ function createProjectorPlacementControls(o){
   opposite.onclick=()=>{const value=Number(fields.bearing.value);if(fields.bearing.value.trim()!==''&&Number.isFinite(value)){fields.bearing.value=((value+360)%360)-180;update();}};
   form.onsubmit=event=>{
     event.preventDefault();
-    try{applyProjectorPlacement(o,read());cancelPlacementPick();renderProps();toast('기준점에 맞춰 프로젝터를 배치했어요.');}
+    try{applyProjectorPlacement(o,read());cancelPlacementPick();renderProps();toast(o.type==='light'?'기준점에 맞춰 조명을 배치했어요.':'기준점에 맞춰 프로젝터를 배치했어요.');}
     catch(error){preview.textContent=error.message;preview.classList.add('error');}
   };
   form.append(opposite,aimLabel,preview,submit,note);update();return form;
@@ -8655,6 +8933,180 @@ function createProjectorPlacementControls(o){
 window.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&placementPicking){event.preventDefault();cancelPlacementPick();openPropsIfMobile();}
 });
+
+/* ---------- 무대 조명 속성 · 색상 · 기준점 바라보기 ---------- */
+const STAGE_LIGHT_PALETTE = [
+  ['흰색','#FFFFFF'],['따뜻한 백색','#FFE1B3'],['민트','#85DEC0'],['파랑','#5D9CEC'],
+  ['빨강','#FF4A4A'],['노랑','#FFD75E'],['자홍','#ED72DB'],['보라','#B69AE5'],
+];
+function stageLightSection(title){
+  const section=document.createElement('div');section.className='sec stage-light-panel';section.dataset.panelTitle=title;
+  const heading=document.createElement('div');heading.className='ptitle';heading.textContent=title;section.appendChild(heading);
+  return section;
+}
+function stageLightNote(text){
+  const note=document.createElement('p');note.className='surface-color-note';note.textContent=text;return note;
+}
+function stageLightOwned(o){return !!o&&o.type==='light'&&objects.includes(o);}
+function setStageLightColor(o,value){
+  const color=normalizeSurfaceColor(value);
+  if(!stageLightOwned(o)||!color||color===o.params.color)return false;
+  o.params.color=color;updateStageLight(o);
+  const dot=typeof tree==='undefined'?null:tree.querySelector('[data-object-id="'+o.id+'"] .dot');
+  if(dot)dot.style.backgroundColor=color;
+  scheduleAutosave();return true;
+}
+function createStageLightColorControls(o){
+  const section=stageLightSection('조명 색상');section.classList.add('surface-color-panel');
+  const row=document.createElement('div');row.className='surface-color-row';
+  const picker=document.createElement('input');picker.type='color';picker.className='surface-color-picker';
+  picker.setAttribute('aria-label','조명 색상표 열기');
+  const label=document.createElement('label');label.className='surface-hex-label';label.textContent='HEX';
+  const field=document.createElement('input');field.type='text';field.className='surface-hex';
+  field.maxLength=7;field.placeholder='#FFE1B3';field.autocomplete='off';field.spellcheck=false;
+  field.setAttribute('aria-label','조명 HEX 색상 코드');label.appendChild(field);row.append(picker,label);
+  const error=document.createElement('p');error.className='surface-color-error';error.id='stageLightColorError-'+o.id;
+  error.setAttribute('role','status');field.setAttribute('aria-describedby',error.id);
+  const palette=document.createElement('div');palette.className='surface-color-palette';
+  palette.setAttribute('role','group');palette.setAttribute('aria-label','추천 조명 색상');
+  const swatches=[];let picking=false;
+  const refresh=()=>{
+    picker.value=o.params.color;field.value=o.params.color;field.removeAttribute('aria-invalid');error.textContent='';
+    swatches.forEach(([button,hex])=>button.setAttribute('aria-pressed',String(hex===o.params.color)));
+  };
+  const finish=()=>{if(picking){picking=false;commitHistory();scheduleAutosave();}};
+  const choose=value=>{
+    if(!stageLightOwned(o)||selected!==o)return;
+    finish();flushHistory();if(setStageLightColor(o,value))commitHistory();refresh();
+  };
+  const commitHex=()=>{
+    const color=normalizeSurfaceColor(field.value);
+    if(!color){field.setAttribute('aria-invalid','true');error.textContent='HEX 코드를 확인해 주세요. 예: #85DEC0';return false;}
+    choose(color);return true;
+  };
+  picker.addEventListener('input',()=>{
+    if(!stageLightOwned(o)||selected!==o)return;
+    if(!picking){flushHistory();picking=true;}
+    setStageLightColor(o,picker.value);refresh();
+  });
+  picker.addEventListener('change',()=>{
+    if(!stageLightOwned(o)||selected!==o)return;
+    if(!picking)flushHistory();setStageLightColor(o,picker.value);picking=false;commitHistory();refresh();
+  });
+  picker.addEventListener('blur',finish);
+  field.addEventListener('input',()=>{field.removeAttribute('aria-invalid');error.textContent='';});
+  field.addEventListener('change',commitHex);
+  field.addEventListener('blur',()=>{if(field.value!==o.params.color)commitHex();});
+  field.addEventListener('keydown',event=>{
+    if(event.isComposing)return;
+    if(event.key==='Enter'){event.preventDefault();commitHex();}
+    else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();refresh();}
+  });
+  STAGE_LIGHT_PALETTE.forEach(([name,hex])=>{
+    const button=document.createElement('button');button.type='button';button.className='surface-swatch';
+    button.style.backgroundColor=hex;button.title=name+' '+hex;button.setAttribute('aria-label',name+' '+hex);
+    button.onclick=()=>choose(hex);swatches.push([button,hex]);palette.appendChild(button);
+  });
+  section.append(row,palette,error,stageLightNote('선택한 조명의 빛 색상입니다. 모델의 원래 색상·텍스처와 함께 표시됩니다. HEX 입력 후 Enter를 누르세요.'));
+  refresh();return section;
+}
+function aimStageLightAtReference(o){
+  if(!stageLightOwned(o)||selected!==o)throw new Error('바라볼 조명을 다시 선택해 주세요.');
+  const point=placementReference(o.params);
+  if(!point)throw new Error('먼저 벽·바닥·모델에서 기준점을 선택해 주세요.');
+  const p=o.params,dx=point.x-p.x,dy=point.y-p.y,dz=point.z-p.z;
+  if(![dx,dy,dz].every(Number.isFinite)||Math.hypot(dx,dy,dz)<0.000001)
+    throw new Error('조명과 기준점이 같은 위치입니다. 조명의 위치나 기준점을 바꿔 주세요.');
+  const yaw=Math.hypot(dx,dz)<0.000001?p.yaw:Math.atan2(-dx,-dz)*180/Math.PI;
+  const pitch=Math.atan2(dy,Math.hypot(dx,dz))*180/Math.PI;
+  flushHistory();Object.assign(p,{yaw,pitch});sync(o);refreshTransformInputs();commitHistory();scheduleAutosave();
+  return {yaw,pitch};
+}
+function appendStageLightProperties(o){
+  const p=o.params,lib=STAGE_LIGHT_LIB.find(item=>item.kind===p.fixture)||STAGE_LIGHT_LIB[0];
+  const current=()=>stageLightOwned(o)&&selected===o&&o.params===p;
+  const change=()=>{if(current()){updateStageLight(o);markShadowDirty();updateStageLightReadout();}};
+  const checkbox=(label,value,apply)=>{
+    const row=document.createElement('label');row.className='chk';
+    const input=document.createElement('input');input.type='checkbox';input.checked=value;
+    const text=document.createElement('span');text.textContent=label;row.append(input,text);
+    input.onchange=()=>{if(!current())return;flushHistory();apply(input.checked);change();commitHistory();scheduleAutosave();};
+    return row;
+  };
+  const section=stageLightSection('무대 조명');
+  section.appendChild(stageLightNote(lib.name+' · 범용 조명 · 배치와 분위기 확인용'));
+  const status=document.createElement('p');status.dataset.lightStatus='';status.className='placement-reference';status.setAttribute('role','status');section.appendChild(status);
+  section.appendChild(checkbox('조명 켜기',p.on,value=>{p.on=value;}));
+  section.appendChild(numRow('밝기',p.intensity,1,value=>{if(current()){p.intensity=value;change();}},0,100,'%'));
+  section.appendChild(numRow('조사각',p.beamAngle,1,value=>{if(current()){p.beamAngle=value;change();}},5,100,'°'));
+  section.appendChild(numRow('가장자리 부드러움',p.edge,1,value=>{if(current()){p.edge=value;change();}},0,100,'%'));
+  section.appendChild(stageLightNote('조사각을 키우면 넓게 비춥니다. 가장자리 부드러움을 키우면 빛의 경계가 완만해집니다. 실제 기종의 조도(lux)를 보장하는 값은 아닙니다.'));
+  right.appendChild(section);
+  right.appendChild(createStageLightColorControls(o));
+  if(p.fixture==='ers'){
+    const shutters=stageLightSection('ERS 셔터');
+    const rows=[];
+    for(const [key,label] of [['shutterLeft','왼쪽 자르기'],['shutterRight','오른쪽 자르기'],['shutterTop','위쪽 자르기'],['shutterBottom','아래쪽 자르기']]){
+      const row=numRow(label,p[key],0.01,value=>{if(current()){p[key]=value;change();}},0,1,'%',100);
+      rows.push([key,row]);shutters.appendChild(row);
+    }
+    const reset=document.createElement('button');reset.type='button';reset.className='tbtn';reset.textContent='셔터 모두 열기';
+    reset.onclick=()=>{
+      if(!current())return;flushHistory();
+      rows.forEach(([key,row])=>{p[key]=0;row.setNumeric(0);});change();commitHistory();scheduleAutosave();
+    };
+    shutters.append(reset,stageLightNote('0%는 완전히 연 상태입니다. 마주 보는 두 셔터의 합이 100% 이상이면 빛이 닫힙니다. 좌우·상하는 조명이 바라보는 방향 기준입니다.'));
+    right.appendChild(shutters);
+  }
+  const shadows=stageLightSection('조명 그림자');
+  shadows.appendChild(checkbox('이 조명의 그림자',p.castShadow,value=>{p.castShadow=value;}));
+  const qualities=['off','medium','high'];
+  shadows.appendChild(selRow('전체 조명 그림자 품질',['끄기','표준','고화질'],Math.max(0,qualities.indexOf(stage.lightShadowQuality)),index=>{
+    if(!current())return;flushHistory();stage.lightShadowQuality=qualities[index];change();commitHistory();scheduleAutosave();
+  }));
+  const shadowStatus=document.createElement('p');shadowStatus.dataset.lightShadowStatus='';shadowStatus.className='surface-color-note';shadowStatus.setAttribute('role','status');shadows.appendChild(shadowStatus);
+  shadows.appendChild(stageLightNote('품질 설정은 모든 무대 조명에 적용됩니다. 장면이 느려지면 표준 또는 끄기를 선택하세요. 조명 기구 자체는 그림자를 만들지 않습니다.'));
+  right.appendChild(shadows);
+  const placement=createProjectorPlacementControls(o);
+  const aim=document.createElement('button');aim.type='button';aim.className='tbtn';aim.textContent='현재 위치에서 기준점 바라보기';
+  aim.disabled=!placementReference(p);aim.style.width='100%';
+  aim.onclick=()=>{
+    try{aimStageLightAtReference(o);toast('위치는 유지하고 조명이 기준점을 바라보도록 맞췄어요.');}
+    catch(error){toast(error.message);}
+  };
+  placement.append(aim,stageLightNote('현재 위치에서 바라보기는 조명의 방향만 바꿉니다. 조명이나 기준점을 옮긴 뒤에는 다시 눌러 맞춰 주세요.'));
+  right.appendChild(placement);
+  const info=stageLightSection('조명 미리보기 안내');
+  info.appendChild(stageLightNote('최대 '+MAX_STAGE_LIGHTS+'개의 무대 조명을 함께 사용할 수 있습니다. 테스트 그리드·화이트 라이트 보기에서 빛과 그림자를 확인하세요. 조도 히트맵과 프로젝터 분석 수치는 무대 조명을 합산하지 않습니다.'));
+  right.appendChild(info);updateStageLightReadout();
+}
+function updateStageLightReadout(){
+  if(selected?.type!=='light')return;
+  const status=right.querySelector('[data-light-status]'),shadowStatus=right.querySelector('[data-light-shadow-status]');
+  const state=stageLightStatus(selected),p=selected.params;
+  if(status){
+    const text=state.reason+' · 밝기 '+Math.round(p.intensity)+'% · 조사각 '+Number(p.beamAngle.toFixed(1))+'°';
+    if(status.textContent!==text)status.textContent=text;status.style.color=state.active?'var(--beam)':'var(--txt2)';
+  }
+  if(shadowStatus){
+    const text=stage.lightShadowQuality==='off'?'전체 조명 그림자가 꺼져 있어요.':
+      !stage.shadows?'화면 상단의 그림자 버튼이 꺼져 있어요.':
+      !p.castShadow?'이 조명의 그림자가 꺼져 있어요.':
+      !state.active?'조명이 켜지면 그림자를 표시합니다.':'그림자 켜짐 · '+(stage.lightShadowQuality==='high'?'고화질':'표준');
+    if(shadowStatus.textContent!==text)shadowStatus.textContent=text;
+  }
+}
+function renderStageLightLibrary(root){
+  root.replaceChildren();
+  const intro=document.createElement('p');intro.className='search-hint';intro.textContent='범용 조명 · 밝기·색상·조사각 조절 · 최대 '+MAX_STAGE_LIGHTS+'개';root.appendChild(intro);
+  STAGE_LIGHT_LIB.forEach(item=>{
+    const button=document.createElement('button');button.type='button';button.className='libitem';button.style.cssText='width:calc(100% - 16px);text-align:left;font-family:inherit;color:var(--txt)';
+    const name=document.createElement('div');name.className='t';name.textContent=item.name;
+    const summary=document.createElement('div');summary.className='s';summary.textContent=item.sub;
+    button.append(name,summary);button.onclick=()=>{if(addStageLight(item))openPropsIfMobile();};root.appendChild(button);
+  });
+  const note=document.createElement('p');note.className='search-hint';note.textContent='추가 후 오른쪽에서 조명을 조절하세요. 기준점을 선택하면 해당 위치를 향하도록 맞출 수 있습니다.';root.appendChild(note);
+}
 
 function renderProps(){
   cancelPlacementPick();
@@ -8664,7 +9116,7 @@ function renderProps(){
   const o = selected, p = o.params;
   right.innerHTML='';
   const s1 = document.createElement('div'); s1.className='sec';
-  s1.innerHTML = `<div class="ptitle" style="padding:0 0 6px">${o.type==='proj'?'PROJECTOR':o.type==='led'?'LED SCREEN':'SURFACE'}</div>`;
+  s1.innerHTML = `<div class="ptitle" style="padding:0 0 6px">${o.type==='proj'?'PROJECTOR':o.type==='light'?'STAGE LIGHT · 무대 조명':o.type==='led'?'LED SCREEN':'SURFACE'}</div>`;
   const nr = document.createElement('div'); nr.className='row';
   nr.innerHTML = `<label>이름</label>`;
   const ni = document.createElement('input'); ni.type='text'; ni.value=o.name; ni.maxLength=40;
@@ -8676,7 +9128,7 @@ function renderProps(){
   pos.appendChild(transformRow('x', 'X', p.x, 0.1, v=>{p.x=v; sync(o);}, -60, 60, ...MM));
   pos.appendChild(transformRow('y', 'Y', p.y, 0.1, v=>{p.y=v; sync(o);}, 0, 40, ...MM));
   pos.appendChild(transformRow('z', 'Z', p.z, 0.1, v=>{p.z=v; sync(o);}, -60, 60, ...MM));
-  if(o.type==='proj'){
+  if(o.type==='proj'||o.type==='light'){
     pos.appendChild(transformRow('yaw', 'Yaw', p.yaw, 1, v=>{p.yaw=v; sync(o);}, -180, 180, '°'));
     pos.appendChild(transformRow('pitch', 'Pitch', p.pitch, 1, v=>{p.pitch=v; sync(o);
       const kwEl = document.getElementById('kwWarn');
@@ -8766,6 +9218,7 @@ function renderProps(){
     calc.appendChild(createProjectorReadout());
     right.appendChild(calc);
   }
+  if(o.type==='light')appendStageLightProperties(o);
   if(o.type==='surf'){
     right.appendChild(createSurfaceColorControls(o));
     const opt = document.createElement('div'); opt.className='sec';
@@ -8975,6 +9428,7 @@ function renderStage(){
 function sync(o){
   markShadowDirty();
   if(o.type==='proj'){ updateProjector(o); }
+  else if(o.type==='light'){updateStageLight(o);}
   else { o.mesh.position.set(o.params.x,o.params.y,o.params.z);
          if(o.params.ry!==undefined) o.mesh.rotation.y = THREE.MathUtils.degToRad(o.params.ry);
          if(o.params.kind==='model') o.mesh.scale.setScalar(o.params.scale||1);
@@ -9012,6 +9466,7 @@ function updateLEDReadout(o){
 var panelFolds = Object.create(null);
 function finishPanel(){
   updateProjectorReadout();
+  updateStageLightReadout();
   const kind=selected?(selected.sys||selected.type):'stage';
   const children=Array.from(right.children);
   children.forEach((section,index)=>{
@@ -9027,6 +9482,7 @@ function finishPanel(){
       label==='X'?'위치 · 회전':label==='기종'?'프로젝터 · 렌즈':label==='투사 방식'?'표면 · 광학':
       label==='폭 W'||label==='반지름'||label==='스케일'?'크기 · 형태':label==='픽셀피치'?'LED 설정':
       label==='주변광 환경'?'주변광':label==='스크린(벽) 폭'?'무대 · 스크린':label==='목표 조도'?'시뮬레이션 설정':label==='표시'?'표시 상태':label==='스크린 게인'?'표면 · 위치':'';
+    title=section.dataset.panelTitle||title;
     if(!title){section.classList.add('panel-note');return;}
     const key=kind+':'+title, group=document.createElement('details');group.className='prop-group';
     group.open=panelFolds[key]!==undefined?panelFolds[key]:title!=='콘텐츠'&&title!=='공간 모델';
@@ -9355,7 +9811,7 @@ function updateGizmo(){
   rotGizmo.scale.copy(gizmo.scale);
   const p = selected.params;
   yawRing.visible = (p.yaw!==undefined || p.ry!==undefined);
-  pitchRing.visible = selected.type==='proj';
+  pitchRing.visible = selected.type==='proj'||selected.type==='light';
   if(pitchRing.visible)
     pitchRing.rotation.set(0, Math.PI/2 + THREE.MathUtils.degToRad(p.yaw||0), 0);
 }
@@ -9864,7 +10320,7 @@ function normalizeMeasurements(raw, sceneObjects){
 function normalizeSceneData(data){
   if(!plainRecord(data) || !Array.isArray(data.objects)) throw new Error('프로젝터 시뮬레이터의 장면 JSON 파일을 선택해 주세요.');
   if(data.app!==undefined && data.app!=='Projector Simulator') throw new Error('다른 앱의 파일은 불러올 수 없어요.');
-  const version=sceneNumber(data.v,3,1,5,'저장 파일 버전',true),migrationNotes=[];
+  const version=sceneNumber(data.v,3,1,6,'저장 파일 버전',true),migrationNotes=[];
   if(data.objects.length>SCENE_LIMITS.objects) throw new Error('한 장면에는 오브젝트를 최대 128개까지 불러올 수 있어요.');
   if(data.stage!==undefined && !plainRecord(data.stage)) throw new Error('무대 설정 형식이 올바르지 않아요.');
   const ss=data.stage||{}, ns={...STAGE_DEFAULTS};
@@ -9875,17 +10331,18 @@ function normalizeSceneData(data){
   ns.wallMode=sceneEnum(ss.wallMode,ns.wallMode,['front','rear'],'벽 투사 방식');
   ns.capFps=sceneEnum(ss.capFps,ns.capFps,[30,60],'캡처 프레임');
   ns.unit=sceneEnum(ss.unit,ns.unit,['m','cm','mm'],'모델 단위');
+  ns.lightShadowQuality=sceneEnum(ss.lightShadowQuality,ns.lightShadowQuality,['off','medium','high'],'조명 그림자 품질');
   if(data.views!==undefined && (!Array.isArray(data.views) || data.views.length>50)) throw new Error('저장 시점은 최대 50개까지 지원해요.');
   const nviews=(data.views||[]).map((v,i)=>{
     if(!plainRecord(v) || !Array.isArray(v.tgt) || v.tgt.length!==3) throw new Error('시점 '+(i+1)+' 설정이 올바르지 않아요.');
     return {name:sceneText(v.name,'시점 '+(i+1),80,'시점 이름'),tgt:v.tgt.map(n=>sceneNumber(n,0,-1000,1000,'시점 위치')),
       r:sceneNumber(v.r,22,0.1,1000,'시점 거리'),theta:sceneNumber(v.theta,0,-1e6,1e6,'시점 회전'),phi:sceneNumber(v.phi,1,0.001,Math.PI-0.001,'시점 각도')};
   });
-  let projectors=0, totalTriangles=0;
+  let projectors=0, lights=0, totalTriangles=0;
   const nobjects=data.objects.map((so,index)=>{
     const label='오브젝트 '+(index+1);
     if(!plainRecord(so) || !plainRecord(so.params)) throw new Error(label+' 속성이 없거나 잘못됐어요.');
-    const type=sceneEnum(so.type,null,['proj','surf','led'],label+' 종류');
+    const type=sceneEnum(so.type,null,['proj','surf','led','light'],label+' 종류');
     if(!type) throw new Error(label+' 종류가 없어요.');
     const p=so.params, q={};
     q.x=sceneNumber(p.x,0,-60,60,label+' X'); q.y=sceneNumber(p.y,2,0,40,label+' Y'); q.z=sceneNumber(p.z,-6,-60,60,label+' Z');
@@ -9895,6 +10352,21 @@ function normalizeSceneData(data){
       q.output=sceneNumber(p.output,100,0,100,'라이트 출력');
       q.yaw=sceneNumber(p.yaw,0,-180,180,'프로젝터 회전'); q.pitch=sceneNumber(p.pitch,0,-90,90,'프로젝터 기울기');
       q.on=sceneBool(p.on,true,'프로젝터 출력');
+    }else if(type==='light'){
+      if(++lights>MAX_STAGE_LIGHTS)throw new Error('무대 조명은 최대 '+MAX_STAGE_LIGHTS+'개까지 지원해요. 현재 작업은 그대로 유지돼요.');
+      q.fixture=sceneEnum(p.fixture,'fresnel',['fresnel','ers','par'],'조명 종류');
+      const defaults=createStageLightParams(q.fixture);
+      for(const key of ['x','y','z'])if(p[key]===undefined)q[key]=defaults[key];
+      q.yaw=sceneNumber(p.yaw,defaults.yaw,-180,180,'조명 회전');
+      q.pitch=sceneNumber(p.pitch,defaults.pitch,-90,90,'조명 기울기');
+      q.intensity=sceneNumber(p.intensity,defaults.intensity,0,100,'조명 밝기');
+      q.beamAngle=sceneNumber(p.beamAngle,defaults.beamAngle,5,100,'조사각');
+      q.edge=sceneNumber(p.edge,defaults.edge,0,100,'빛 가장자리');
+      q.color=p.color===undefined?defaults.color:normalizeSurfaceColor(p.color);
+      if(!q.color)throw new Error('조명 색상은 올바른 HEX 코드여야 해요.');
+      q.on=sceneBool(p.on,true,'조명 켜기');q.castShadow=sceneBool(p.castShadow,true,'조명 그림자');
+      for(const key of ['shutterLeft','shutterRight','shutterTop','shutterBottom'])q[key]=sceneNumber(p[key],0,0,1,'ERS 셔터');
+      Object.assign(q,normalizePlacement(p));
     }else{
       q.ry=sceneNumber(p.ry,0,-180,180,label+' 회전');
       if(type==='surf'){
@@ -9920,17 +10392,17 @@ function normalizeSceneData(data){
         q.pitch=sceneNumber(p.pitch,2.6,0.1,10,'LED 픽셀 피치'); q.nits=sceneNumber(p.nits,1200,1,20000,'LED 밝기');
       }
     }
-    return {type,name:sceneText(so.name,type==='proj'?q.model:type==='surf'?q.kind:'LED',120,'오브젝트 이름'),params:q,
+    return {type,name:sceneText(so.name,type==='proj'?q.model:type==='surf'?q.kind:type==='light'?STAGE_LIGHT_LIB.find(item=>item.kind===q.fixture).name:'LED',120,'오브젝트 이름'),params:q,
       visible:sceneBool(so.visible,true,'오브젝트 표시'),color:type==='proj'?sceneNumber(so.color,PCOLORS[(projectors-1)%PCOLORS.length],0,0xffffff,'프로젝터 색상',true):undefined};
   });
   if(nobjects.some(o=>o.params.modelAssets)){
     if(new Blob([JSON.stringify(data)]).size>SCENE_LIMITS.fileBytes)throw new Error('텍스처를 포함한 장면 JSON은 40MB 이하로 줄여 주세요.');
     if(nobjects.reduce((sum,o)=>sum+modelAssetMemory(o.params.modelAssets),0)>192*1024*1024)throw new Error('장면의 텍스처가 너무 큽니다. 이미지 수나 크기를 줄여 주세요.');
   }
-  return {app:'Projector Simulator',v:5,specRevision:SPEC_REVISION,migrationNotes,targetLux:sceneNumber(data.targetLux,150,1,10000,'목표 조도'),stage:ns,views:nviews,objects:nobjects,measurements:normalizeMeasurements(data.measurements,nobjects)};
+  return {app:'Projector Simulator',v:6,specRevision:SPEC_REVISION,migrationNotes,targetLux:sceneNumber(data.targetLux,150,1,10000,'목표 조도'),stage:ns,views:nviews,objects:nobjects,measurements:normalizeMeasurements(data.measurements,nobjects)};
 }
 function serialize(){
-  return JSON.stringify({app:'Projector Simulator',v:5,specRevision:SPEC_REVISION,targetLux:shared.uTargetLux.value,stage,views,measurements:snapshotMeasurements(),
+  return JSON.stringify({app:'Projector Simulator',v:6,specRevision:SPEC_REVISION,targetLux:shared.uTargetLux.value,stage,views,measurements:snapshotMeasurements(),
     objects:objects.map(o=>({type:o.type,name:o.name,params:o.params,visible:o.visible,color:o.type==='proj'?o.color:undefined}))},null,2);
 }
 function setSaveStatus(state, detail){
@@ -10055,7 +10527,7 @@ function restoreHistoryState(s){
       o.content=x.content?x.content.ref:null;o.ledSrc=x.ledSrc?x.ledSrc.ref:null;
       for(const state of [x.content,x.ledSrc])if(state){state.ref.crop=state.crop?{...state.crop}:undefined;state.ref.flipX=!!state.flipX;state.ref.flipY=!!state.flipY;state.ref.ver=++contentVer;state.ref.frameReady=true;}
       scene.add(o.mesh);
-      if(o.type==='proj'){o.frust.material.color.setHex(o.color);sync(o);}else if(o.type==='led')rebuildLED(o);else rebuild(o);
+      if(o.type==='proj'){o.frust.material.color.setHex(o.color);sync(o);}else if(o.type==='light')sync(o);else if(o.type==='led')rebuildLED(o);else rebuild(o);
       return o;
     });
     restoreMeasurements(s.measurements);
@@ -10081,11 +10553,12 @@ function applySceneData(raw){
       let o;
       if(so.type==='proj')o=addProjector(PROJ_LIB.find(l=>l.name===so.params.model)||PROJ_LIB[PROJ_LIB.length-1]);
       else if(so.type==='surf')o=so.params.kind==='model'?addModelFromText(so.name,so.params.objText,so.params.unit,so.params.modelAssets):addSurface(so.params.kind,so.name);
+      else if(so.type==='light')o=addStageLight(so.params.fixture);
       else o=addLED({name:so.name,pitch:so.params.pitch,nits:so.params.nits,w:so.params.w,h:so.params.h});
       if(!o)throw new Error('오브젝트를 만들지 못했어요.');
       o.params={...so.params};o.name=so.name;o.visible=so.visible;o.mesh.visible=so.visible;
       if(o.type==='proj'){o.color=so.color;o.frust.material.color.setHex(so.color);sync(o);}
-      else if(o.type==='led')rebuildLED(o);else rebuild(o);
+      else if(o.type==='light')sync(o);else if(o.type==='led')rebuildLED(o);else rebuild(o);
     });
     restoreMeasurements(data.measurements);
     updateStage();syncShadowBtn();renderViews();select(null);updateLegend();
@@ -10214,7 +10687,7 @@ function exportTopViewInner(){
   // 기본 벽
   if(stage.wallOn) rotRect(stage.wallX, stage.wallZ, stage.wallW, 0.15, stage.wallRy, '#B9C2D0');
   // 서페이스·LED
-  objects.filter(o=>o.visible && o.type!=='proj').forEach(o=>{
+  objects.filter(o=>o.visible && (o.type==='surf'||o.type==='led')).forEach(o=>{
     const p=o.params;
     if(o.type==='led'){ rotRect(p.x,p.z,p.w,0.12,p.ry,'#5AD1DE'); }
     else if(p.kind==='wall'){ rotRect(p.x,p.z,p.w,0.12,p.ry,'#B9C2D0'); }
@@ -10233,6 +10706,15 @@ function exportTopViewInner(){
     else { rotRect(p.x,p.z,p.w||4,(p.kind==='facade'?0.4:p.d||4),p.ry,'#B9C2D0'); }
     x.fillStyle='#8B95A7'; x.font='11px monospace';
     x.fillText(o.name, px(p.x)+6, pz(p.z)-6);
+  });
+  // 무대 조명: 위치와 바라보는 방향. 조도 도면이 아닌 배치 기호입니다.
+  objects.filter(o=>o.visible&&o.type==='light').forEach((o,i)=>{
+    const p=o.params,a=THREE.MathUtils.degToRad(p.yaw),cx=px(p.x),cz=pz(p.z),len=25;
+    x.strokeStyle=p.color;x.fillStyle=p.color;x.globalAlpha=p.on&&p.intensity>0?1:0.35;
+    x.beginPath();x.arc(cx,cz,6,0,Math.PI*2);x.stroke();
+    x.beginPath();x.moveTo(cx,cz);x.lineTo(cx-Math.sin(a)*len,cz-Math.cos(a)*len);x.stroke();
+    x.font='11px monospace';x.fillText(`L${i+1} ${o.name} · ${p.intensity}% · ${p.beamAngle}°`,cx+10,cz-12);
+    x.fillText(`H ${Math.round(p.y*1000)} mm`,cx+10,cz+3);x.globalAlpha=1;
   });
   // 프로젝터: 위치·방향·빔 부채꼴·치수
   const projs = objects.filter(o=>o.type==='proj' && o.visible);
@@ -10314,6 +10796,14 @@ document.getElementById('btnPublish').onclick = ()=>{
     const rw = Math.round(p.w*1000/p.pitch), rh = Math.round(p.h*1000/p.pitch);
     lines.push(`[LED${i+1}] ${o.name} — ${p.w}×${p.h} m · P${p.pitch} · ${rw}×${rh} px · ${p.nits.toLocaleString()} nit`);
   });
+  const lights=objects.filter(o=>o.type==='light');
+  if(lights.length){
+    lines.push('무대 조명 · 범용 프리셋 / 배치·분위기 확인용 (프로젝터 lux·대비·히트맵 계산에는 미포함)');
+    lights.forEach((o,i)=>{const p=o.params;
+      lines.push(`[L${i+1}] ${o.name} · ${stageLightStatus(o).reason} · 밝기 ${p.intensity}% · ${p.color} · 조사각 ${p.beamAngle}° · 가장자리 ${p.edge}%`);
+      lines.push(`  위치 ${Math.round(p.x*1000)}, ${Math.round(p.y*1000)}, ${Math.round(p.z*1000)} mm · 회전 ${p.yaw}° / ${p.pitch}° · 그림자 ${p.castShadow?'ON':'OFF'}`);
+    });
+  }
   const surfs = objects.filter(o=>o.type==='surf');
   if(surfs.length) lines.push(`서페이스 ${surfs.length}개: ` + surfs.map(s=>s.name).join(', '));
   lines.push('');
@@ -10334,7 +10824,7 @@ document.getElementById('mJson').onclick = ()=>download('projector_simulator_sce
 /* ---------- HUD ---------- */
 const hud = document.getElementById('hud');
 function updateHUD(){
-  let t = `오브젝트 ${objects.length} · 프로젝터 ${objects.filter(o=>o.type==='proj').length}/${MAXP} · made by Moon`;
+  let t = `오브젝트 ${objects.length} · 프로젝터 ${objects.filter(o=>o.type==='proj').length}/${MAXP} · 조명 ${objects.filter(o=>o.type==='light').length}/8 · made by Moon`;
   if(selected && selected.type==='proj'){
     const hit = centerHit(selected);
     if(hit) t += `\n${selected.name} → ${hit.d.toFixed(1)}m · ${hit.w.toFixed(1)}×${hit.h.toFixed(1)}m · ${hit.lux.toFixed(0)} lux`;
@@ -10342,6 +10832,7 @@ function updateHUD(){
   hud.textContent = t;
   if(selected && selected.type==='led') updateLEDReadout(selected);
   updateProjectorReadout();
+  updateStageLightReadout();
 }
 
 /* ---------- 접근성 · 내보내기 ---------- */
