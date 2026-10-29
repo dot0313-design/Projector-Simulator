@@ -30,6 +30,19 @@
 #right{overscroll-behavior:contain;overflow-anchor:none}#projCalc .cr{min-height:18px}#projCalc .cr>span{white-space:nowrap}#projCalc .cr>b{white-space:nowrap;font-size:10px}.nit-meter{position:relative;height:8px;border-radius:4px;margin:7px 0 0}.nit-marker{position:absolute;top:0;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid var(--txt)}.nit-status{font-size:10px;line-height:16px;height:32px;display:flex;align-items:center;overflow-wrap:anywhere}
 .ruler-panel{position:absolute;z-index:12;left:16px;top:160px;width:min(304px,calc(100% - 32px));max-height:calc(100% - 190px);overflow:auto;background:var(--panel);border:1px solid #75684d;border-radius:10px;box-shadow:0 8px 24px #0005;color:var(--txt);font-size:11px;overscroll-behavior:contain}.ruler-panel[hidden]{display:none}.ruler-panel>summary{cursor:pointer;padding:10px 12px;font-weight:500}.ruler-panel>summary span{float:right;color:#ffd18b;font:10px var(--mono);max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ruler-body{padding:0 12px 12px}.ruler-intro,.ruler-help{font-size:10px;line-height:1.6;color:var(--txt2)}.ruler-intro{margin-bottom:8px}.ruler-help{margin-top:10px}.ruler-endpoint{display:flex;gap:6px;margin:6px 0}.ruler-endpoint button{flex:none;padding:5px 8px;font-size:10px}.ruler-endpoint button[aria-pressed=true]{border-color:#ffd18b;color:#ffd18b}.ruler-panel select,.ruler-panel input{border:1px solid var(--line);border-radius:5px;padding:6px;background:var(--bg);color:var(--txt);font:10px var(--sans);min-width:0}.ruler-endpoint select{flex:1;width:0}.ruler-coordinates{margin:8px 0}.ruler-coordinates>summary{color:var(--txt2);cursor:pointer;font-size:10px}.ruler-coordinates fieldset{display:flex;gap:6px;border:0;padding:6px 0}.ruler-coordinates legend{color:#ffd18b;font-size:10px}.ruler-coordinates label{flex:1;min-width:0;color:var(--txt2);font-size:10px}.ruler-coordinates input{width:100%;margin-top:3px}.ruler-result{display:grid;gap:4px;margin:10px 0;font-variant-numeric:tabular-nums}.ruler-result strong{font:500 15px var(--mono);color:#ffd18b}.ruler-result span{font-size:10px;color:var(--txt2)}.ruler-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.ruler-actions .tbtn,.ruler-list-heading .tbtn,#rulerList .tbtn{padding:5px 7px;font-size:10px}.ruler-actions label{margin-left:auto;color:var(--txt2);font-size:10px}.ruler-list-heading{display:flex;justify-content:space-between;align-items:center;margin:12px 0 5px;color:var(--txt2);font-size:10px}#rulerList{list-style:none;max-height:140px;overflow:auto}#rulerList li{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}.ruler-item-text{flex:1;min-width:0;font-size:10px}.ruler-item-text b{display:block;color:#ffd18b;font:500 11px var(--mono);margin-top:4px}.ruler-item-text small{display:block;overflow-wrap:anywhere;color:var(--txt2);font-size:9px;line-height:1.6;margin-top:3px}.ruler-label{color:#ffd18b;border-color:#75684d;background:#24271f;z-index:1}.ruler-panel:not([open]){overflow:hidden}.ruler-panel:not([open])>summary{padding:10px 12px}@media(max-width:959px){.ruler-panel{left:12px;width:min(304px,calc(100% - 24px));max-height:calc(100% - 170px)}.ruler-panel input{font-size:16px}.ruler-panel .tbtn{min-height:36px}}
 
+.bridge-input{margin:10px 0 12px;overflow-anchor:none}.bridge-toggle{width:100%;text-align:left;white-space:normal;color:var(--beam)}.bridge-body{display:flex;flex-direction:column;gap:8px;padding-top:10px}.bridge-body p{margin:0;font-size:11px;line-height:1.65;color:var(--txt2);overflow-wrap:anywhere}.bridge-body>a{font-size:11px;color:var(--beam);align-self:flex-start}.bridge-body label{display:flex;flex-direction:column;gap:5px;font-size:10px;color:var(--txt2)}.bridge-body input,.bridge-body select{box-sizing:border-box;min-width:0;width:100%;min-height:34px;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:11px var(--sans)}.bridge-body input:focus,.bridge-body select:focus{outline:1px solid var(--beam);outline-offset:1px}.bridge-body .bridge-current,.bridge-body .bridge-reception{color:var(--beam)}.bridge-body .bridge-message.error{color:var(--warn)}.bridge-body .bridge-note{font-size:10px}.bridge-body button{white-space:normal}.bridge-body button:disabled{opacity:.55;cursor:default}.bridge-message:empty{display:none}
+.bridge-orientation{display:flex;flex-wrap:wrap;gap:6px}.bridge-orientation .tbtn{flex:1 1 100px;padding:7px 8px}
+
+.human-create{margin:8px;padding:13px 12px;border:1px solid #45665e;border-radius:10px;background:#202e2d;display:flex;flex-direction:column;gap:9px}
+.human-create h3{margin:0;color:var(--beam);font-size:12px;font-weight:600}
+.human-create label{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;color:var(--txt2)}
+.human-create select,.human-create input{box-sizing:border-box;width:142px;max-width:67%;min-width:0;min-height:34px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px}
+.human-create p{margin:0;color:var(--txt2);font-size:10px;line-height:1.6}
+.human-create .human-error{color:var(--warn)}.human-create .human-error:empty{display:none}
+.human-create input[aria-invalid="true"]{border-color:var(--warn)}
+.human-create button{width:100%;min-height:34px}
+
+#siteLocation{color:var(--beam);font:8px var(--sans);letter-spacing:0;margin-top:2px;line-height:1.25}
 </style>
 </head>
 <body>
@@ -6002,7 +6015,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-27.2';
+const SPEC_REVISION = '2026-10-29.1';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6171,8 +6184,8 @@ const SURF_LIB = [
   {name:'실린더', kind:'cyl',    sub:'원기둥 (막힌 기둥)'},
   {name:'박스 / 건물', kind:'box', sub:'W×H×D'},
   {name:'성당 파사드', kind:'facade', sub:'아치 프리셋'},
-  {name:'남성 스케일 피규어', kind:'man',   sub:'키 175cm · 실측 고정'},
-  {name:'여성 스케일 피규어', kind:'woman', sub:'키 160cm · 실측 고정'},
+  {name:'남성 스케일 피규어', kind:'man',   sub:'기본 키 175cm · 추가 후 변경 가능'},
+  {name:'여성 스케일 피규어', kind:'woman', sub:'기본 키 160cm · 추가 후 변경 가능'},
   {name:'3D 모델 가져오기', kind:'model', sub:'.obj — Blender 내보내기'},
 ];
 const LED_LIB = [
@@ -6223,7 +6236,7 @@ atlasTex.minFilter = THREE.LinearFilter;
 atlasTex.magFilter = THREE.LinearFilter;
 atlasTex.wrapS = atlasTex.wrapT = THREE.ClampToEdgeWrapping;
 const tileOwner = new Array(MAXP).fill(null);   // 타일 i에 그려진 콘텐츠 키
-function drawContentTile(i, src, frameAR, crop){
+function drawContentTile(i, src, frameAR, crop, orientation){
   const fw = src.videoWidth||src.naturalWidth||0;
   const fh = src.videoHeight||src.naturalHeight||0;
   if(!fw || !fh) return false;
@@ -6238,7 +6251,7 @@ function drawContentTile(i, src, frameAR, crop){
   let dw=1024, dh=1024;                          // 타일 = 프로젝터 프레임 전체
   if(srcAR > frameAR) dh = 1024*(frameAR/srcAR); // 레터박스
   else dw = 1024*(srcAR/frameAR);
-  atlasCtx.drawImage(src, sx, sy, sw, sh, rx+(1024-dw)/2, ry+(1024-dh)/2, dw, dh);
+  drawOrientedContent(atlasCtx,src,sx,sy,sw,sh,rx+(1024-dw)/2,ry+(1024-dh)/2,dw,dh,orientation);
   atlasCtx.restore();
   atlasTex.needsUpdate = true;
   return true;
@@ -6486,11 +6499,64 @@ function updateStage(){
 let objects = [];   // {id,type:'proj'|'surf'|'led', name, mesh, params, visible}
 let seq = 1, selected = null;
 
-function addSurface(kind, name){
+/* Person dimensions are stored in metres; the UI uses centimetres. */
+const humanDraft = {kind:'man',cm:'175'};
+function personHeight(p){
+  return Number.isFinite(p.humanHeight)&&p.humanHeight>=0.3&&p.humanHeight<=3
+    ?p.humanHeight:(p.kind==='woman'?1.6:1.75);
+}
+function createHumanForm(){
+  const form=document.createElement('form');form.className='human-create';form.noValidate=true;
+  form.setAttribute('aria-label','원하는 키로 사람 추가');
+  const title=document.createElement('h3');title.textContent='사람 모델 추가';form.appendChild(title);
+  const modelLabel=document.createElement('label');modelLabel.textContent='모델';
+  const model=document.createElement('select');model.setAttribute('aria-label','사람 모델 성별');
+  for(const [value,text] of [['man','남성'],['woman','여성']]){
+    const option=document.createElement('option');option.value=value;option.textContent=text;model.appendChild(option);
+  }
+  model.value=humanDraft.kind;modelLabel.appendChild(model);form.appendChild(modelLabel);
+  const heightLabel=document.createElement('label');heightLabel.textContent='키 (cm)';
+  const height=document.createElement('input');height.type='number';height.inputMode='decimal';
+  height.min='30';height.max='300';height.step='0.1';height.required=true;height.value=humanDraft.cm;
+  height.setAttribute('aria-label','사람 키 (cm)');height.setAttribute('aria-describedby','humanHeightHint humanHeightError');
+  heightLabel.appendChild(height);form.appendChild(heightLabel);
+  const hint=document.createElement('p');hint.id='humanHeightHint';hint.textContent='30–300 cm · 0.1 cm 단위. 추가 후에도 키를 바꿀 수 있어요.';form.appendChild(hint);
+  const error=document.createElement('p');error.id='humanHeightError';error.className='human-error';error.setAttribute('role','status');error.setAttribute('aria-live','polite');form.appendChild(error);
+  const clearError=()=>{error.textContent='';height.removeAttribute('aria-invalid');};
+  model.onchange=()=>{
+    const oldDefault=humanDraft.kind==='woman'?160:175;
+    humanDraft.kind=model.value;
+    if(Number(height.value)===oldDefault){humanDraft.cm=String(model.value==='woman'?160:175);height.value=humanDraft.cm;}
+    clearError();
+  };
+  height.oninput=()=>{humanDraft.cm=height.value;clearError();};
+  const add=document.createElement('button');add.type='submit';add.className='tbtn primary';add.textContent='사람 추가';form.appendChild(add);
+  form.onsubmit=e=>{
+    e.preventDefault();
+    const cm=Number(height.value);
+    if(!height.value.trim()||!Number.isFinite(cm)||cm<30||cm>300||Math.abs(cm*10-Math.round(cm*10))>1e-6){
+      error.textContent='키를 30–300 cm 사이에서 소수점 한 자리까지 입력해 주세요.';
+      height.setAttribute('aria-invalid','true');height.focus();return;
+    }
+    clearError();humanDraft.cm=String(cm);height.value=humanDraft.cm;
+    flushHistory();
+    const kind=model.value;
+    const o=addSurface(kind,kind==='woman'?'여성 스케일 피규어':'남성 스케일 피규어',cm/100);
+    if(o){commitHistory();scheduleAutosave();openPropsIfMobile();}
+  };
+  return form;
+}
+
+function addSurface(kind, name, heightMeters){
   if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
+  const isPerson=kind==='man'||kind==='woman';
+  if(isPerson && heightMeters!==undefined && (!Number.isFinite(heightMeters)||heightMeters<0.3||heightMeters>3)){
+    toast('사람 키는 30–300 cm 사이로 입력해 주세요.');return null;
+  }
   const screenLike = (kind==='wall'||kind==='curve');
   const p = {kind, w:10, h:6, d:4, radius:6, angle:120, x:0, y:0, z:0, ry:0,
              gain:1.0, pmode: screenLike ? 'rear' : 'front'};
+  if(isPerson)p.humanHeight=heightMeters??(kind==='woman'?1.6:1.75);
   const glossU = {value:0}, rearU = {value: p.pmode==='rear'?1:0};
   const mat = makeSurfMat(0xB9C2D0, glossU, rearU);
   const mesh = new THREE.Mesh(surfGeo(p), mat);
@@ -6553,8 +6619,8 @@ function surfGeo(p){
       return new THREE.CylinderGeometry(p.radius,p.radius,p.h, 48,1, true, -th/2, th);
     }
     case 'cyl':    return new THREE.CylinderGeometry(p.radius,p.radius,p.h, 48,1, false);
-    case 'man':    return humanGeo(1.75, 1.0, 1.0);
-    case 'woman':  return humanGeo(1.60, 0.9, 1.08);
+    case 'man':    return humanGeo(personHeight(p), 1.0, 1.0);
+    case 'woman':  return humanGeo(personHeight(p), 0.9, 1.08);
     case 'box':    return new THREE.BoxGeometry(p.w,p.h,p.d);
     case 'facade': {
       const w=p.w, h=p.h, s=new THREE.Shape();
@@ -6700,7 +6766,7 @@ function ledTexture(p, src){
       let cw=bw, ch=bh, sx=bx, sy=by;
       if(sAR > dAR){ cw = bh*dAR; sx = bx + (bw-cw)/2; }
       else { ch = cw/dAR; sy = by + (bh-ch)/2; }
-      x.drawImage(el, sx, sy, cw, ch, 0, 0, c.width, c.height);
+      drawOrientedContent(x,el,sx,sy,cw,ch,0,0,c.width,c.height,src);
     } else {
       const gr = x.createLinearGradient(0,0,c.width,c.height);
       gr.addColorStop(0,'#0FD0E0'); gr.addColorStop(.5,'#3A6BF0'); gr.addColorStop(1,'#B04AE8');
@@ -6792,15 +6858,363 @@ function attachFrameSync(c){
     c.el.requestVideoFrameCallback(cb);
   }
 }
+/* Dedicated local Syphon / Spout bridge. Each output owns its connection and crop. */
+const BRIDGE_ORIGIN = 'http://127.0.0.1:18765';
+const BRIDGE_SIZES = [[1280,720],[1920,1080],[1920,1200]];
+const BRIDGE_MIN_VERSION = '1.0.0-beta.4';
+const bridgeSettings = {token:'',sources:[],server:null,loading:false,error:'',message:'',revision:0};
+const bridgePendingRequests = new Set();
+const bridgeConnections = new Set();
+
+function bridgeView(o){
+  return o._bridgeView || (o._bridgeView={open:false,sourceId:'',width:1920,height:1200,error:'',loading:false});
+}
+function bridgeText(value,limit=180){return typeof value==='string'?value.replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,limit):'';}
+function bridgeVersionAtLeast(version,minimum=BRIDGE_MIN_VERSION){
+  const parts=value=>{const m=/^v?(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/.exec(String(value||''));return m?[+m[1],+m[2],+m[3],m[4]===undefined?Infinity:+m[4]]:null;};
+  const current=parts(version),required=parts(minimum);if(!current||!required)return false;
+  for(let i=0;i<4;i++){if(current[i]>required[i])return true;if(current[i]<required[i])return false;}return true;
+}
+function bridgeServerInfo(data){
+  const version=bridgeText(data?.version,50)||'버전 미확인';
+  const upgrade='이전 Projector Bridge 앱을 종료한 뒤 '+BRIDGE_MIN_VERSION+' 이상 앱을 실행하고 새 연결 키로 다시 연결해 주세요.';
+  if(!bridgeVersionAtLeast(version))throw new Error('실행 중인 연결 프로그램은 '+version+'입니다. '+upgrade);
+  const cap=data?.capabilities;
+  if(!cap||cap.apiVersion!==1||cap.orientationControls!==true||!Number.isInteger(cap.maxWidth)||!Number.isInteger(cap.maxHeight))
+    throw new Error('연결 프로그램 '+version+'의 기능 정보를 확인할 수 없어요. '+upgrade);
+  const sizes=BRIDGE_SIZES.filter(([w,h])=>w<=cap.maxWidth&&h<=cap.maxHeight&&(!Array.isArray(cap.sizes)||cap.sizes.some(s=>Array.isArray(s)&&s[0]===w&&s[1]===h)));
+  if(!sizes.length)throw new Error('연결 프로그램이 지원하는 수신 크기가 맞지 않아요. '+upgrade);
+  return {version,maxWidth:cap.maxWidth,maxHeight:cap.maxHeight,sizes,
+    simulatorRevision:bridgeText(cap.simulatorRevision||data.simulatorRevision,50),nativeOrientationCorrection:cap.nativeOrientationCorrection===true};
+}
+function bridgeAvailableSizes(){return bridgeSettings.server?.sizes||BRIDGE_SIZES;}
+function bridgeIsMadMapperSyphon(source){
+  return String(source?.protocol||'').toLowerCase()==='syphon'&&/(?:^|[^a-z0-9])mad[\s_-]*mapper(?:[^a-z]|$)/i.test(source.application||source.name||'');
+}
+function bridgeSameSource(content,source){return !!content?.bridge&&content.bridgeSource?.id===source?.id&&String(content.bridgeSource?.protocol||'').toLowerCase()===String(source?.protocol||'').toLowerCase();}
+function bridgeError(error){
+  if(error?.name==='AbortError')return '연결을 취소했어요.';
+  if(error?.name==='TypeError')return '연결 프로그램이 실행 중인지 확인하고, 브라우저의 로컬 네트워크 연결 요청을 허용해 주세요. 계속 안 되면 Chrome 또는 Edge에서 다시 열어주세요.';
+  return bridgeText(error?.message||'연결하지 못했어요. 연결 프로그램을 확인해 주세요.',260);
+}
+async function bridgeFetch(path,{method='GET',body,token=bridgeSettings.token,signal,timeout=18000,keepalive=false}={}){
+  const controller=new AbortController();
+  const abort=()=>controller.abort();
+  if(signal?.aborted)controller.abort();else signal?.addEventListener('abort',abort,{once:true});
+  let timedOut=false;
+  const timer=setTimeout(()=>{timedOut=true;controller.abort();},timeout);
+  try{
+    const response=await fetch(BRIDGE_ORIGIN+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},
+      body:body?JSON.stringify(body):undefined,signal:controller.signal,credentials:'omit',cache:'no-store',keepalive});
+    if(!response.ok){
+      if(response.status===401)throw new Error('연결 키가 맞지 않아요. 연결 프로그램에서 현재 키를 다시 복사해 주세요.');
+      if(response.status===403)throw new Error('이 사이트의 연결이 허용되지 않았어요. 연결 프로그램의 허용 사이트 설정을 확인해 주세요.');
+      const data=await response.json().catch(()=>({}));
+      throw new Error(bridgeText(data.error||data.message,240)||'연결 프로그램 응답 오류 ('+response.status+')');
+    }
+    return response.status===204?null:await response.json();
+  }catch(error){
+    if(timedOut)throw new Error('연결 프로그램의 응답이 늦어요. 프로그램 상태를 확인한 뒤 다시 연결해 주세요.');
+    throw error;
+  }finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+}
+function bridgeSources(data){
+  if(!data || !Array.isArray(data.sources))throw new Error('연결 프로그램의 출력 목록을 읽을 수 없어요. 프로그램 버전을 확인해 주세요.');
+  return data.sources.slice(0,256).filter(s=>s&&typeof s.id==='string'&&s.id.length>0&&s.id.length<=1024)
+    .map(s=>({id:s.id,name:bridgeText(s.name)||'이름 없는 출력',application:bridgeText(s.application,100),
+      protocol:({syphon:'Syphon',spout:'Spout',demo:'Demo'})[String(s.protocol||'').toLowerCase()]||'영상'}));
+}
+async function refreshBridgeSources(){
+  const token=bridgeSettings.token.trim(),revision=++bridgeSettings.revision;
+  bridgeSettings.error='';bridgeSettings.message='';
+  if(!token){bridgeSettings.error='연결 프로그램에 표시된 연결 키를 먼저 붙여넣어 주세요.';renderProps();return;}
+  if(token.length>512 || /[\r\n]/.test(token)){bridgeSettings.error='연결 키를 한 줄로 다시 붙여넣어 주세요.';renderProps();return;}
+  bridgeSettings.loading=true;renderProps();
+  try{
+    const data=await bridgeFetch('/v1/sources',{token});
+    if(revision!==bridgeSettings.revision || token!==bridgeSettings.token.trim())return;
+    bridgeSettings.server=bridgeServerInfo(data);
+    bridgeSettings.sources=bridgeSources(data);
+    const warnings=Array.isArray(data.warnings)?data.warnings.map(w=>bridgeText(w,200)).filter(Boolean):[];
+    if(typeof data.warning==='string')warnings.push(bridgeText(data.warning,260));
+    bridgeSettings.message=warnings.join(' · ') || (bridgeSettings.sources.length?'받을 출력을 선택해 주세요.':'출력이 없어요. 매핑 프로그램에서 Syphon 또는 Spout 출력을 켠 뒤 새로고침하세요.');
+  }catch(error){if(revision===bridgeSettings.revision){bridgeSettings.sources=[];bridgeSettings.server=null;bridgeSettings.error=bridgeError(error);}}
+  finally{if(revision===bridgeSettings.revision){bridgeSettings.loading=false;renderProps();}}
+}
+function cancelPendingBridge(o){
+  const pending=o?._bridgePending;
+  if(!pending)return;
+  o._captureRequest=(o._captureRequest||0)+1;
+  pending.cancel();
+  if(o._bridgePending===pending)o._bridgePending=null;
+  bridgeView(o).loading=false;
+}
+function cancelAllPendingBridge(){for(const p of Array.from(bridgePendingRequests))cancelPendingBridge(p.object);}
+function sweepPendingBridge(){for(const p of Array.from(bridgePendingRequests))if(!p.isCurrent())cancelPendingBridge(p.object);}
+function bridgeDeleteSession(id,token,keepalive=false){
+  if(typeof id!=='string' || !id || id.length>128)return;
+  bridgeFetch('/v1/sessions/'+encodeURIComponent(id),{method:'DELETE',token,timeout:4000,keepalive}).catch(()=>{});
+}
+function closeBridgeMedia(c,keepalive=false){
+  if(!c?.bridgeClose)return;
+  const close=c.bridgeClose;c.bridgeClose=null;close(keepalive);
+  c.ready=false;c.ended=true;
+}
+function bridgeIceComplete(pc,signal){
+  if(pc.iceGatheringState==='complete')return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const cleanup=()=>{clearTimeout(timer);pc.removeEventListener('icegatheringstatechange',check);signal.removeEventListener('abort',abort);};
+    const check=()=>{if(pc.iceGatheringState==='complete'){cleanup();resolve();}};
+    const abort=()=>{cleanup();reject(new DOMException('cancelled','AbortError'));};
+    const timer=setTimeout(()=>{cleanup();reject(new Error('영상 연결 준비 시간이 초과됐어요. 네트워크 권한과 연결 프로그램을 확인해 주세요.'));},12000);
+    pc.addEventListener('icegatheringstatechange',check);signal.addEventListener('abort',abort,{once:true});
+    if(signal.aborted)abort();else check();
+  });
+}
+function bridgeFirstFrame(video,signal){
+  return new Promise((resolve,reject)=>{
+    let frameRequest=null;
+    const cleanup=()=>{clearTimeout(timer);video.removeEventListener('loadeddata',check);video.removeEventListener('resize',check);video.removeEventListener('error',failed);signal.removeEventListener('abort',abort);if(frameRequest!==null&&video.cancelVideoFrameCallback)video.cancelVideoFrameCallback(frameRequest);};
+    const done=()=>{cleanup();resolve();};
+    const check=()=>{if(video.readyState>=2&&video.videoWidth>0&&video.videoHeight>0)done();};
+    const failed=()=>{cleanup();reject(new Error('받은 영상을 재생하지 못했어요. 다른 출력이나 수신 크기로 다시 시도해 주세요.'));};
+    const abort=()=>{cleanup();reject(new DOMException('cancelled','AbortError'));};
+    const timer=setTimeout(()=>{cleanup();reject(new Error('영상 프레임이 도착하지 않았어요. 선택한 출력이 재생 중인지 확인해 주세요.'));},18000);
+    video.addEventListener('loadeddata',check);video.addEventListener('resize',check);video.addEventListener('error',failed);
+    signal.addEventListener('abort',abort,{once:true});
+    if(video.requestVideoFrameCallback)frameRequest=video.requestVideoFrameCallback(done);
+    if(signal.aborted)abort();else check();
+  });
+}
+function bridgeMetricsText(c){
+  const width=c.el?.videoWidth||0,height=c.el?.videoHeight||0;
+  const size=width&&height?'실제 수신 '+width+' × '+height:'실제 수신 크기 확인 중';
+  const fps=Number.isFinite(c.bridgeFps)?' · '+c.bridgeFps.toFixed(1)+' fps':' · 목표 '+c.bridgeRequestedFps+' fps';
+  return size+fps+(c.bridgeConnectionState==='disconnected'?' · 연결 복구 대기':'');
+}
+function updateBridgeMetricsUI(c){
+  if((selected?.content||selected?.ledSrc)!==c)return;
+  const label=document.querySelector('[data-bridge-reception]');if(label)label.textContent=bridgeMetricsText(c);
+}
+function drawOrientedContent(ctx,source,sx,sy,sw,sh,dx,dy,dw,dh,orientation){
+  if(!orientation?.flipX&&!orientation?.flipY){ctx.drawImage(source,sx,sy,sw,sh,dx,dy,dw,dh);return;}
+  // Reflect only the chosen crop inside its destination. Scene geometry and
+  // source crop coordinates remain unchanged; atlas/texture UVs stay untouched.
+  ctx.save();
+  try{
+    ctx.translate(dx+dw/2,dy+dh/2);ctx.scale(orientation.flipX?-1:1,orientation.flipY?-1:1);
+    ctx.drawImage(source,sx,sy,sw,sh,-dw/2,-dh/2,dw,dh);
+  }finally{ctx.restore();}
+}
+function setBridgeOrientation(o,isLED,flipX,flipY){
+  const c=isLED?o.ledSrc:o.content;
+  if(!objects.includes(o)||!c?.bridge||c.disposed)return;
+  const nextX=!!flipX,nextY=!!flipY;
+  if(!!c.flipX===nextX&&!!c.flipY===nextY)return;
+  flushHistory();c.flipX=nextX;c.flipY=nextY;c.ver=++contentVer;c.frameReady=true;
+  if(isLED)o.mesh?.material?.map?.userData?.redraw?.();
+  commitHistory();renderProps();
+}
+async function changeBridgeSize(o,isLED,value){
+  const chosen=bridgeAvailableSizes().find(([w,h])=>w+'x'+h===value);if(!chosen||!objects.includes(o))return;
+  const view=bridgeView(o);if(view.width===chosen[0]&&view.height===chosen[1])return;
+  [view.width,view.height]=chosen;view.error='';
+  const pending=o._bridgePending,c=isLED?o.ledSrc:o.content;
+  if(pending)return startBridgeInput(o,isLED,pending.source,pending.preferredCrop,pending.preferredOrientation);
+  if(c?.bridge&&!c.ended)return startBridgeInput(o,isLED,c.bridgeSource,c.crop,c);
+  renderProps();
+}
+async function startBridgeInput(o,isLED,source,preferredCrop,preferredOrientation){
+  if(!objects.includes(o))return;
+  const view=bridgeView(o);view.open=true;view.error='';
+  if(!window.isSecureContext || typeof RTCPeerConnection==='undefined'){
+    view.error='이 브라우저에서 실시간 영상 연결을 사용할 수 없어요. HTTPS 사이트나 연결 프로그램의 로컬 미리보기를 Chrome 또는 Edge에서 열어주세요.';renderProps();return;
+  }
+  const token=bridgeSettings.token.trim();
+  if(!token){view.error='연결 프로그램의 현재 연결 키를 붙여넣어 주세요.';renderProps();return;}
+  if(!source || typeof source.id!=='string'){view.error='출력 목록에서 연결할 영상을 먼저 선택해 주세요.';renderProps();return;}
+  cancelPendingBridge(o);
+  const request=(o._captureRequest||0)+1;o._captureRequest=request;
+  const old=isLED?o.ledSrc:o.content;
+  const retained=bridgeSameSource(old,source)?old:null;
+  const cropToKeep=preferredCrop||retained?.crop,orientationToKeep=preferredOrientation||retained;
+  const requestedWidth=view.width,requestedHeight=view.height;
+  const controller=new AbortController();let pc;
+  try{pc=new RTCPeerConnection({iceServers:[]});}
+  catch(error){view.error=bridgeError(error);renderProps();return;}
+  const video=document.createElement('video');video.muted=true;video.playsInline=true;video.autoplay=true;
+  let sessionId='',stream=null,closed=false,adopted=false,statsTimer=null,disconnectTimer=null,content=null,pendingFailure='';
+  const close=(keepalive=false)=>{
+    if(closed)return;closed=true;clearInterval(statsTimer);clearTimeout(disconnectTimer);
+    controller.abort();pc.ontrack=null;pc.onconnectionstatechange=null;pc.close();
+    stream?.getTracks().forEach(t=>t.stop());video.pause();video.srcObject=null;
+    if(content){content.ready=false;content.ended=true;}
+    if(sessionId)bridgeDeleteSession(sessionId,token,keepalive);
+    bridgeConnections.delete(close);
+  };
+  const pending={object:o,source,preferredCrop:cropToKeep,preferredOrientation:orientationToKeep,
+    isCurrent:()=>!controller.signal.aborted&&objects.includes(o)&&o._captureRequest===request&&(isLED?o.ledSrc:o.content)===old,
+    cancel:()=>{close();bridgePendingRequests.delete(pending);}};
+  o._bridgePending=pending;bridgePendingRequests.add(pending);bridgeConnections.add(close);
+  view.loading=true;view.sourceId=source.id;renderProps();
+  const failActive=message=>{
+    if(closed)return;
+    if(!adopted){pendingFailure=message;controller.abort();return;}
+    closeBridgeMedia(content);content.bridgeError=message;
+    if(objects.includes(o)&&(isLED?o.ledSrc:o.content)===content){view.error=message;renderProps();}
+  };
+  pc.ontrack=event=>{
+    if(closed)return;
+    if(event.track.kind!=='video'){event.track.stop();return;}
+    stream=event.streams[0]||new MediaStream([event.track]);video.srcObject=stream;
+    video.play().catch(()=>{});
+    event.track.addEventListener('ended',()=>failActive('영상 출력이 종료됐어요. 출력 상태를 확인한 뒤 재연결해 주세요.'),{once:true});
+  };
+  pc.onconnectionstatechange=()=>{
+    if(closed)return;
+    if(content)content.bridgeConnectionState=pc.connectionState;
+    if(pc.connectionState==='connected'){clearTimeout(disconnectTimer);disconnectTimer=null;}
+    if(pc.connectionState==='failed'||pc.connectionState==='closed')failActive('영상 연결이 끊어졌어요. 연결 프로그램을 확인한 뒤 재연결해 주세요.');
+    else if(pc.connectionState==='disconnected'&&!disconnectTimer)disconnectTimer=setTimeout(()=>failActive('영상 연결이 끊어졌어요. 연결 프로그램을 확인한 뒤 재연결해 주세요.'),8000);
+  };
+  try{
+    const catalog=await bridgeFetch('/v1/sources',{token,signal:controller.signal});
+    if(!pending.isCurrent())throw new DOMException('cancelled','AbortError');
+    const server=bridgeServerInfo(catalog);bridgeSettings.server=server;
+    if(!server.sizes.some(([w,h])=>w===requestedWidth&&h===requestedHeight))
+      throw new Error('연결 프로그램 '+server.version+'에서는 '+requestedWidth+' × '+requestedHeight+'를 지원하지 않아요. 지원되는 수신 크기를 선택해 주세요.');
+    const autoFlipY=bridgeIsMadMapperSyphon(source)&&!server.nativeOrientationCorrection;
+    pc.addTransceiver('video',{direction:'recvonly'});
+    await pc.setLocalDescription(await pc.createOffer());await bridgeIceComplete(pc,controller.signal);
+    if(!pending.isCurrent())throw new DOMException('cancelled','AbortError');
+    const fps=stage.capFps===60?60:30;
+    const answer=await bridgeFetch('/v1/sessions',{method:'POST',token,signal:controller.signal,
+      body:{sourceId:source.id,sdp:pc.localDescription.sdp,type:'offer',maxWidth:requestedWidth,maxHeight:requestedHeight,fps}});
+    if(typeof answer?.id==='string'&&answer.id.length<=128)sessionId=answer.id;
+    if(!sessionId||answer.type!=='answer'||typeof answer.sdp!=='string')throw new Error('연결 프로그램이 올바른 영상 응답을 보내지 않았어요.');
+    if(!pending.isCurrent()){bridgeDeleteSession(sessionId,token);throw new DOMException('cancelled','AbortError');}
+    await pc.setRemoteDescription({type:'answer',sdp:answer.sdp});
+    await bridgeFirstFrame(video,controller.signal);
+    if(!pending.isCurrent())throw new DOMException('cancelled','AbortError');
+    flushHistory();
+    content={type:'video',el:video,name:source.protocol+' · '+source.name,ready:true,live:true,stream,ver:++contentVer,
+      crop:cropToKeep?{...cropToKeep}:{x:0,y:0,w:1,h:1},flipX:!!orientationToKeep?.flipX,flipY:orientationToKeep?!!orientationToKeep.flipY:autoFlipY,
+      bridge:true,bridgeSource:{...source},bridgeRequestedWidth:requestedWidth,bridgeRequestedHeight:requestedHeight,
+      bridgeRequestedFps:fps,bridgeConnectionState:pc.connectionState,bridgeClose:close};
+    retainedMedia.add(content);attachFrameSync(content);
+    bridgePendingRequests.delete(pending);if(o._bridgePending===pending)o._bridgePending=null;
+    adopted=true;
+    if(isLED){stopMedia(o.ledSrc);o.ledSrc=content;rebuildLED(o);}else{stopMedia(o.content);o.content=content;}
+    view.loading=false;view.error='';commitHistory();renderProps();
+    let lastFrames=null,lastTime=null,polling=false;
+    statsTimer=setInterval(async()=>{
+      if(closed||polling)return;polling=true;
+      try{
+        const stats=await pc.getStats();
+        stats.forEach(report=>{
+          if(report.type!=='inbound-rtp'||(report.kind||report.mediaType)!=='video')return;
+          if(Number.isFinite(report.framesPerSecond))content.bridgeFps=report.framesPerSecond;
+          else if(Number.isFinite(report.framesDecoded)){
+            if(lastTime!==null&&report.timestamp>lastTime)content.bridgeFps=Math.max(0,(report.framesDecoded-lastFrames)*1000/(report.timestamp-lastTime));
+            lastTime=report.timestamp;lastFrames=report.framesDecoded;
+          }
+        });
+        if(!closed)updateBridgeMetricsUI(content);
+      }catch(_){}finally{polling=false;}
+    },1000);
+  }catch(error){
+    if(!adopted)close();
+    if(objects.includes(o)&&o._captureRequest===request){
+      view.loading=false;if(pendingFailure)view.error=pendingFailure;else if(error.name!=='AbortError')view.error=bridgeError(error);
+      if(view.error&&old?.bridge&&old.ready&&!old.ended)view.error+=' 기존 영상 연결은 유지합니다.';
+      renderProps();
+    }
+  }finally{
+    bridgePendingRequests.delete(pending);
+    if(o._bridgePending===pending)o._bridgePending=null;
+  }
+}
+function appendBridgeControls(cs,o,isLED,c){
+  const view=bridgeView(o);
+  const shell=document.createElement('div');shell.className='bridge-input';
+  const toggle=document.createElement('button');toggle.className='tbtn bridge-toggle';toggle.type='button';
+  toggle.textContent='전용 연결 프로그램 · Syphon / Spout';toggle.setAttribute('aria-expanded',String(view.open));
+  toggle.onclick=()=>{view.open=!view.open;renderProps();};shell.appendChild(toggle);
+  if(!view.open){cs.appendChild(shell);return;}
+  const body=document.createElement('div');body.className='bridge-body';
+  const intro=document.createElement('p');intro.textContent='같은 컴퓨터에서 연결 프로그램을 실행하고 연결 키를 붙여넣으세요. Mac은 Syphon, Windows는 Spout 출력을 받습니다. 처음 연결할 때 브라우저에서 로컬 네트워크 접근을 물으면 허용해 주세요.';body.appendChild(intro);
+  const open=document.createElement('a');open.href=BRIDGE_ORIGIN;open.target='_blank';open.rel='noopener noreferrer';open.textContent='연결 프로그램 상태 열기';body.appendChild(open);
+  const label=document.createElement('label');label.textContent='연결 키';
+  const key=document.createElement('input');key.type='password';key.autocomplete='off';key.spellcheck=false;key.maxLength=512;
+  key.value=bridgeSettings.token;key.setAttribute('aria-label','전용 연결 키');key.placeholder='연결 프로그램에서 복사';
+  key.oninput=()=>{
+    cancelAllPendingBridge();
+    bridgeSettings.token=key.value;bridgeSettings.sources=[];bridgeSettings.server=null;bridgeSettings.error='';bridgeSettings.message='';bridgeSettings.revision++;bridgeSettings.loading=false;
+    view.error='';select.replaceChildren(empty);select.disabled=true;action.disabled=true;action.textContent='선택한 출력 연결';
+    refresh.disabled=false;refresh.textContent='출력 목록 새로고침';message.classList.remove('error');message.textContent='연결 키를 입력한 뒤 출력 목록을 새로고침하세요.';
+  };
+  label.appendChild(key);body.appendChild(label);
+  const refresh=document.createElement('button');refresh.type='button';refresh.className='tbtn';refresh.textContent=bridgeSettings.loading?'출력 확인 중…':'출력 목록 새로고침';refresh.disabled=bridgeSettings.loading;
+  refresh.onclick=refreshBridgeSources;body.appendChild(refresh);
+  if(bridgeSettings.server){const version=document.createElement('p');version.className='bridge-note';version.textContent='연결 프로그램 '+bridgeSettings.server.version+' · 수신 상한 '+bridgeSettings.server.maxWidth+' × '+bridgeSettings.server.maxHeight;body.appendChild(version);}
+  const sourceLabel=document.createElement('label');sourceLabel.textContent='받을 출력';
+  const select=document.createElement('select');select.setAttribute('aria-label','브리지 영상 출력');
+  const empty=document.createElement('option');empty.value='';empty.textContent='출력을 선택하세요';select.appendChild(empty);
+  bridgeSettings.sources.forEach(source=>{const option=document.createElement('option');option.value=source.id;
+    option.textContent='['+source.protocol+'] '+(source.application?source.application+' · ':'')+source.name;select.appendChild(option);});
+  select.value=view.sourceId;select.disabled=bridgeSettings.loading||!bridgeSettings.sources.length;
+  select.onchange=()=>{view.sourceId=select.value;view.error='';renderProps();};sourceLabel.appendChild(select);body.appendChild(sourceLabel);
+  const sizeLabel=document.createElement('label');sizeLabel.textContent='요청 수신 크기 · 연결 중 변경하면 바로 적용';
+  const size=document.createElement('select');size.setAttribute('aria-label','브리지 수신 크기');
+  const sizes=bridgeAvailableSizes();
+  if(!sizes.some(([w,h])=>w===view.width&&h===view.height))[view.width,view.height]=sizes[sizes.length-1];
+  sizes.forEach(([w,h])=>{const option=document.createElement('option');option.value=w+'x'+h;option.textContent=w+' × '+h+(h===1200?' · 기본 · 16:10':w===1280?' · 저부하':' · 16:9');size.appendChild(option);});
+  size.value=view.width+'x'+view.height;
+  size.onchange=()=>changeBridgeSize(o,isLED,size.value);
+  sizeLabel.appendChild(size);body.appendChild(sizeLabel);
+  const action=document.createElement('button');action.type='button';action.className='tbtn primary';
+  action.textContent=view.loading?'연결 취소':'선택한 출력 연결';
+  action.disabled=!view.loading&&(!bridgeSettings.sources.some(s=>s.id===view.sourceId)||!bridgeSettings.token.trim());
+  action.onclick=()=>{
+    if(view.loading){cancelPendingBridge(o);renderProps();return;}
+    const source=bridgeSettings.sources.find(s=>s.id===view.sourceId);
+    const previous=bridgeSameSource(c,source)?c:null;
+    startBridgeInput(o,isLED,source,previous?.crop,previous);
+  };body.appendChild(action);
+  if(c?.bridge){
+    const current=document.createElement('p');current.className='bridge-current';current.textContent=(c.ended?'이전 출력: ':'연결된 출력: ')+c.name;body.appendChild(current);
+    if(c.bridgeRequestedWidth&&c.bridgeRequestedHeight){const requested=document.createElement('p');requested.className='bridge-note';requested.textContent='현재 연결 요청 상한 '+c.bridgeRequestedWidth+' × '+c.bridgeRequestedHeight+' · '+c.bridgeRequestedFps+' fps';body.appendChild(requested);}
+    if(!c.ended){const reception=document.createElement('p');reception.dataset.bridgeReception='';reception.className='bridge-reception';reception.textContent=bridgeMetricsText(c);body.appendChild(reception);}
+    const orientation=document.createElement('div');orientation.className='bridge-orientation';orientation.setAttribute('role','group');orientation.setAttribute('aria-label','연결 영상 방향');
+    const flipY=document.createElement('button');flipY.type='button';flipY.className='tbtn'+(c.flipY?' toggled':'');flipY.setAttribute('aria-pressed',String(!!c.flipY));
+    flipY.textContent='상하 반전 · '+(c.flipY?'켜짐':'꺼짐');flipY.onclick=()=>setBridgeOrientation(o,isLED,c.flipX,!c.flipY);
+    const flipX=document.createElement('button');flipX.type='button';flipX.className='tbtn'+(c.flipX?' toggled':'');flipX.setAttribute('aria-pressed',String(!!c.flipX));
+    flipX.textContent='좌우 반전 · '+(c.flipX?'켜짐':'꺼짐');flipX.onclick=()=>setBridgeOrientation(o,isLED,!c.flipX,c.flipY);
+    const reset=document.createElement('button');reset.type='button';reset.className='tbtn';reset.textContent='방향 초기화';reset.disabled=!c.flipX&&!c.flipY;reset.onclick=()=>setBridgeOrientation(o,isLED,false,false);
+    orientation.append(flipY,flipX,reset);body.appendChild(orientation);
+    const orientationNote=document.createElement('p');orientationNote.className='bridge-note';orientationNote.textContent=(bridgeIsMadMapperSyphon(c.bridgeSource)?'MadMapper Syphon은 처음 연결할 때 상하 반전을 적용합니다. 상하 반전 버튼으로 해제할 수 있고 재연결에도 선택을 유지합니다. ':'')+'이 기기에 연결된 영상만 반전하며 크롭 영역과 프로젝터 위치는 유지됩니다.';body.appendChild(orientationNote);
+  }
+  const message=document.createElement('p');message.className='bridge-message';message.setAttribute('role','status');
+  const error=view.error||bridgeSettings.error;
+  message.textContent=error||(view.loading?view.width+' × '+view.height+' 영상을 확인하고 있어요. 첫 프레임이 도착하면 기존 입력을 교체합니다.':bridgeSettings.message);
+  if(error)message.classList.add('error');body.appendChild(message);
+  const note=document.createElement('p');note.className='bridge-note';
+  note.textContent='한 영상을 여러 기기에 연결해도 크롭과 방향은 각각 조절됩니다. 연결 중 크기를 바꾸면 영상을 유지하며 재연결합니다. 실제 수신 크기는 원본 비율과 원본 해상도에 따라 요청 상한보다 작을 수 있습니다. 목표 '+(stage.capFps===60?60:30)+' fps · 연결 키와 영상 연결은 장면 저장에 포함되지 않습니다.';
+  body.appendChild(note);shell.appendChild(body);cs.appendChild(shell);
+}
+window.addEventListener('pagehide',()=>{cancelAllPendingBridge();for(const close of Array.from(bridgeConnections))close(true);});
+
 function stopMedia(c){
   if(!c)return;
   retainedMedia.add(c);
+  closeBridgeMedia(c);
   if(c.type==='video' && c.el){if(!c.el.paused)c._resumeWhenActive=true;c.el.pause();}
   if(c.live){if(c.stream)c.stream.getTracks().forEach(t=>t.stop());c.ready=false;c.ended=true;}
   queueMicrotask(()=>{commitHistory();collectHistoryResources();});
 }
 /* ---------- 라이브 캡처: MadMapper/Resolume/Millumin 출력창을 가상 빔의 소스로 ---------- */
 async function startLiveCapture(o, isLED){
+  cancelPendingBridge(o);
   const captureRequest=(o._captureRequest||0)+1;o._captureRequest=captureRequest;
   if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
     toast('이 환경에서는 화면 캡처가 지원되지 않아요. GitHub Pages 링크를 Chrome/Edge에서 열어주세요.');
@@ -6843,21 +7257,26 @@ async function startLiveCapture(o, isLED){
   renderProps();commitHistory();
 }
 function setProjContent(o,file){
+  cancelPendingBridge(o);
   flushHistory();const next=loadMedia(file,()=>renderProps());if(!next)return;
   o._captureRequest=(o._captureRequest||0)+1;stopMedia(o.content);o.content=next;commitHistory();
 }
 function clearProjContent(o){
+  cancelPendingBridge(o);
   flushHistory();o._captureRequest=(o._captureRequest||0)+1;stopMedia(o.content);o.content=null;commitHistory();
 }
 function setLEDContent(o,file){
+  cancelPendingBridge(o);
   flushHistory();const next=loadMedia(file,()=>{rebuildLED(o);renderProps();});if(!next)return;
   o._captureRequest=(o._captureRequest||0)+1;stopMedia(o.ledSrc);o.ledSrc=next;commitHistory();
 }
 function clearLEDContent(o){
+  cancelPendingBridge(o);
   flushHistory();o._captureRequest=(o._captureRequest||0)+1;stopMedia(o.ledSrc);o.ledSrc=null;commitHistory();
 }
 
 function removeObj(o){
+  cancelPendingBridge(o);
   flushHistory();
   retainedObjects.add(o);
   if(o.content) retainedMedia.add(o.content);
@@ -6939,10 +7358,10 @@ function pushUniforms(){
         const wantDraw = c.hasRVFC ? c.frameReady
                                    : (!c.live || frame % 2 === 0);
         if(fresh || (!c.el.paused && wantDraw)){
-          if(drawContentTile(i, c.el, ar, c.crop)){ tileOwner[i] = key; c.frameReady = false; }
+          if(drawContentTile(i, c.el, ar, c.crop, c)){ tileOwner[i] = key; c.frameReady = false; }
         }
       } else if(tileOwner[i] !== key){
-        if(drawContentTile(i, c.el, ar, c.crop)) tileOwner[i] = key;
+        if(drawContentTile(i, c.el, ar, c.crop, c)) tileOwner[i] = key;
       }
       shared.uHasC.value[i] = tileOwner[i] === key ? 1 : 0;
     } else {
@@ -7045,6 +7464,7 @@ function renderLib(){
     listRoot=libItems.querySelector('#projectorResults');listRoot.replaceChildren();
   }else{
     projectorSearchComposing=false;libItems.replaceChildren();
+    if(libTab==='surf')libItems.appendChild(createHumanForm());
   }
   let list=libTab==='proj'?PROJ_LIB:libTab==='surf'?SURF_LIB:LED_LIB;
   const searching=libTab==='proj'&&!!projFilter.trim();
@@ -7206,6 +7626,7 @@ function contentSection(o, getC, setFn, clearFn, note, isLED){
   row.appendChild(up); row.appendChild(fin); row.appendChild(lv);
   cs.appendChild(row);
   const c = getC();
+  appendBridgeControls(cs,o,!!isLED,c);
   if(c){
     const info = document.createElement('div');
     info.style.cssText='font-family:var(--mono);font-size:10px;color:var(--txt2);margin:4px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
@@ -7215,7 +7636,7 @@ function contentSection(o, getC, setFn, clearFn, note, isLED){
     st.style.cssText='font-size:10px;margin:2px 0 4px;color:' +
       (c.ended ? 'var(--warn)' : (c.ready ? 'var(--ok)' : 'var(--beam)'));
     st.textContent = c.ended ? '⚠ 연결 끊김 — 아래에서 재연결하세요'
-                   : c.ready ? (c.live ? '● 라이브 캡처 중 — 매핑 프로그램에서 수정하면 실시간 반영'
+                   : c.ready ? (c.live ? (c.bridge?'● 전용 프로그램 영상 수신 중':'● 라이브 캡처 중 — 매핑 프로그램에서 수정하면 실시간 반영')
                                        : '✓ 적용됨 — 테스트 그리드 모드에서 확인')
                    : '⏳ 로딩 중…';
     cs.appendChild(st);
@@ -7223,7 +7644,7 @@ function contentSection(o, getC, setFn, clearFn, note, isLED){
     if(c.ended){
       const rc = document.createElement('button'); rc.className='tbtn'; rc.style.flex='1';
       rc.textContent = '🔴 재연결';
-      rc.onclick = ()=>startLiveCapture(o, !!isLED);
+      rc.onclick = ()=>c.bridge?startBridgeInput(o,!!isLED,c.bridgeSource,c.crop,c):startLiveCapture(o, !!isLED);
       btns.appendChild(rc);
     }
     if(c.type==='video' && c.ready && !c.live){
@@ -7233,7 +7654,7 @@ function contentSection(o, getC, setFn, clearFn, note, isLED){
       btns.appendChild(pb);
     }
     const rm = document.createElement('button'); rm.className='tbtn'; rm.style.flex='1';
-    rm.textContent = '초기화';
+    rm.textContent = c.bridge?'연결 해제':'초기화';
     rm.onclick = ()=>{ clearFn(); renderProps(); };
     btns.appendChild(rm);
     cs.appendChild(btns);
@@ -7479,9 +7900,10 @@ function renderProps(){
       s.appendChild(numRow('높이 H', p.h, 0.5, v=>{p.h=v; rebuild(o);}, 0.5, 30, ...MM));
       if(p.kind==='box') s.appendChild(numRow('깊이 D', p.d, 0.5, v=>{p.d=v; rebuild(o);}, 0.5, 30, ...MM));
     } else if(p.kind==='man'||p.kind==='woman'){
+      s.appendChild(numRow('사람 키', personHeight(p), 0.001, v=>{p.humanHeight=v;rebuild(o);}, 0.3, 3, 'cm', 100));
       const info = document.createElement('div');
       info.style.cssText='font-size:10.5px;color:var(--txt2);line-height:1.6';
-      info.textContent = (p.kind==='man'?'키 175cm':'키 160cm') + ' 고정 스케일 피규어 — 투사 크기 감 잡는 기준용이에요.';
+      info.textContent = '발 위치를 기준으로 몸 전체 비율이 함께 바뀝니다. 입력한 키는 장면 저장과 실행 취소에 포함돼요.';
       s.appendChild(info);
     } else {
       s.appendChild(numRow('반지름', p.radius, 0.5, v=>{p.radius=v; rebuild(o);}, 0.5, 20, ...MM));
@@ -8611,6 +9033,7 @@ function normalizeSceneData(data){
       if(type==='surf'){
         q.kind=sceneEnum(p.kind,null,SURF_LIB.map(s=>s.kind),'표면 종류');
         if(!q.kind) throw new Error('표면 종류가 없어요.');
+        if(q.kind==='man'||q.kind==='woman')q.humanHeight=sceneNumber(p.humanHeight,q.kind==='woman'?1.6:1.75,0.3,3,'사람 키');
         q.gain=sceneNumber(p.gain,1,0.3,2.5,'스크린 게인');
         q.pmode=sceneEnum(p.pmode,['wall','curve'].includes(q.kind)?'rear':'front',['front','rear'],'투사 방식');
         if(q.kind==='model'){
@@ -8656,7 +9079,7 @@ function mediaState(c){
   if(!c) return null;
   if(!mediaIds.has(c)) mediaIds.set(c,nextMediaId++);
   retainedMedia.add(c);
-  return {ref:c,id:mediaIds.get(c),crop:c.crop?{...c.crop}:null};
+  return {ref:c,id:mediaIds.get(c),crop:c.crop?{...c.crop}:null,flipX:!!c.flipX,flipY:!!c.flipY};
 }
 function captureHistoryState(){
   return {stage:{...stage},targetLux:shared.uTargetLux.value,views:views.map(v=>({...v,tgt:[...v.tgt]})),selected,measurements:snapshotMeasurements(),
@@ -8666,7 +9089,7 @@ function captureHistoryState(){
 function historyKey(s){
   return JSON.stringify({stage:s.stage,targetLux:s.targetLux,views:s.views,measurements:s.measurements,objects:s.objects.map(x=>({id:x.id,name:x.name,
     params:{...x.params,objText:undefined},visible:x.visible,color:x.color,
-    content:x.content?{id:x.content.id,crop:x.content.crop}:null,ledSrc:x.ledSrc?{id:x.ledSrc.id,crop:x.ledSrc.crop}:null}))});
+    content:x.content?{id:x.content.id,crop:x.content.crop,flipX:x.content.flipX,flipY:x.content.flipY}:null,ledSrc:x.ledSrc?{id:x.ledSrc.id,crop:x.ledSrc.crop,flipX:x.ledSrc.flipX,flipY:x.ledSrc.flipY}:null}))});
 }
 function updateHistoryButtons(){
   const u=document.getElementById('btnUndo'),r=document.getElementById('btnRedo');
@@ -8686,6 +9109,7 @@ function releaseSceneObject(o){
 function destroyMedia(c){
   if(!c || c.disposed) return;
   c.disposed=true;
+  closeBridgeMedia(c);
   if(c.reader && c.reader.readyState===1) c.reader.abort();
   if(c.stream) c.stream.getTracks().forEach(t=>t.stop());
   if(c.el){c.el.onload=null;c.el.onloadeddata=null;c.el.onerror=null;
@@ -8694,6 +9118,7 @@ function destroyMedia(c){
 }
 function activeMediaSet(){return new Set(objects.flatMap(o=>[o.content,o.ledSrc]).filter(Boolean));}
 function reconcileMedia(){
+  sweepPendingBridge();
   const active=activeMediaSet();
   retainedMedia.forEach(c=>{
     if(active.has(c)){
@@ -8701,7 +9126,7 @@ function reconcileMedia(){
     }else if(c.type==='video' && c.el){
       if(!c.el.paused) c._resumeWhenActive=true;
       c.el.pause();
-      if(c.live && !c.ended){c.stream.getTracks().forEach(t=>t.stop());c.ended=true;c.ready=false;}
+      if(c.live && !c.ended){closeBridgeMedia(c);c.stream?.getTracks().forEach(t=>t.stop());c.ended=true;c.ready=false;}
     }
   });
 }
@@ -8738,6 +9163,7 @@ function scheduleHistory(){
 }
 function flushHistory(){if(historyReady && !historyApplying){clearTimeout(historyTimer);historyTimer=null;commitHistory();}}
 function restoreHistoryState(s){
+  cancelAllPendingBridge();
   historyApplying=true;
   try{
     const wanted=new Set(s.objects.map(x=>x.ref));objects.forEach(o=>{if(!wanted.has(o))scene.remove(o.mesh);});
@@ -8745,7 +9171,7 @@ function restoreHistoryState(s){
     objects=s.objects.map(x=>{
       const o=x.ref;o.name=x.name;o.params={...x.params};o.visible=x.visible;o.color=x.color;o.mesh.visible=x.visible;
       o.content=x.content?x.content.ref:null;o.ledSrc=x.ledSrc?x.ledSrc.ref:null;
-      for(const state of [x.content,x.ledSrc])if(state){state.ref.crop=state.crop?{...state.crop}:undefined;state.ref.ver=++contentVer;}
+      for(const state of [x.content,x.ledSrc])if(state){state.ref.crop=state.crop?{...state.crop}:undefined;state.ref.flipX=!!state.flipX;state.ref.flipY=!!state.flipY;state.ref.ver=++contentVer;state.ref.frameReady=true;}
       scene.add(o.mesh);
       if(o.type==='proj'){o.frust.material.color.setHex(o.color);sync(o);}else if(o.type==='led')rebuildLED(o);else rebuild(o);
       return o;
@@ -8761,6 +9187,7 @@ function undoScene(){flushHistory();if(historyIndex>0){historyIndex--;restoreHis
 function redoScene(){flushHistory();if(historyIndex<historyEntries.length-1){historyIndex++;restoreHistoryState(historyEntries[historyIndex]);}}
 function applySceneData(raw){
   const data=normalizeSceneData(raw); // Validate the complete file before any scene mutation.
+  cancelAllPendingBridge();
   flushHistory();
   const old={objects,stage:{...stage},views,targetLux:shared.uTargetLux.value,selected,seq,measurements:snapshotMeasurements()};
   historyApplying=true;objects=[];
@@ -8815,8 +9242,8 @@ function initializeState(){
   document.addEventListener('pointerdown',e=>{if(e.target.matches('input[type="range"]')){flushHistory();historyPointer=true;}},true);
   const finishPointer=()=>{if(historyPointer){historyPointer=false;queueMicrotask(()=>{commitHistory();scheduleAutosave();});}};
   window.addEventListener('pointerup',finishPointer,true);window.addEventListener('pointercancel',finishPointer,true);
-  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel'))return;scheduleHistory();scheduleAutosave();});
-  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
+  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input'))return;scheduleHistory();scheduleAutosave();});
+  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
   document.addEventListener('focusout',()=>queueMicrotask(commitHistory));
   document.addEventListener('click',e=>{
     if(e.target.closest('#btnUndo,#btnRedo,#btnSave,#mJson,#btnLoad,#fileIn,#mPng,#mTop,#mClose,#btnPublish,#viewModes,#btnMeasure,#btnBlend'))return;
@@ -8908,7 +9335,7 @@ function exportTopViewInner(){
     if(o.type==='led'){ rotRect(p.x,p.z,p.w,0.12,p.ry,'#5AD1DE'); }
     else if(p.kind==='wall'){ rotRect(p.x,p.z,p.w,0.12,p.ry,'#B9C2D0'); }
     else if(p.kind==='cyl'||p.kind==='man'||p.kind==='woman'){
-      const r=(p.kind==='cyl'?p.radius:0.25)*sc;
+      const r=(p.kind==='cyl'?p.radius:0.25*personHeight(p)/(p.kind==='woman'?1.6:1.75))*sc;
       x.beginPath(); x.arc(px(p.x),pz(p.z),Math.max(r,4),0,Math.PI*2);
       x.strokeStyle='#B9C2D0'; x.lineWidth=2; x.stroke();
     }
@@ -9108,6 +9535,17 @@ loop();
   const retry=document.createElement('button');retry.className='tbtn';retry.textContent='다시 시도';retry.onclick=()=>location.reload();
   box.append(title,msg,retry);vp.appendChild(box);
 }
+
+// Identify the HTML actually opened; the local copy and GitHub do not auto-sync.
+(()=>{
+  const host=location.hostname,local=host==='127.0.0.1'||host==='localhost';
+  const label=local?'앱 동봉 · 로컬':host==='dot0313-design.github.io'?'GitHub 사이트':location.protocol==='file:'?'로컬 HTML 파일':'웹 시뮬레이터';
+  const revision=document.querySelector('#catalogRevision')?.textContent?.match(/\d{4}-\d{2}-\d{2}\.\d+/)?.[0];
+  const badge=document.createElement('small');badge.id='siteLocation';badge.textContent=label+(revision?' · '+revision:'');
+  badge.title=local?'이 컴퓨터에서 여는 시뮬레이터입니다. GitHub 사이트와 자동 동기화되지 않습니다.':host==='dot0313-design.github.io'?'GitHub에 배포한 HTML입니다. 영상 입력은 같은 컴퓨터의 Projector Bridge에서 받습니다.':'현재 주소에서 불러온 시뮬레이터입니다.';
+  document.querySelector('#logo .brandtext')?.appendChild(badge);
+})();
+
 </script>
 </body>
 </html>
