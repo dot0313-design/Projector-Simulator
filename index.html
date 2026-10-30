@@ -6083,7 +6083,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-30.3';
+const SPEC_REVISION = '2026-10-30.5';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6544,26 +6544,178 @@ function stageLightStatus(o){
   if(!activeStageLights().includes(o))return {active:false,reason:'동시 조명 '+MAX_STAGE_LIGHTS+'대 초과'};
   return {active:true,reason:'조명 켜짐'};
 }
+/* Detailed visual housings for the existing generic lights. No photometry or
+ * control changes. The root emission origin and -Z direction stay unchanged.
+ * Parts are merged by material; the front lens remains separately tintable.
+ */
+function buildGenericStageLightFixture(p){
+  const kind=p.fixture||'fresnel';
+  const group=new THREE.Group();group.name='generic-fixture-'+kind;
+  group.userData.fixtureDetail={family:kind,visualOnly:true};
+  const includeClamp=true;
+  const metal=new THREE.MeshStandardMaterial({color:0x252a2e,roughness:.52,metalness:.7});
+  const trim=new THREE.MeshStandardMaterial({color:0x59636a,roughness:.34,metalness:.85,side:THREE.DoubleSide});
+  const black=new THREE.MeshStandardMaterial({color:0x101416,roughness:.92,metalness:.1});
+  const glassLines=new THREE.MeshStandardMaterial({color:0xacc1c7,roughness:.18,metalness:.25});
+  const buckets=new Map([[metal,[]],[trim,[]],[black,[]],[glassLines,[]]]);
+  // Build details in local coordinates, then match the previous housing radius
+  // and body length. Beam guides stay outside this visual geometry transform.
+  const bodyR=kind==='ers'?.105:kind==='par'?.135:.145;
+  const bodyD=kind==='ers'?.59:kind==='par'?.33:.36;
+  const lensR=kind==='ers'?.082:kind==='par'?.11:.105;
+  function add(geometry,material=metal,x=0,y=0,z=0,rx=0,ry=0,rz=0){
+    const transform=new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,rz)),new THREE.Vector3(1,1,1));
+    geometry.applyMatrix4(transform);buckets.get(material).push(geometry);return geometry;
+  }
+  function box(w,h,d,material,x=0,y=0,z=0,rz=0){return add(new THREE.BoxGeometry(w,h,d),material,x,y,z,0,0,rz);}
+  function barrel(rFront,rBack,length,z,material=metal,segments=24){
+    // Cylinder top is +Y; +PI/2 maps its top to +Z (the rear of the fixture).
+    return add(new THREE.CylinderGeometry(rBack,rFront,length,segments),material,0,0,z,Math.PI/2);
+  }
+  function ring(radius,tube,z,material=metal){return add(new THREE.TorusGeometry(radius,tube,4,32),material,0,0,z);}
+  function knob(x,y,z,r=.022){
+    add(new THREE.CylinderGeometry(r,r,.018,12),black,x,y,z,0,0,Math.PI/2);
+    add(new THREE.CylinderGeometry(r*.4,r*.4,.023,8),trim,x,y,z,0,0,Math.PI/2);
+  }
+  if(kind==='fresnel'){
+    box(bodyR*2,bodyR*1.78,bodyD*.84,metal,0,0,bodyD*.55);
+    barrel(bodyR*.92,bodyR*.92,.045,.043);
+    barrel(bodyR*.83,bodyR*.92,.045,bodyD*.92);
+    // Cooling fins and black side vents distinguish a Fresnel housing.
+    for(let i=0;i<9;i++){
+      const z=.085+i*.026;
+      box(bodyR*2+.014,.009,.008,trim,0,bodyR*.9,z);
+      for(const sign of [-1,1])box(.004,.012,.17,black,sign*(bodyR+.001),-.075+i*.019,bodyD*.55);
+    }
+    for(let i=1;i<=7;i++)ring(lensR*i/7,.0018,-.002,glassLines);
+    // Colour-frame rails, latch and focusing handle.
+    for(const sign of [-1,1])box(.012,bodyR*1.9,.025,trim,sign*bodyR*.91,0,.026);
+    box(bodyR*1.7,.013,.024,trim,0,-bodyR*.92,.026);
+    box(.042,.017,.02,trim,0,bodyR*.98,.034);
+    box(.105,.018,.035,black,0,-bodyR-.04,bodyD*.66);
+    box(.018,.045,.028,trim,0,-bodyR-.02,bodyD*.66);
+  }else if(kind==='ers'){
+    // Lens tube, shutter gate and faceted lamp housing of a fixed-angle ERS.
+    barrel(lensR*1.18,lensR*1.18,.19,.11);
+    barrel(lensR*1.18,bodyR,.07,.235);
+    barrel(bodyR,bodyR,.2,.37,metal,12);
+    barrel(bodyR,bodyR*.78,.08,.51,metal,12);
+    barrel(bodyR*.78,bodyR*.68,.045,.57,black,12);
+    for(let i=0;i<7;i++)ring(lensR*1.19,.003,.035+i*.024,trim);
+    // Four individual shutter handles extend from the gate.
+    for(let i=0;i<4;i++){
+      const a=i*Math.PI/2+Math.PI/4,c=Math.cos(a),s=Math.sin(a);
+      box(.12,.012,.016,trim,c*.152,s*.152,.255,a);
+      box(.055,.024,.026,black,c*.225,s*.225,.255,a);
+    }
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4;
+      box(.012,.017,.15,black,Math.cos(a)*bodyR,Math.sin(a)*bodyR,.395,a);
+    }
+    box(.04,.035,.045,black,0,-lensR*1.35,.105); // barrel focus knob
+    box(.016,.065,.032,trim,0,bodyR+.025,.31); // accessory latch
+    ring(lensR*1.06,.004,.008,trim);
+  }else{
+    // PAR: tapered aluminium can, rear heat sink, front retaining clip.
+    barrel(bodyR,bodyR*.78,.23,.14);
+    barrel(bodyR*.78,bodyR*.58,.06,.285);
+    barrel(bodyR*.58,bodyR*.58,.025,.323,black);
+    for(let i=0;i<7;i++)ring(bodyR*.78-i*.003,.004,.24+i*.012,trim);
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4;
+      box(.013,.006,.11,black,Math.cos(a)*bodyR*.92,Math.sin(a)*bodyR*.92,.18,a);
+    }
+    // The existing generic PAR is an LED PAR: nineteen individual optics.
+    add(new THREE.CircleGeometry(lensR,32),black,0,0,.004,0,Math.PI);
+    for(const [x,y] of ledCenters()){
+      add(new THREE.CylinderGeometry(.012,.018,.010,12,1,true),trim,x,y,.003,Math.PI/2);
+      add(new THREE.TorusGeometry(.016,.0016,4,12),glassLines,x,y,-.002);
+    }
+    box(.025,.02,.03,trim,0,bodyR+.005,.028);
+    for(const sign of [-1,1])box(.012,.06,.018,trim,sign*bodyR*.94,-bodyR*.45,.028);
+    box(.11,.022,.018,trim,0,-bodyR*.92,.028);
+  }
+  ring(lensR*1.08,.009,.013);
+  ring(lensR*1.015,.003,.004,trim);
+  // U-shaped yoke, side tilt locks and a C-clamp silhouette. These are visual
+  // accessories only; dimensions and load-bearing clearance are approximate.
+  const yokeX=bodyR+.055,pivotZ=kind==='ers'?.39:bodyD*.54,yokeTop=.255;
+  for(const sign of [-1,1]){
+    box(.024,yokeTop+.018,.047,metal,sign*yokeX,yokeTop/2,pivotZ);
+    knob(sign*(yokeX+.02),.015,pivotZ,.028);
+    box(.013,.06,.01,black,sign*(yokeX+.036),.015,pivotZ,sign*.6);
+  }
+  box(yokeX*2+.025,.024,.047,metal,0,yokeTop,pivotZ);
+  if(includeClamp){
+    add(new THREE.CylinderGeometry(.014,.014,.05,10),trim,0,yokeTop+.026,pivotZ);
+    box(.026,.068,.043,metal,-.022,yokeTop+.075,pivotZ);
+    box(.07,.016,.043,metal,0,yokeTop+.11,pivotZ);
+    box(.055,.014,.043,metal,.005,yokeTop+.039,pivotZ);
+    add(new THREE.CylinderGeometry(.005,.005,.07,8),trim,.028,yokeTop+.065,pivotZ);
+    box(.045,.006,.009,trim,.028,yokeTop+.025,pivotZ);
+  }
+  // Rear cable gland and small rating plate.
+  barrel(.016,.016,.034,bodyD+.008,black,10);
+  box(.06,.025,.002,trim,0,-bodyR*.35,bodyD+.004);
+
+  function ledCenters(){
+    const centers=[];
+    for(let q=-2;q<=2;q++)for(let r=Math.max(-2,-q-2);r<=Math.min(2,-q+2);r++)
+      centers.push([.037*(q+r/2),.037*Math.sqrt(3)/2*r]);
+    return centers;
+  }
+  const lensGeometry=kind==='par'?mergeGeometries(ledCenters().map(([x,y])=>
+    new THREE.CircleGeometry(.014,16).translate(x,y,0))):new THREE.CircleGeometry(lensR,32);
+  // Front retaining screws and rear fan guard keep the silhouettes recognizable.
+  for(let i=0;i<4;i++){
+    const a=(i+.5)*Math.PI/2;
+    add(new THREE.CylinderGeometry(.004,.004,.004,8),trim,
+      Math.cos(a)*lensR*1.12,Math.sin(a)*lensR*1.12,.008,Math.PI/2);
+  }
+  add(new THREE.CircleGeometry(bodyR*.42,20),black,0,0,bodyD+.027);
+  for(let i=-3;i<=3;i++)box(bodyR*.7,.003,.002,trim,0,i*bodyR*.09,bodyD+.029);
+  box(.033,.026,.016,black,bodyR*.48,-bodyR*.35,bodyD+.018);
+  add(new THREE.CylinderGeometry(.007,.007,.018,10),trim,bodyR*.48,-bodyR*.35,bodyD+.027,Math.PI/2);
+  const lightLens=new THREE.Mesh(lensGeometry,
+    new THREE.MeshBasicMaterial({color:p.color||'#FFFFFF',side:THREE.DoubleSide}));
+  lightLens.rotation.y=Math.PI;lightLens.name='optical-lens';
+  group.add(lightLens);
+  function mergeGeometries(list){
+    const input=list.map(g=>g.index?g.toNonIndexed():g),count=input.reduce((n,g)=>n+g.attributes.position.count,0);
+    const result=new THREE.BufferGeometry();
+    for(const [name,width] of [['position',3],['normal',3],['uv',2]]){
+      const data=new Float32Array(count*width);let offset=0;
+      for(const geometry of input){const attribute=geometry.attributes[name];if(attribute)data.set(attribute.array,offset);offset+=geometry.attributes.position.count*width;}
+      result.setAttribute(name,new THREE.BufferAttribute(data,width));
+    }
+    for(let i=0;i<list.length;i++){if(input[i]!==list[i])input[i].dispose();list[i].dispose();}
+    result.computeBoundingBox();result.computeBoundingSphere();return result;
+  }
+  for(const [material,list] of buckets){
+    if(!list.length){material.dispose();continue;}
+    const mesh=new THREE.Mesh(mergeGeometries(list),material);mesh.name='fixture-shell';group.add(mesh);
+  }
+  // Match the previous housing radius and body length, with uniform X/Y so
+  // circular lenses stay circular. Extra yoke/clamp details may extend above it.
+  const oldRadius=kind==='ers'?.19:.24;
+  const oldDepth=kind==='ers'?.8:kind==='par'?.36:.55;
+  const fit=new THREE.Matrix4().makeScale(oldRadius/bodyR,oldRadius/bodyR,oldDepth/bodyD);
+  group.traverse(part=>{
+    if(!part.geometry)return;
+    part.geometry.applyMatrix4(fit);part.geometry.computeBoundingBox();part.geometry.computeBoundingSphere();
+  });
+  group.position.z=.032; // Preserve the original visible lens plane.
+  return {group,lightLens};
+}
+
 function addStageLight(libOrKind){
   if(!historyApplying){settleLightingCue(true,false);flushHistory();}
   if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
   if(objects.filter(o=>o.type==='light').length>=MAX_STAGE_LIGHTS){toast('무대 조명은 최대 '+MAX_STAGE_LIGHTS+'대까지 배치할 수 있어요. 사용하지 않는 조명을 삭제해 주세요.');return null;}
   const p=createStageLightParams(libOrKind),preset=STAGE_LIGHT_LIB.find(item=>item.kind===p.fixture);
-  const g=new THREE.Group(),bodyMaterial=new THREE.MeshStandardMaterial({color:0x283337,roughness:.72});
-  const depth=p.fixture==='ers'?.8:p.fixture==='par'?.36:.55;
-  const radius=p.fixture==='ers'?.19:.24;
-  const body=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,depth,20),bodyMaterial);
-  body.rotation.x=Math.PI/2;body.position.z=depth/2+.09;g.add(body);
-  const ring=new THREE.Mesh(new THREE.CylinderGeometry(radius+.025,radius+.025,.07,24),bodyMaterial);
-  ring.rotation.x=Math.PI/2;ring.position.z=.075;g.add(ring);
-  const lightLens=new THREE.Mesh(new THREE.CircleGeometry(radius*.85,32),new THREE.MeshBasicMaterial({color:p.color,side:THREE.DoubleSide}));
-  lightLens.rotation.y=Math.PI;lightLens.position.z=.032;g.add(lightLens);
-  const yokeGeometry=new THREE.BoxGeometry(.055,.42,.09);
-  for(const side of [-1,1]){
-    const arm=new THREE.Mesh(yokeGeometry,bodyMaterial);arm.position.set(side*(radius+.09),.16,depth*.55);g.add(arm);
-  }
-  const bridge=new THREE.Mesh(new THREE.BoxGeometry((radius+.09)*2+.05,.055,.09),bodyMaterial);
-  bridge.position.set(0,.37,depth*.55);g.add(bridge);
+  const g=new THREE.Group(),built=buildGenericStageLightFixture(p);
+  g.add(built.group);const lightLens=built.lightLens;
   const guide=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:p.color,transparent:true,opacity:.35,depthWrite:false}));
   guide.raycast=()=>{};g.add(guide);
   const o={id:seq++,type:'light',name:preset.name,mesh:g,params:p,visible:true,guide,lightLens,
