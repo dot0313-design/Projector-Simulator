@@ -6561,7 +6561,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-30.7';
+const SPEC_REVISION = '2026-10-30.8';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6986,12 +6986,13 @@ function renderShadows(act){
   scene.overrideMaterial = null;
   scene.background = prevBg;
 }
-/* ---------- 무대 조명: 범용 퍼넬 / ERS / PAR (배치·분위기용 근사) ---------- */
+/* ---------- 무대 조명: 범용 퍼넬 / ERS / LED PAR / PAR64 (배치·분위기용 근사) ---------- */
 const MAX_STAGE_LIGHTS = 8;
 const STAGE_LIGHT_LIB = [
   {kind:'fresnel', name:'퍼넬 · Fresnel', sub:'부드러운 원형 빛 · 조사각 조절', beamAngle:45, edge:65, color:'#FFE1B3', referenceFlux:8000},
   {kind:'ers', name:'ERS · 프로파일', sub:'선명한 원형 빛 · 4방향 셔터', beamAngle:26, edge:8, color:'#FFE1B3', referenceFlux:6000},
-  {kind:'par', name:'PAR · LED PAR', sub:'타원형 워시 · 색상 조절', beamAngle:45, edge:35, color:'#FFFFFF', referenceFlux:9000},
+  {kind:'par', name:'LED PAR', sub:'타원형 워시 · 색상 조절', beamAngle:45, edge:35, color:'#FFFFFF', referenceFlux:9000},
+  {kind:'par64', name:'PAR64 · 할로겐', sub:'단일 PAR 램프 · 긴 캔 형태', beamAngle:30, edge:30, color:'#FFE1B3', referenceFlux:8000},
 ];
 function createStageLightParams(kind){
   const fixture=typeof kind==='string'?kind:(kind?.kind||kind?.fixture);
@@ -7005,8 +7006,8 @@ function stageLightOptics(p){
   const preset=STAGE_LIGHT_LIB.find(item=>item.kind===p.fixture)||STAGE_LIGHT_LIB[0];
   const clamp=(value,min,max,fallback)=>Number.isFinite(value)?Math.max(min,Math.min(max,value)):fallback;
   const beamAngle=clamp(p.beamAngle,5,100,preset.beamAngle),tan=Math.tan(beamAngle*Math.PI/360);
-  const ellipse=preset.kind==='par'?.72:1;
-  return {tan,ellipse,type:preset.kind==='ers'?1:preset.kind==='par'?2:0,
+  const isPar=preset.kind==='par'||preset.kind==='par64',ellipse=isPar?.72:1;
+  return {tan,ellipse,type:preset.kind==='ers'?1:isPar?2:0,
     // These reference outputs define generic previews, not any manufacturer's photometric data.
     power:preset.referenceFlux*(clamp(p.intensity,0,100,70)/100)/(Math.PI*tan*tan*ellipse),
     edge:clamp(p.edge,0,100,preset.edge)/100,
@@ -7026,7 +7027,133 @@ function stageLightStatus(o){
  * control changes. The root emission origin and -Z direction stay unchanged.
  * Parts are merged by material; the front lens remains separately tintable.
  */
+/* Classic long PAR64 can: procedural appearance only, not a manufacturer CAD
+ * model or photometric model. PAR64 lamp face is nominally 8 in / 203.2 mm.
+ * Reference construction: https://www.altmanlighting.com/wp-content/uploads/2019/05/PAR64ALSpecification_disc.pdf
+ * Lamp size: https://normanlamps.com/1000par64-mfl.html
+ * The simulation origin remains (0,0,0), facing -Z; visible glass is at +.032 m.
+ */
+function buildPAR64StageLightFixture(p){
+  const group=new THREE.Group();group.name='generic-fixture-par64';
+  group.userData.fixtureDetail={family:'par64',visualOnly:true,lampDiameterMm:203.2,
+    approximateCanDiameterMm:240,approximateCanDepthMm:400,
+    sourceUrls:['https://www.altmanlighting.com/wp-content/uploads/2019/05/PAR64ALSpecification_disc.pdf','https://normanlamps.com/1000par64-mfl.html'],
+    limitation:'전통적인 PAR64 롱캔의 범용 외형입니다. 특정 제조사 CAD·배광·측광 자료를 적용한 모델은 아닙니다.'};
+  const metal=new THREE.MeshStandardMaterial({color:0x282c2f,roughness:.59,metalness:.66,side:THREE.DoubleSide});
+  const trim=new THREE.MeshStandardMaterial({color:0x788185,roughness:.34,metalness:.82,side:THREE.DoubleSide});
+  const black=new THREE.MeshStandardMaterial({color:0x101214,roughness:.88,metalness:.1});
+  const glassDetail=new THREE.MeshStandardMaterial({color:0xd1d8d4,roughness:.22,metalness:.12,transparent:true,opacity:.27,depthWrite:false});
+  const buckets=new Map([[metal,[]],[trim,[]],[black,[]],[glassDetail,[]]]);
+  const lampRadius=.1016,canRadius=.12,pivotZ=.195;
+  function add(geometry,material,x=0,y=0,z=0,rx=0,ry=0,rz=0){
+    geometry.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,rz)),new THREE.Vector3(1,1,1)));
+    buckets.get(material).push(geometry);
+  }
+  function box(w,h,d,material,x=0,y=0,z=0,rx=0,ry=0,rz=0){add(new THREE.BoxGeometry(w,h,d),material,x,y,z,rx,ry,rz);}
+  function ring(radius,tube,z,material=metal){add(new THREE.TorusGeometry(radius,tube,4,40),material,0,0,z);}
+  function axialCylinder(radius,length,material,x=0,y=0,z=0,open=false){
+    add(new THREE.CylinderGeometry(radius,radius,length,24,1,open),material,x,y,z,Math.PI/2);
+  }
+  function turned(profile,material){
+    add(new THREE.LatheGeometry(profile.map(([radius,z])=>new THREE.Vector2(radius,z)),40),material,0,0,0,Math.PI/2);
+  }
+  // Rolled sheet-metal can with an open front, two rolled seams and a separate
+  // spun rear lamp-access cover. There are no LED heat-sink fins or fan grille.
+  turned([[.115,.012],[.119,.017],[canRadius,.025],[canRadius,.043],[.116,.051],[.116,.296],[.114,.307]],metal);
+  ring(.118,.003,.023);ring(.116,.0025,.297);
+  turned([[.113,.305],[.117,.318],[.115,.330],[.109,.350],[.094,.371],[.071,.388],[.039,.399],[0,.404]],metal);
+  ring(.115,.0025,.315,black);
+  // The lamp is one sealed-beam glass face, with a single retaining rim.
+  axialCylinder(.108,.026,black,0,0,.017,true);
+  ring(lampRadius+.0032,.0035,.004,trim);
+  ring(lampRadius+.0095,.004,.011,metal);
+  // Pressed-glass flute relief: broad continuous lamp, not individual LED optics.
+  for(let i=-7;i<=7;i++){
+    if(i===0)continue;
+    const x=i*.0125,chord=2*Math.sqrt(lampRadius*lampRadius-x*x)*.97;
+    box(.0011,chord,.0011,glassDetail,x,0,-.0008);
+  }
+  for(const y of [-.056,-.028,.028,.056]){
+    const chord=2*Math.sqrt(lampRadius*lampRadius-y*y)*.97;
+    box(chord,.0008,.001,glassDetail,0,y,-.0009);
+  }
+  // A representative 10-inch gel frame and three supporting rails; only the
+  // frame is represented, because the user-controlled color already tints glass.
+  const frameHalf=.127,frameBar=.007;
+  for(const sign of [-1,1]){
+    box(frameBar,.254,.004,metal,sign*(frameHalf-frameBar/2),0,-.010);
+    box(.254-frameBar*2,frameBar,.004,metal,0,sign*(frameHalf-frameBar/2),-.010);
+    box(.012,.222,.022,trim,sign*.125,0,.003);
+    box(.018,.024,.026,metal,sign*.111,-.071,.006);
+  }
+  box(.232,.013,.022,trim,0,-.125,.003);
+  box(.036,.010,.020,trim,0,.128,.001); // spring-loaded top retaining latch
+  box(.014,.021,.010,black,0,.139,.004);
+  // Baffled ventilation slots close to the lamp access cover.
+  for(let i=0;i<12;i++){
+    const angle=(i+.5)*Math.PI/6;
+    box(.035,.0028,.021,black,Math.cos(angle)*.1167,Math.sin(angle)*.1167,.273,0,0,angle+Math.PI/2);
+  }
+  for(let i=0;i<8;i++){
+    const angle=(i+.5)*Math.PI/4;
+    box(.026,.007,.0025,black,Math.cos(angle)*.069,Math.sin(angle)*.069,.390,0,0,angle+Math.PI/2);
+  }
+  // Rear-cover hinge and opposite latch, plus an insulated access handle.
+  box(.012,.045,.030,trim,-.114,0,.312);
+  add(new THREE.CylinderGeometry(.005,.005,.05,10),black,-.12,0,.313);
+  box(.013,.035,.039,trim,.114,0,.316);
+  box(.016,.015,.030,black,.124,0,.325);
+  for(const sign of [-1,1])box(.012,.022,.026,trim,sign*.031,.025,.406);
+  box(.077,.019,.021,black,0,.025,.425);
+  // U-yoke and large side tilt-lock wheels. Yoke dimensions are illustrative.
+  for(const sign of [-1,1]){
+    box(.018,.246,.035,metal,sign*.151,.105,pivotZ);
+    add(new THREE.CylinderGeometry(.014,.014,.057,12),trim,sign*.144,0,pivotZ,0,0,Math.PI/2);
+    add(new THREE.CylinderGeometry(.025,.025,.018,16),black,sign*.178,0,pivotZ,0,0,Math.PI/2);
+    add(new THREE.CylinderGeometry(.007,.007,.022,8),trim,sign*.182,0,pivotZ,0,0,Math.PI/2);
+    box(.008,.058,.014,black,sign*.188,0,pivotZ,sign*.24);
+  }
+  box(.32,.018,.035,metal,0,.228,pivotZ);
+  // Small hanging clamp and screw, consistent with the existing generic lights.
+  add(new THREE.CylinderGeometry(.012,.012,.038,12),trim,0,.251,pivotZ);
+  box(.022,.060,.038,metal,-.022,.289,pivotZ);
+  box(.062,.014,.038,metal,0,.318,pivotZ);
+  box(.052,.012,.038,metal,.005,.264,pivotZ);
+  add(new THREE.CylinderGeometry(.0045,.0045,.062,8),trim,.025,.287,pivotZ);
+  box(.038,.005,.008,trim,.025,.253,pivotZ);
+  // A single mains lead/strain relief, not DMX or network connectors.
+  axialCylinder(.011,.027,black,0,-.037,.409);
+  const cable=new THREE.CatmullRomCurve3([new THREE.Vector3(0,-.037,.421),new THREE.Vector3(.010,-.052,.450),
+    new THREE.Vector3(.026,-.089,.461),new THREE.Vector3(.026,-.131,.448)]);
+  add(new THREE.TubeGeometry(cable,12,.0045,6,false),black);
+  // Rear plate and front fasteners are restrained so the can remains recognizable.
+  box(.052,.021,.0015,trim,0,-.056,.396);
+  for(const angle of [Math.PI*.25,Math.PI*.75,Math.PI*1.25,Math.PI*1.75])
+    axialCylinder(.0035,.004,trim,Math.cos(angle)*.112,Math.sin(angle)*.112,.008);
+  function mergeGeometries(list){
+    const input=list.map(g=>g.index?g.toNonIndexed():g),count=input.reduce((n,g)=>n+g.attributes.position.count,0);
+    const output=new THREE.BufferGeometry();
+    for(const [name,width] of [['position',3],['normal',3],['uv',2]]){
+      const values=new Float32Array(count*width);let offset=0;
+      for(const geometry of input){if(geometry.attributes[name])values.set(geometry.attributes[name].array,offset);offset+=geometry.attributes.position.count*width;}
+      output.setAttribute(name,new THREE.BufferAttribute(values,width));
+    }
+    for(let i=0;i<list.length;i++){if(input[i]!==list[i])input[i].dispose();list[i].dispose();}
+    output.computeBoundingBox();output.computeBoundingSphere();return output;
+  }
+  for(const [material,geometries] of buckets){
+    const mesh=new THREE.Mesh(mergeGeometries(geometries),material);mesh.name='par64-fixture-shell';group.add(mesh);
+  }
+  const lightLens=new THREE.Mesh(new THREE.CircleGeometry(lampRadius,64),
+    new THREE.MeshBasicMaterial({color:p.color||'#FFE1B3',side:THREE.DoubleSide}));
+  lightLens.rotation.y=Math.PI;lightLens.name='optical-lens';group.add(lightLens);
+  group.position.z=.032;
+  return {group,lightLens};
+}
+
 function buildGenericStageLightFixture(p){
+  if(p.fixture==='par64')return buildPAR64StageLightFixture(p);
   const kind=p.fixture||'fresnel';
   const group=new THREE.Group();group.name='generic-fixture-'+kind;
   group.userData.fixtureDetail={family:kind,visualOnly:true};
@@ -10301,6 +10428,7 @@ function appendStageLightProperties(o){
   section.appendChild(numRow('조사각',p.beamAngle,1,value=>{if(current()){p.beamAngle=value;change();}},5,100,'°'));
   section.appendChild(numRow('가장자리 부드러움',p.edge,1,value=>{if(current()){p.edge=value;change();}},0,100,'%'));
   section.appendChild(stageLightNote('조사각을 키우면 넓게 비춥니다. 가장자리 부드러움을 키우면 빛의 경계가 완만해집니다. 실제 기종의 조도(lux)를 보장하는 값은 아닙니다.'));
+  if(p.fixture==='par64')section.appendChild(stageLightNote('PAR64는 단일 할로겐 PAR 램프를 사용하는 범용 롱 캔 외형입니다. 실제 배광은 장착 램프에 따라 달라지며, 조사각과 색상은 램프·색 필터를 가정한 미리보기 설정입니다.'));
   right.appendChild(section);
   right.appendChild(createStageLightColorControls(o));
   if(p.fixture==='ers'){
@@ -10443,7 +10571,7 @@ function saveLightingCue(name,duration,id){
   if(!id&&lightingCues.length>=LIGHTING_CUE_LIMIT)throw new Error('조명 장면은 최대 '+LIGHTING_CUE_LIMIT+'개입니다. 사용하지 않는 장면을 삭제해 주세요.');
   const old=id?lightingCueById(id):null;
   if(id&&!old)throw new Error('덮어쓸 조명 장면을 다시 선택해 주세요.');
-  if(!objects.some(o=>o.type==='light'))throw new Error('먼저 퍼넬·ERS·PAR 조명을 추가해 주세요.');
+  if(!objects.some(o=>o.type==='light'))throw new Error('먼저 퍼넬·ERS·LED PAR·PAR64 중 조명을 추가해 주세요.');
   settleLightingCue();flushHistory();
   const cue={id:old?old.id:newLightingCueKey('cue'),...fields,lights:captureLightingCueLights()};
   if(old)lightingCues[lightingCues.indexOf(old)]=cue;else lightingCues.push(cue);
@@ -11849,7 +11977,7 @@ function normalizeSceneData(data){
       q.on=sceneBool(p.on,true,'프로젝터 출력');
     }else if(type==='light'){
       if(++lights>MAX_STAGE_LIGHTS)throw new Error('무대 조명은 최대 '+MAX_STAGE_LIGHTS+'개까지 지원해요. 현재 작업은 그대로 유지돼요.');
-      q.fixture=sceneEnum(p.fixture,'fresnel',['fresnel','ers','par'],'조명 종류');
+      q.fixture=sceneEnum(p.fixture,'fresnel',['fresnel','ers','par','par64'],'조명 종류');
       const defaults=createStageLightParams(q.fixture);
       for(const key of ['x','y','z'])if(p[key]===undefined)q[key]=defaults[key];
       q.yaw=sceneNumber(p.yaw,defaults.yaw,-180,180,'조명 회전');
