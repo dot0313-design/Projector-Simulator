@@ -97,6 +97,7 @@
 .lighting-cue-panel{position:absolute;z-index:14;right:16px;top:160px;width:min(336px,calc(100% - 32px));max-height:calc(100% - 180px);overflow:auto;overscroll-behavior:contain;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:0 8px 24px #0005;font-size:11px}
 .lighting-cue-panel[hidden]{display:none}.cue-heading{display:flex;align-items:center;gap:8px;margin-bottom:10px}.cue-heading h2{font:500 13px var(--sans);margin:0;flex:1}.cue-heading>span{font-size:10px;color:var(--txt2)}.cue-heading .tbtn{min-height:30px;padding:4px 8px}.cue-note{font-size:10px;line-height:1.65;color:var(--txt2);margin:8px 0}.cue-field{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1;color:var(--txt2);font-size:10px}.cue-field input,.cue-field select{width:100%;min-width:0;padding:8px;border:1px solid var(--line);background:var(--bg);color:var(--txt);border-radius:6px;font:11px var(--sans);min-height:34px}.cue-fields{display:flex;gap:8px;margin-top:10px}.cue-time{flex:0 0 104px}.cue-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}.cue-actions .tbtn{white-space:normal;line-height:1.5;font-size:10px;padding:7px}.cue-play{display:flex;gap:6px}.cue-play .primary{flex:1;white-space:normal}.cue-status{font-size:11px;line-height:1.65;color:var(--beam);margin:10px 0;overflow-wrap:anywhere;min-height:18px}.cue-status.cue-error{color:var(--warn)}#lightingCueProgress{width:100%;height:5px;margin-top:10px;accent-color:var(--beam)}.lighting-cue-panel button:disabled{opacity:.45;cursor:default}@media(max-width:959px){.lighting-cue-panel{right:12px;width:min(336px,calc(100% - 24px));max-height:calc(100% - 170px)}.cue-field input,.cue-field select{font-size:16px}.lighting-cue-panel .tbtn{min-height:36px}}
 
+.live-capture-controls{padding:10px 0;margin-bottom:8px;border-bottom:1px solid var(--line)}.live-capture-size{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--txt2)}.live-capture-size select{width:100%;min-width:0;min-height:34px;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:7px;font:11px var(--sans)}.live-capture-controls .quality-note{overflow-wrap:anywhere}@media(max-width:959px){.live-capture-size select{font-size:16px;min-height:40px}}
 </style>
 </head>
 <body>
@@ -6082,7 +6083,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-30.1';
+const SPEC_REVISION = '2026-10-30.2';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6243,7 +6244,7 @@ const stage = {
   floorRefl:14, wallOn:true, floorOn:true, shadows:true, derate:100, capFps:30,
   unit:'m',                     // 모델 임포트 단위
   lightShadowQuality:'medium', // 무대 조명 그림자 품질
-  renderQuality:'standard',wallLocked:false,floorLocked:false,
+  renderQuality:'standard',wallLocked:false,floorLocked:false,capSize:'1920x1200',
 };
 const STAGE_DEFAULTS = Object.freeze({...stage});
 function ambientLux(){ return AMB_PRESETS[stage.ambPreset].lux * stage.ambPct/100; }
@@ -8379,6 +8380,7 @@ async function changeBridgeSize(o,isLED,value){
   renderProps();
 }
 async function startBridgeInput(o,isLED,source,preferredCrop,preferredOrientation){
+  cancelPendingLiveCapture(o);
   if(!objects.includes(o))return;
   const view=bridgeView(o);view.open=true;view.error='';
   if(!window.isSecureContext || typeof RTCPeerConnection==='undefined'){
@@ -8566,65 +8568,165 @@ function stopMedia(c){
   if(c.live){if(c.stream)c.stream.getTracks().forEach(t=>t.stop());c.ready=false;c.ended=true;}
   queueMicrotask(()=>{commitHistory();collectHistoryResources();});
 }
-/* ---------- 라이브 캡처: MadMapper/Resolume/Millumin 출력창을 가상 빔의 소스로 ---------- */
-async function startLiveCapture(o, isLED){
-  cancelPendingBridge(o);
-  const captureRequest=(o._captureRequest||0)+1;o._captureRequest=captureRequest;
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
-    toast('이 환경에서는 화면 캡처가 지원되지 않아요. GitHub Pages 링크를 Chrome/Edge에서 열어주세요.');
-    return;
-  }
-  let stream;
-  try{
-    stream = await navigator.mediaDevices.getDisplayMedia({
-      video:{ frameRate:{max: stage.capFps||30} }, audio:false
-    });
-  }catch(err){
-    if(err && err.name==='NotAllowedError')
-      toast('캡처가 취소됐거나 이 환경에서 차단됐어요. GitHub Pages 링크에서 다시 시도해 주세요.');
-    else toast('캡처 시작 실패: ' + (err && err.message || err));
-    return;
-  }
-  if(!objects.includes(o) || o._captureRequest!==captureRequest){stream.getTracks().forEach(t=>t.stop());return;}
-  flushHistory();
-  const v = document.createElement('video');
-  v.srcObject = stream; v.muted = true; v.playsInline = true;
-  const c = {type:'video', el:v, name:'라이브 캡처', ready:false, ver:++contentVer,
-             live:true, stream, crop:{x:0, y:0, w:1, h:1}};
-  retainedMedia.add(c);
-  v.onloadeddata = ()=>{
-    if(c.disposed || c.ended || !activeMediaSet().has(c))return;
-    c.ready = true;
-    attachFrameSync(c);
-    v.play().catch(()=>{});
-    if(isLED) rebuildLED(o);
-    renderProps();
-  };
-  const track = stream.getVideoTracks()[0];
-  if(track) track.onended = ()=>{           // 사용자가 공유 중지 / 창 닫힘
-    c.ready = false; c.ended = true;
-    toast('라이브 캡처가 끊어졌어요. CONTENT에서 재연결할 수 있어요.');
-    renderProps();
-  };
-  if(isLED){ stopMedia(o.ledSrc); o.ledSrc = c; }
-  else { stopMedia(o.content); o.content = c; }
-  renderProps();commitHistory();
+/* ---------- 브라우저 라이브 캡처: 요청 크기와 실제 수신 크기 ---------- */
+const LIVE_CAPTURE_PRESETS=Object.freeze([
+  {id:'auto',label:'자동 · 브라우저 기본',width:0,height:0},
+  {id:'1280x720',label:'1280 × 720 · 16:9',width:1280,height:720},
+  {id:'1920x1080',label:'1920 × 1080 · 16:9',width:1920,height:1080},
+  {id:'1920x1200',label:'1920 × 1200 · 16:10',width:1920,height:1200}
+]);
+const liveCapturePendingRequests=new Set();
+function liveCaptureRequest(size=stage.capSize,fps=stage.capFps){
+  const preset=LIVE_CAPTURE_PRESETS.find(p=>p.id===size)||LIVE_CAPTURE_PRESETS[3];
+  return {size:preset.id,width:preset.width,height:preset.height,fps:fps===60?60:30};
 }
+function liveCaptureConstraints(request){
+  const video={frameRate:{ideal:request.fps,max:request.fps}};
+  if(request.width&&request.height){video.width={ideal:request.width,max:request.width};video.height={ideal:request.height,max:request.height};}
+  // Screen-capture sources retain their own aspect ratio; exact/min are not allowed here.
+  return {video,audio:false};
+}
+function liveCaptureMetrics(c){
+  let settings={};try{settings=c.stream?.getVideoTracks()[0]?.getSettings?.()||{};}catch(_){/* Track may have just ended. */}
+  const video=c.el,decoded=video?.videoWidth>0&&video?.videoHeight>0;
+  const width=decoded?video.videoWidth:Number(settings.width)||0,height=decoded?video.videoHeight:Number(settings.height)||0;
+  const request=c.captureRequest||null;
+  return {width,height,source:decoded?'frame':'track',fps:Number.isFinite(settings.frameRate)?settings.frameRate:null,request,
+    mismatch:!!(width&&height&&request?.width&&(width!==request.width||height!==request.height))};
+}
+function liveCaptureStatusText(c){
+  const m=liveCaptureMetrics(c),r=m.request;
+  const request=r?(r.width?'요청 '+r.width+' × '+r.height:'요청 자동')+' · 목표 '+r.fps+' fps':'요청 정보 없음';
+  if(c.ended)return request+' / 공유 종료';
+  if(!m.width||!m.height)return request+' / 실제 수신 크기 확인 중';
+  return request+' / '+(m.source==='frame'?'실제 수신 ':'트랙 설정 ')+m.width+' × '+m.height+
+    (m.fps!==null?' · 설정 '+Number(m.fps.toFixed(1))+' fps':'')+
+    (m.mismatch?' — 요청과 다릅니다. 원본 창 크기·비율 또는 브라우저 제한을 확인하세요.':'');
+}
+function cancelPendingLiveCapture(o){
+  const pending=o?._liveCapturePending;if(!pending)return;
+  o._captureRequest=(o._captureRequest||0)+1;pending.cancel();
+}
+function cancelAllPendingLiveCapture(){
+  for(const pending of [...liveCapturePendingRequests])cancelPendingLiveCapture(pending.object);
+}
+function updateLiveCaptureReadouts(){
+  document.querySelectorAll('[data-live-capture-metrics]').forEach(node=>{
+    const o=objects.find(item=>String(item.id)===node.dataset.liveCaptureMetrics);
+    const c=node.dataset.liveCaptureLed==='true'?o?.ledSrc:o?.content;
+    if(!c?.live||c.bridge)return;
+    const text=liveCaptureStatusText(c);if(node.textContent!==text)node.textContent=text;
+  });
+}
+function appendLiveCaptureControls(root,o,isLED,c){
+  const box=document.createElement('div');box.className='live-capture-controls';
+  const label=document.createElement('label');label.className='live-capture-size';label.textContent='라이브 캡처 크기';
+  const select=document.createElement('select');select.setAttribute('aria-label','라이브 캡처 요청 해상도');
+  LIVE_CAPTURE_PRESETS.forEach(p=>{const option=document.createElement('option');option.value=p.id;option.textContent=p.label;select.appendChild(option);});
+  select.value=liveCaptureRequest().size;
+  select.onchange=()=>{settleLightingCue(true,false);flushHistory();stage.capSize=select.value;commitHistory();scheduleAutosave();};
+  label.appendChild(select);
+  const note=document.createElement('p');note.className='quality-note';
+  note.textContent='선택 후 라이브 캡처를 누르세요. 모든 장비의 다음 화면 공유에 적용됩니다. 1920 × 1200은 요청 상한이며 원본 비율을 유지합니다. 앱·연결 키는 필요 없어요.';
+  box.append(label,note);
+  if(o._liveCapturePending){
+    const status=document.createElement('p');status.className='quality-note';status.setAttribute('role','status');status.textContent='새 화면 공유를 준비 중입니다. 첫 영상이 들어오면 교체합니다.';
+    const cancel=document.createElement('button');cancel.className='tbtn';cancel.type='button';cancel.textContent='새 캡처 취소';cancel.onclick=()=>{cancelPendingLiveCapture(o);if(selected===o)renderProps();};box.append(status,cancel);
+  }
+  if(c?.live&&!c.bridge){
+    const metrics=document.createElement('p');metrics.className='quality-note';metrics.dataset.liveCaptureMetrics=String(o.id);metrics.dataset.liveCaptureLed=String(!!isLED);metrics.textContent=liveCaptureStatusText(c);box.appendChild(metrics);
+    const hint=document.createElement('p');hint.className='quality-note';
+    hint.textContent=isLED?'수신 크기와 LED 화면의 미리보기 해상도는 별개입니다.':'수신 해상도를 충분히 표시하려면 고화질로 보기를 선택하세요. 실제 표시 크기는 기기 성능과 투사 비율에 따라 달라집니다.';
+    box.appendChild(hint);
+    if(!isLED&&stage.renderQuality!=='high'){
+      const high=document.createElement('button');high.className='tbtn';high.type='button';high.textContent='고화질로 보기';
+      high.onclick=()=>{settleLightingCue(true,false);flushHistory();stage.renderQuality='high';applyRenderQuality();ensureContentAtlas(activeProjectors());commitHistory();scheduleAutosave();renderProps();updateQualityReadout();};box.appendChild(high);
+    }
+  }
+  root.appendChild(box);
+}
+async function startLiveCapture(o,isLED){
+  if(!objects.includes(o))return;
+  if(!navigator.mediaDevices?.getDisplayMedia){toast('이 환경에서는 화면 캡처가 지원되지 않아요. GitHub Pages 링크를 지원 브라우저에서 열어주세요.');return;}
+  cancelPendingLiveCapture(o);cancelPendingBridge(o);
+  const captureRequest=(o._captureRequest||0)+1;o._captureRequest=captureRequest;
+  const previous=isLED?o.ledSrc:o.content,request=liveCaptureRequest(),controller=new AbortController();
+  let stream=null,video=null,installed=false;
+  const current=()=>objects.includes(o)&&!o._released&&o._captureRequest===captureRequest&&!controller.signal.aborted&&(isLED?o.ledSrc:o.content)===previous;
+  const cleanup=()=>{
+    if(installed)return;
+    if(stream)stream.getTracks().forEach(track=>{track.onended=null;track.stop();});
+    if(video){video.onresize=null;video.pause();video.srcObject=null;video.removeAttribute('src');video.load();}
+  };
+  const pending={object:o,cancel(){controller.abort();cleanup();liveCapturePendingRequests.delete(pending);if(o._liveCapturePending===pending)o._liveCapturePending=null;}};
+  o._liveCapturePending=pending;liveCapturePendingRequests.add(pending);
+  try{
+    // This call stays in the originating click, before any await, to keep user activation.
+    const permission=navigator.mediaDevices.getDisplayMedia(liveCaptureConstraints(request));
+    if(selected===o)renderProps();
+    stream=await permission;
+    if(!current())return;
+    const track=stream.getVideoTracks()[0];
+    if(!track||track.readyState==='ended')throw new Error('받을 영상 트랙이 없거나 공유가 종료됐어요.');
+    if('contentHint' in track){try{track.contentHint='detail';}catch(_){/* Optional browser hint. */}}
+    track.onended=()=>controller.abort();
+    video=document.createElement('video');video.muted=true;video.playsInline=true;
+    const firstFrame=bridgeFirstFrame(video,controller.signal);
+    video.srcObject=stream;
+    await Promise.all([firstFrame,Promise.resolve().then(()=>video.play())]);
+    if(!current())return;
+    if(track.readyState==='ended'||!video.videoWidth||!video.videoHeight)throw new Error('공유 영상이 준비되지 않았어요. 다시 캡처해 주세요.');
+    settleLightingCue(true,false);flushHistory();
+    const c={type:'video',el:video,name:'라이브 캡처',ready:true,ver:++contentVer,live:true,stream,
+      captureRequest:{...request},crop:{x:0,y:0,w:1,h:1}};
+    retainedMedia.add(c);attachFrameSync(c);
+    video.onresize=()=>{
+      if(c.disposed||c.ended)return;
+      c.ver=++contentVer;c.frameReady=true;
+      if(activeMediaSet().has(c)){updateLiveCaptureReadouts();updateQualityReadout();}
+    };
+    track.onended=()=>{
+      if(c.disposed||c.ended)return;
+      c.ready=false;c.ended=true;video.pause();
+      if(activeMediaSet().has(c)){toast('라이브 캡처가 종료됐어요. 콘텐츠에서 다시 연결할 수 있어요.');if(selected===o)renderProps();}
+    };
+    if(isLED)o.ledSrc=c;else o.content=c;
+    installed=true;stopMedia(previous);
+    if(isLED)rebuildLED(o);
+    commitHistory();scheduleAutosave();
+  }catch(error){
+    if(current()){
+      if(error?.name==='NotAllowedError')toast('화면 공유가 취소됐거나 허용되지 않았어요. 기존 영상은 유지합니다.');
+      else if(error?.name==='OverconstrainedError'||error?.name==='TypeError')toast('요청한 캡처 설정을 적용하지 못했어요. 크기를 자동으로 선택하고 다시 캡처해 주세요.');
+      else toast('캡처 시작 실패: '+(error?.message||'선택한 창에서 영상을 받지 못했어요.'));
+    }
+  }finally{
+    if(!installed){controller.abort();cleanup();}
+    liveCapturePendingRequests.delete(pending);if(o._liveCapturePending===pending)o._liveCapturePending=null;
+    if(selected===o)renderProps();
+  }
+}
+/* ---------- 브라우저 라이브 캡처 끝 ---------- */
+
 function setProjContent(o,file){
+  cancelPendingLiveCapture(o);
   cancelPendingBridge(o);
   flushHistory();const next=loadMedia(file,()=>renderProps());if(!next)return;
   o._captureRequest=(o._captureRequest||0)+1;stopMedia(o.content);o.content=next;commitHistory();
 }
 function clearProjContent(o){
+  cancelPendingLiveCapture(o);
   cancelPendingBridge(o);
   flushHistory();o._captureRequest=(o._captureRequest||0)+1;stopMedia(o.content);o.content=null;commitHistory();
 }
 function setLEDContent(o,file){
+  cancelPendingLiveCapture(o);
   cancelPendingBridge(o);
   flushHistory();const next=loadMedia(file,()=>{rebuildLED(o);renderProps();});if(!next)return;
   o._captureRequest=(o._captureRequest||0)+1;stopMedia(o.ledSrc);o.ledSrc=next;commitHistory();
 }
 function clearLEDContent(o){
+  cancelPendingLiveCapture(o);
   cancelPendingBridge(o);
   flushHistory();o._captureRequest=(o._captureRequest||0)+1;stopMedia(o.ledSrc);o.ledSrc=null;commitHistory();
 }
@@ -8632,6 +8734,7 @@ function clearLEDContent(o){
 function removeObj(o){
   if(placementLocked(o)){toast('배치 잠금을 먼저 풀어 주세요.');return;}
   settleLightingCue(true);
+  cancelPendingLiveCapture(o);
   cancelPendingBridge(o);
   flushHistory();
   retainedObjects.add(o);
@@ -8949,8 +9052,9 @@ function contentSection(o, getC, setFn, clearFn, note, isLED){
   lv.textContent = '🔴 라이브 캡처';
   lv.onclick = ()=>startLiveCapture(o, !!isLED);
   row.appendChild(up); row.appendChild(fin); row.appendChild(lv);
-  cs.appendChild(row);
   const c = getC();
+  appendLiveCaptureControls(cs,o,!!isLED,c);
+  cs.appendChild(row);
   appendBridgeControls(cs,o,!!isLED,c);
   if(c&&!isLED)appendProjectedResolutionReadout(cs,o);
   if(c){
@@ -10907,6 +11011,7 @@ function normalizeSceneData(data){
   for(const key of ['wallOn','floorOn','shadows','wallLocked','floorLocked']) ns[key]=sceneBool(ss[key],ns[key],'무대 '+key);
   ns.wallMode=sceneEnum(ss.wallMode,ns.wallMode,['front','rear'],'벽 투사 방식');
   ns.capFps=sceneEnum(ss.capFps,ns.capFps,[30,60],'캡처 프레임');
+  ns.capSize=sceneEnum(ss.capSize,ns.capSize,['auto','1280x720','1920x1080','1920x1200'],'화면 캡처 크기');
   ns.unit=sceneEnum(ss.unit,ns.unit,['m','cm','mm'],'모델 단위');
   ns.lightShadowQuality=sceneEnum(ss.lightShadowQuality,ns.lightShadowQuality,['off','medium','high'],'조명 그림자 품질');
   ns.renderQuality=sceneEnum(ss.renderQuality,ns.renderQuality,['fast','standard','high'],'화질 설정');
@@ -11025,6 +11130,7 @@ function updateHistoryButtons(){
 }
 function releaseSceneObject(o){
   if(!o || o._released) return;
+  cancelPendingLiveCapture(o);
   o._released=true; releaseModelTextures(o);scene.remove(o.mesh);
   o.mesh.traverse(m=>{
     if(m.geometry) m.geometry.dispose();
@@ -11039,7 +11145,7 @@ function destroyMedia(c){
   closeBridgeMedia(c);
   if(c.reader && c.reader.readyState===1) c.reader.abort();
   if(c.stream) c.stream.getTracks().forEach(t=>t.stop());
-  if(c.el){c.el.onload=null;c.el.onloadeddata=null;c.el.onerror=null;
+  if(c.el){c.el.onload=null;c.el.onloadeddata=null;c.el.onerror=null;c.el.onresize=null;
     if(c.type==='video'){c.el.pause();c.el.srcObject=null;c.el.removeAttribute('src');c.el.load();}
     else c.el.src='';}
 }
@@ -11098,6 +11204,7 @@ function scheduleHistory(){
 }
 function flushHistory(){if(historyReady && !historyApplying){clearTimeout(historyTimer);historyTimer=null;commitHistory();}}
 function restoreHistoryState(s){
+  cancelAllPendingLiveCapture();
   settleLightingCue(false,false);
   cancelModelImport();
   cancelPlacementPick();
@@ -11127,6 +11234,7 @@ function undoScene(){settleLightingCue(true);flushHistory();if(historyIndex>0){h
 function redoScene(){settleLightingCue(true);flushHistory();if(historyIndex<historyEntries.length-1){historyIndex++;restoreHistoryState(historyEntries[historyIndex]);}}
 function applySceneData(raw){
   const data=normalizeSceneData(raw); // Validate the complete file before any scene mutation.
+  cancelAllPendingLiveCapture();
   cancelModelImport();
   cancelPlacementPick();
   cancelAllPendingBridge();
@@ -11224,8 +11332,8 @@ document.getElementById('fileIn').onchange=e=>{
     catch(err){toast('불러오기 실패: '+err.message+' 현재 작업은 유지돼요.');}};rd.readAsText(f);
 };
 setInterval(autosaveNow,30000);
-window.addEventListener('beforeunload',()=>{settleLightingCue(true,false);autosaveNow();});
-window.addEventListener('pagehide',()=>{settleLightingCue(true,false);autosaveNow();});
+window.addEventListener('beforeunload',()=>{cancelAllPendingLiveCapture();settleLightingCue(true,false);autosaveNow();});
+window.addEventListener('pagehide',()=>{cancelAllPendingLiveCapture();settleLightingCue(true,false);autosaveNow();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)autosaveNow();});
 
 /* ---------- 탑뷰 리그 도면 (PNG) ---------- */
@@ -11424,6 +11532,7 @@ function updateHUD(){
   updateProjectorReadout();
   updateStageLightReadout();
   updateQualityReadout();
+  updateLiveCaptureReadouts();
 }
 
 /* ---------- 접근성 · 내보내기 ---------- */
