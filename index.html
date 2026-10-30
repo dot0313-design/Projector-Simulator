@@ -85,6 +85,18 @@
 .model-material-controls ul{padding-left:18px}.model-material-controls li{margin:5px 0}
 
 #siteLocation{color:var(--beam);font:8px var(--sans);letter-spacing:0;margin-top:2px;line-height:1.25}
+
+/* Workflow controls */
+.view-actions{flex-wrap:wrap;max-width:100%;min-width:0}
+.tree-tools{display:flex;flex-wrap:wrap;gap:5px;padding:8px}.tree-tools .tbtn{font-size:10px;padding:4px 7px}.tree-tools span{width:100%;font-size:10px;color:var(--txt2)}
+.scene-group{padding:6px 8px 0}.scene-group .tbtn{width:100%;text-align:left;white-space:normal;border-color:#476256;color:var(--beam)}
+.node .pick{width:13px;flex:none;accent-color:var(--beam)}.node .lock{border:0;background:none;font-size:12px;padding:2px;flex:none}.node button.nm{text-align:left;background:none;border:0;color:inherit;font:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;padding:0}.node .del:disabled{opacity:.25;cursor:default}
+.workflow-actions{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.workflow-actions .tbtn{font-size:11px;white-space:normal;padding:7px 9px}.workflow-note{font-size:11px;line-height:1.7;color:var(--txt2);margin:5px 0 10px}.workflow-field{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:11px;color:var(--txt2);margin:8px 0}.workflow-field input{flex:1;min-width:70px;width:100%;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--txt)}.workflow-field input[type=color]{flex:0 0 48px;min-width:48px;height:34px;padding:2px}.selection-management{font-size:11px}#right input:disabled,#right select:disabled{opacity:.5}
+
+.quality-note{font-size:11px;line-height:1.65;color:var(--txt2);overflow-wrap:anywhere;margin:8px 0 0}.quality-note p{margin:8px 0 0}.render-quality-panel .row{flex-wrap:wrap}.render-quality-panel select{min-width:180px;max-width:100%}
+.lighting-cue-panel{position:absolute;z-index:14;right:16px;top:160px;width:min(336px,calc(100% - 32px));max-height:calc(100% - 180px);overflow:auto;overscroll-behavior:contain;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:0 8px 24px #0005;font-size:11px}
+.lighting-cue-panel[hidden]{display:none}.cue-heading{display:flex;align-items:center;gap:8px;margin-bottom:10px}.cue-heading h2{font:500 13px var(--sans);margin:0;flex:1}.cue-heading>span{font-size:10px;color:var(--txt2)}.cue-heading .tbtn{min-height:30px;padding:4px 8px}.cue-note{font-size:10px;line-height:1.65;color:var(--txt2);margin:8px 0}.cue-field{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1;color:var(--txt2);font-size:10px}.cue-field input,.cue-field select{width:100%;min-width:0;padding:8px;border:1px solid var(--line);background:var(--bg);color:var(--txt);border-radius:6px;font:11px var(--sans);min-height:34px}.cue-fields{display:flex;gap:8px;margin-top:10px}.cue-time{flex:0 0 104px}.cue-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}.cue-actions .tbtn{white-space:normal;line-height:1.5;font-size:10px;padding:7px}.cue-play{display:flex;gap:6px}.cue-play .primary{flex:1;white-space:normal}.cue-status{font-size:11px;line-height:1.65;color:var(--beam);margin:10px 0;overflow-wrap:anywhere;min-height:18px}.cue-status.cue-error{color:var(--warn)}#lightingCueProgress{width:100%;height:5px;margin-top:10px;accent-color:var(--beam)}.lighting-cue-panel button:disabled{opacity:.45;cursor:default}@media(max-width:959px){.lighting-cue-panel{right:12px;width:min(336px,calc(100% - 24px));max-height:calc(100% - 170px)}.cue-field input,.cue-field select{font-size:16px}.lighting-cue-panel .tbtn{min-height:36px}}
+
 </style>
 </head>
 <body>
@@ -111,7 +123,20 @@
   </div>
 
   <main id="vp" aria-label="3D 작업 공간">
-    <div class="viewport-tools"><div class="modes" id="viewModes" role="group" aria-label="투사 보기"><button data-m="0" class="on" aria-pressed="true">테스트 그리드</button><button data-m="2" aria-pressed="false">화이트 라이트</button><button data-m="1" aria-pressed="false">조도 히트맵</button></div><div class="view-actions"><button class="tbtn toggled" id="btnShadow" aria-pressed="true">그림자 ON</button><button class="tbtn" id="btnMeasure" aria-pressed="false">측정</button><button class="tbtn" id="btnBlend" aria-pressed="false">블렌드</button><button class="tbtn" id="btnHelp" aria-label="조작 도움말" title="조작 도움말">?</button></div></div>
+    <div class="viewport-tools"><div class="modes" id="viewModes" role="group" aria-label="투사 보기"><button data-m="0" class="on" aria-pressed="true">테스트 그리드</button><button data-m="2" aria-pressed="false">화이트 라이트</button><button data-m="1" aria-pressed="false">조도 히트맵</button></div><div class="view-actions"><button class="tbtn toggled" id="btnShadow" aria-pressed="true">그림자 ON</button><button class="tbtn" id="btnMeasure" aria-pressed="false">측정</button><button class="tbtn" id="btnBlend" aria-pressed="false">블렌드</button><button class="tbtn" id="btnQuality">화질 · 표준</button><button class="tbtn" id="btnLightingCues" aria-expanded="false" aria-controls="lightingCuePanel">조명 장면</button><button class="tbtn" id="btnHelp" aria-label="조작 도움말" title="조작 도움말">?</button></div></div>
+    <aside id="lightingCuePanel" class="lighting-cue-panel" aria-labelledby="lightingCueHeading" hidden>
+      <div class="cue-heading"><h2 id="lightingCueHeading">조명 장면</h2><span id="lightingCueCount"></span><button type="button" class="tbtn" data-cue-action="close" aria-label="조명 장면 닫기">닫기</button></div>
+      <p class="cue-note">켜짐·밝기·색상만 저장합니다. 위치·조사각·숨김 상태는 유지됩니다. 위치가 잠긴 조명에도 적용됩니다.</p>
+      <label class="cue-field">저장한 조명 장면<select id="lightingCueSelect"></select></label>
+      <p id="lightingCueInfo" class="cue-note"></p>
+      <div class="cue-fields"><label class="cue-field">이름<input id="lightingCueName" type="text" maxlength="40" autocomplete="off"></label><label class="cue-field cue-time">전환 시간 (초)<input id="lightingCueDuration" type="number" min="0" max="30" step="0.1" inputmode="decimal" value="2"></label></div>
+      <div class="cue-actions"><button type="button" class="tbtn" data-cue-action="save">현재 조명으로 새 장면</button><button type="button" class="tbtn" data-cue-action="overwrite">현재 조명으로 덮어쓰기</button><button type="button" class="tbtn" data-cue-action="rename">이름·시간 변경</button><button type="button" class="tbtn" data-cue-action="delete">장면 삭제</button></div>
+      <div class="cue-play"><button type="button" class="tbtn primary" data-cue-action="apply">선택한 장면으로 전환</button><button type="button" class="tbtn" data-cue-action="stop">멈춤</button></div>
+      <progress id="lightingCueProgress" max="100" value="0" aria-label="조명 전환 진행률" hidden></progress>
+      <p id="lightingCueStatus" class="cue-status" role="status" aria-live="polite">새 장면을 저장하거나 저장한 장면을 선택하세요.</p>
+      <p class="cue-note">입력한 이름·시간은 저장 또는 변경 버튼으로 반영합니다. 0초는 즉시 전환합니다. 새로 추가된 조명은 저장된 장면에 자동으로 포함되지 않습니다.</p>
+    </aside>
+
     <div id="hud"></div>
     <div id="vpLabels"></div>
     <div id="legend">
@@ -6057,7 +6082,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-29.6';
+const SPEC_REVISION = '2026-10-30.1';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6218,6 +6243,7 @@ const stage = {
   floorRefl:14, wallOn:true, floorOn:true, shadows:true, derate:100, capFps:30,
   unit:'m',                     // 모델 임포트 단위
   lightShadowQuality:'medium', // 무대 조명 그림자 품질
+  renderQuality:'standard',wallLocked:false,floorLocked:false,
 };
 const STAGE_DEFAULTS = Object.freeze({...stage});
 function ambientLux(){ return AMB_PRESETS[stage.ambPreset].lux * stage.ambPct/100; }
@@ -6242,7 +6268,7 @@ const PCOLORS = [0x8BE4C5,0x5AD1DE,0xB48CFF,0x6FD08C,0xFF7A9E,0xF2E86D,0x7FA8FF,
 /* ---------- three 기본 ---------- */
 const vpEl = document.getElementById('vp');
 const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 vpEl.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x14191c);
@@ -6266,39 +6292,170 @@ function applyCam(){
 applyCam();
 
 /* ---------- 공유 셰이더 유니폼 ---------- */
-/* ---------- 콘텐츠 아틀라스: 프로젝터별 이미지/영상 (4×2 타일, 각 1024²) ----------
-   flipY=true 기준 검산 완료: 타일 row r → v 오프셋 (1-r)*0.5 (베이크·샘플 일치) */
-const atlasCanvas = document.createElement('canvas');
-atlasCanvas.width = 4096; atlasCanvas.height = 2048;
-const atlasCtx = atlasCanvas.getContext('2d');
-atlasCtx.fillStyle = '#000'; atlasCtx.fillRect(0,0,4096,2048);
-const atlasTex = new THREE.CanvasTexture(atlasCanvas);
-atlasTex.flipY = true;
-atlasTex.generateMipmaps = false;
-atlasTex.minFilter = THREE.LinearFilter;
-atlasTex.magFilter = THREE.LinearFilter;
-atlasTex.wrapS = atlasTex.wrapT = THREE.ClampToEdgeWrapping;
-const tileOwner = new Array(MAXP).fill(null);   // 타일 i에 그려진 콘텐츠 키
-function drawContentTile(i, src, frameAR, crop, orientation){
-  const fw = src.videoWidth||src.naturalWidth||0;
-  const fh = src.videoHeight||src.naturalHeight||0;
-  if(!fw || !fh) return false;
-  // 크롭: 캡처 화면의 일부 영역만 이 프로젝터에 할당 (정규화 0~1)
-  const cr = crop || {x:0,y:0,w:1,h:1};
-  const sx = cr.x*fw, sy = cr.y*fh, sw = Math.max(1, cr.w*fw), sh = Math.max(1, cr.h*fh);
-  const rx=(i%4)*1024, ry=Math.floor(i/4)*1024;
+/* ---------- 영상 화질 · 실제 표시 해상도 · 렌더 성능 ---------- */
+const RENDER_QUALITIES=Object.freeze({
+  fast:{label:'빠름',edge:768,pixels:4*1024*1024,dpr:1,fps:30},
+  standard:{label:'표준',edge:1536,pixels:12*1024*1024,dpr:1.5,fps:60},
+  high:{label:'고화질',edge:2048,pixels:32*1024*1024,dpr:2,fps:60}
+});
+function renderQualityPreset(key=stage.renderQuality){return RENDER_QUALITIES[key]||RENDER_QUALITIES.standard;}
+function contentAtlasPlan(act,key,maxTextureSize){
+  const q=renderQualityPreset(key),n=Math.max(1,Math.min(MAXP,act.length));
+  const cols=n===1?1:n<=4?2:Math.ceil(n/2),rows=Math.ceil(n/cols);
+  const aspect=act.length?Math.max(...act.map(o=>Math.min(1,Math.max(.125,o.params.resH/o.params.resW)))):1;
+  const requestedW=q.edge,requestedH=Math.max(64,Math.ceil(q.edge*aspect));
+  const max=Math.max(64,Math.floor(Number(maxTextureSize)||2048));
+  const gpuScale=Math.min(1,max/(cols*requestedW),max/(rows*requestedH));
+  const budgetScale=Math.min(1,Math.sqrt(q.pixels/(cols*rows*requestedW*requestedH)));
+  const scale=Math.min(gpuScale,budgetScale);
+  const tileW=Math.max(1,Math.floor(requestedW*scale)),tileH=Math.max(1,Math.floor(requestedH*scale));
+  return {cols,rows,tileW,tileH,width:cols*tileW,height:rows*tileH,
+    limited:scale<.999,reason:gpuScale<1&&gpuScale<=budgetScale?'기기의 최대 텍스처 크기':budgetScale<1?'영상 메모리 한도':'',
+    requestedW,requestedH};
+}
+const atlasCanvas=document.createElement('canvas');atlasCanvas.width=64;atlasCanvas.height=64;
+const atlasCtx=atlasCanvas.getContext('2d');
+function newContentAtlasTexture(){
+  const texture=new THREE.CanvasTexture(atlasCanvas);
+  texture.flipY=true;texture.generateMipmaps=false;
+  texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;
+  texture.wrapS=texture.wrapT=THREE.ClampToEdgeWrapping;
+  return texture;
+}
+let atlasTex=newContentAtlasTexture();
+const tileOwner=new Array(MAXP).fill(null),tileFrame=new Array(MAXP).fill(null);
+let atlasLayout={cols:1,rows:1,tileW:64,tileH:64,width:64,height:64,limited:false,reason:''};
+const qualityRuntime={key:'',lastRender:null,fpsStart:null,frames:0,fps:null};
+function ensureContentAtlas(act){
+  const plan=contentAtlasPlan(act,stage.renderQuality,renderer.capabilities.maxTextureSize);
+  const resized=plan.width!==atlasLayout.width||plan.height!==atlasLayout.height;
+  const changed=resized||plan.cols!==atlasLayout.cols||plan.rows!==atlasLayout.rows;
+  if(changed){
+    if(resized){
+      // Three.js textures are recreated when dimensions change after an upload.
+      atlasTex.dispose();atlasCanvas.width=plan.width;atlasCanvas.height=plan.height;
+      atlasTex=newContentAtlasTexture();shared.uAtlas.value=atlasTex;
+    }
+    atlasCtx.fillStyle='#000';atlasCtx.fillRect(0,0,plan.width,plan.height);
+    atlasCtx.imageSmoothingEnabled=true;atlasCtx.imageSmoothingQuality='high';
+    tileOwner.fill(null);tileFrame.fill(null);atlasTex.needsUpdate=true;
+  }
+  atlasLayout=plan;
+  shared.uAtlasGrid.value.set(plan.cols,plan.rows);
+  shared.uAtlasInset.value.set(.5/plan.tileW,.5/plan.tileH);
+}
+function projectedContentMetrics(o,layout=atlasLayout){
+  const c=o?.content,src=c?.el;
+  const inputW=src?.videoWidth||src?.naturalWidth||0,inputH=src?.videoHeight||src?.naturalHeight||0;
+  if(!inputW||!inputH)return null;
+  const crop=c.crop||{x:0,y:0,w:1,h:1},cropW=Math.max(1,inputW*crop.w),cropH=Math.max(1,inputH*crop.h);
+  const frameAR=o.params.resW/o.params.resH,sourceAR=cropW/cropH;
+  let drawW=layout.tileW,drawH=layout.tileH;
+  if(sourceAR>frameAR)drawH*=frameAR/sourceAR;else drawW*=sourceAR/frameAR;
+  return {inputW,inputH,cropW:Math.round(cropW),cropH:Math.round(cropH),drawW:Math.max(1,Math.round(drawW)),drawH:Math.max(1,Math.round(drawH)),
+    reduced:drawW+1<cropW||drawH+1<cropH};
+}
+function drawContentTile(i,src,frameAR,crop,orientation){
+  const fw=src.videoWidth||src.naturalWidth||0,fh=src.videoHeight||src.naturalHeight||0;
+  if(!fw||!fh)return false;
+  const cr=crop||{x:0,y:0,w:1,h:1},sx=cr.x*fw,sy=cr.y*fh,sw=Math.max(1,cr.w*fw),sh=Math.max(1,cr.h*fh);
+  const tw=atlasLayout.tileW,th=atlasLayout.tileH,rx=(i%atlasLayout.cols)*tw,ry=Math.floor(i/atlasLayout.cols)*th;
   atlasCtx.save();
-  atlasCtx.beginPath(); atlasCtx.rect(rx,ry,1024,1024); atlasCtx.clip();
-  atlasCtx.fillStyle='#000'; atlasCtx.fillRect(rx,ry,1024,1024);
-  const srcAR = sw/sh;
-  let dw=1024, dh=1024;                          // 타일 = 프로젝터 프레임 전체
-  if(srcAR > frameAR) dh = 1024*(frameAR/srcAR); // 레터박스
-  else dw = 1024*(srcAR/frameAR);
-  drawOrientedContent(atlasCtx,src,sx,sy,sw,sh,rx+(1024-dw)/2,ry+(1024-dh)/2,dw,dh,orientation);
-  atlasCtx.restore();
-  atlasTex.needsUpdate = true;
+  try{
+    atlasCtx.beginPath();atlasCtx.rect(rx,ry,tw,th);atlasCtx.clip();atlasCtx.fillStyle='#000';atlasCtx.fillRect(rx,ry,tw,th);
+    const sourceAR=sw/sh;let dw=tw,dh=th;
+    if(sourceAR>frameAR)dh*=frameAR/sourceAR;else dw*=sourceAR/frameAR;
+    drawOrientedContent(atlasCtx,src,sx,sy,sw,sh,rx+(tw-dw)/2,ry+(th-dh)/2,dw,dh,orientation);
+  }finally{atlasCtx.restore();}
+  atlasTex.needsUpdate=true;return true;
+}
+function contentFrameToken(c){
+  if(c.type!=='video')return 'still';
+  if(c.hasRVFC)return 'frame:'+(c.frameSerial||0);
+  const quality=c.el.getVideoPlaybackQuality?.();
+  if(quality&&Number.isFinite(quality.totalVideoFrames)&&quality.totalVideoFrames>0)return 'decoded:'+quality.totalVideoFrames;
+  return 'time:'+String(c.el.currentTime||0);
+}
+function updateProjectorContentTile(o,i){
+  const c=o.content;
+  if(!c?.ready){shared.uHasC.value[i]=0;return;}
+  const ar=o.params.resW/o.params.resH,src=c.el,fw=src.videoWidth||src.naturalWidth||0,fh=src.videoHeight||src.naturalHeight||0;
+  const key=o.id+':'+c.ver+':'+ar+':'+fw+'x'+fh,token=contentFrameToken(c);
+  if(tileOwner[i]!==key||tileFrame[i]!==token){
+    if(drawContentTile(i,src,ar,c.crop,c)){tileOwner[i]=key;tileFrame[i]=token;}
+  }
+  shared.uHasC.value[i]=tileOwner[i]===key?1:0;
+}
+function applyRenderQuality(){
+  const q=renderQualityPreset(),key=stage.renderQuality||'standard';
+  const ratio=Math.min(Number(devicePixelRatio)||1,q.dpr),signature=key+':'+ratio;
+  if(qualityRuntime.key===signature)return;
+  qualityRuntime.key=signature;qualityRuntime.lastRender=null;qualityRuntime.fpsStart=null;qualityRuntime.frames=0;qualityRuntime.fps=null;
+  renderer.setPixelRatio(ratio);
+  if(vpEl.clientWidth>1&&vpEl.clientHeight>1)renderer.setSize(vpEl.clientWidth,vpEl.clientHeight);
+}
+function shouldRenderQualityFrame(now){
+  applyRenderQuality();
+  if(document.hidden){qualityRuntime.lastRender=null;qualityRuntime.fpsStart=null;qualityRuntime.frames=0;qualityRuntime.fps=null;return false;}
+  const interval=1000/renderQualityPreset().fps;
+  if(qualityRuntime.lastRender!==null&&now-qualityRuntime.lastRender<interval-.5)return false;
+  // Retain the target cadence without counting nearly-exact floating-point
+  // intervals twice. Large gaps skip missed frames rather than catching up.
+  if(qualityRuntime.lastRender===null)qualityRuntime.lastRender=now;
+  else qualityRuntime.lastRender+=Math.max(1,Math.floor((now-qualityRuntime.lastRender+.5)/interval))*interval;
   return true;
 }
+function countQualityRender(now){
+  if(qualityRuntime.fpsStart===null){qualityRuntime.fpsStart=now;qualityRuntime.frames=0;}
+  else qualityRuntime.frames++;
+  const elapsed=now-qualityRuntime.fpsStart;
+  if(elapsed>=1000){qualityRuntime.fps=qualityRuntime.frames*1000/elapsed;qualityRuntime.frames=0;qualityRuntime.fpsStart=now;}
+}
+function qualityCaption(){
+  const q=renderQualityPreset(),fps=qualityRuntime.fps===null?'측정 중':qualityRuntime.fps.toFixed(0)+' fps';
+  return q.label+' · 실제 화면 '+fps+' / 목표 '+q.fps+' fps';
+}
+function appendRenderQualityControls(root){
+  const section=document.createElement('div');section.className='sec render-quality-panel';section.id='renderQualityPanel';section.dataset.panelTitle='화질 · 성능';
+  const options=['fast','standard','high'];
+  section.appendChild(selRow('화질',['빠름 · 최대 768px / 30fps','표준 · 최대 1536px / 60fps','고화질 · 최대 2048px / 60fps'],Math.max(0,options.indexOf(stage.renderQuality)),index=>{
+    flushHistory();stage.renderQuality=options[index];applyRenderQuality();ensureContentAtlas(activeProjectors());commitHistory();updateQualityReadout();
+  }));
+  const note=document.createElement('p');note.className='quality-note';
+  note.textContent='입력 영상과 별도로 미리보기 선명도를 설정합니다. 고화질은 성능·메모리를 더 사용합니다. 그림자 품질과 장비의 광학 사양은 별도 설정입니다.';
+  const status=document.createElement('p');status.id='renderQualityStatus';status.className='quality-note';status.setAttribute('role','status');
+  const list=document.createElement('div');list.id='renderQualitySources';list.className='quality-note';
+  section.append(note,status,list);root.appendChild(section);updateQualityReadout();return section;
+}
+function appendProjectedResolutionReadout(root,o){
+  const note=document.createElement('p');note.className='quality-note';note.dataset.projectedResolution=String(o.id);root.appendChild(note);
+  updateQualityReadout();
+}
+function projectedResolutionText(o){
+  const m=projectedContentMetrics(o);
+  if(!m)return '입력 해상도 확인 중';
+  const crop=m.cropW!==m.inputW||m.cropH!==m.inputH?' · 선택 영역 '+m.cropW+' × '+m.cropH:'';
+  const active=activeProjectors().includes(o);
+  return '입력 '+m.inputW+' × '+m.inputH+crop+(active?' → 표시 영상 '+m.drawW+' × '+m.drawH+(m.reduced?' (축소)':''):' · 투사 꺼짐');
+}
+function updateQualityReadout(){
+  const status=document.getElementById('renderQualityStatus');
+  if(status)status.textContent=qualityCaption()+(atlasLayout.limited?' · '+atlasLayout.reason+'로 표시 해상도가 제한됩니다.':'');
+  const button=document.getElementById('btnQuality');if(button)button.textContent='화질 · '+renderQualityPreset().label;
+  const sources=document.getElementById('renderQualitySources');
+  if(sources){
+    sources.replaceChildren();
+    const act=activeProjectors().filter(o=>o.content?.ready);
+    if(!act.length)sources.textContent='프로젝터에 이미지나 영상을 넣으면 입력·표시 크기를 보여 줍니다.';
+    act.forEach(o=>{const line=document.createElement('p');line.textContent=o.name+' · '+projectedResolutionText(o);sources.appendChild(line);});
+  }
+  document.querySelectorAll('[data-projected-resolution]').forEach(el=>{
+    const o=objects.find(item=>String(item.id)===el.dataset.projectedResolution);
+    if(o)el.textContent=projectedResolutionText(o)+(atlasLayout.limited?' · '+atlasLayout.reason+' 적용':'');
+  });
+}
+/* ---------- 영상 화질 끝 ---------- */
+
 const shared = {
   uNum:{value:0},
   uVP:{value:Array.from({length:MAXP},()=>new THREE.Matrix4())},
@@ -6316,6 +6473,8 @@ const shared = {
   uShadowOn:{value:1},      // 그림자 전역 토글
   uBlendView:{value:0},     // 오버랩(블렌드) 하이라이트
   uAtlas:{value:atlasTex},  // 콘텐츠 아틀라스
+  uAtlasGrid:{value:new THREE.Vector2(1,1)},
+  uAtlasInset:{value:new THREE.Vector2(.5/64,.5/64)},
   uHasC:{value:new Float32Array(MAXP)},
 };
 /* ---------- 그림자: 프로젝터별 깊이 맵을 4×2 타일 아틀라스 RT에 렌더 ---------- */
@@ -6385,6 +6544,7 @@ function stageLightStatus(o){
   return {active:true,reason:'조명 켜짐'};
 }
 function addStageLight(libOrKind){
+  if(!historyApplying){settleLightingCue(true,false);flushHistory();}
   if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
   if(objects.filter(o=>o.type==='light').length>=MAX_STAGE_LIGHTS){toast('무대 조명은 최대 '+MAX_STAGE_LIGHTS+'대까지 배치할 수 있어요. 사용하지 않는 조명을 삭제해 주세요.');return null;}
   const p=createStageLightParams(libOrKind),preset=STAGE_LIGHT_LIB.find(item=>item.kind===p.fixture);
@@ -6408,7 +6568,7 @@ function addStageLight(libOrKind){
   const o={id:seq++,type:'light',name:preset.name,mesh:g,params:p,visible:true,guide,lightLens,
     cam:new THREE.PerspectiveCamera(p.beamAngle,1,.05,180)};
   g.traverse(child=>{child.layers.set(1);if(child!==guide)child.userData.oid=o.id;});
-  updateStageLight(o);scene.add(g);objects.push(o);select(o);refreshTree();return o;
+  ensureCueKey(o);updateStageLight(o);scene.add(g);objects.push(o);select(o);refreshTree();return o;
 }
 function updateStageLight(o){
   const p=o.params,optic=stageLightOptics(p);
@@ -6445,7 +6605,7 @@ function updateStageLight(o){
   if(!o._lightColor)o._lightColor=new THREE.Color();
   o._lightColor.set(p.color);
   o.guide.material.color.copy(o._lightColor);
-  o.guide.visible=typeof selected!=='undefined'&&selected===o&&!!p.on&&p.intensity>0;
+  o.guide.visible=typeof selected!=='undefined'&&(selected===o||selectionSet.has(o))&&!!p.on&&p.intensity>0;
   o.lightLens.material.color.copy(o._lightColor).multiplyScalar(p.on ? (.15+.85*p.intensity/100) : .08);
   o.mesh.visible=o.visible;
 }
@@ -6640,6 +6800,7 @@ uniform vec2 uModelUVScale; uniform vec2 uModelUVOffset; uniform float uModelCla
 uniform float uGloss; uniform float uRear;
 uniform sampler2D uShadow; uniform float uShadowOn; uniform float uBlendView;
 uniform sampler2D uAtlas; uniform float uHasC[${MAXP}];
+uniform vec2 uAtlasGrid; uniform vec2 uAtlasInset;
 ${STAGE_LIGHT_FRAG_DECL}
 const float UnpackDownscale = 255. / 256.;
 const vec3 PackFactors3 = vec3(256.*256.*256., 256.*256., 256.);
@@ -6746,8 +6907,9 @@ void main(){
     if(uMode==0){
       if(uHasC[i] > 0.5){
         float fi = float(i);
-        vec2 cOff = vec2(mod(fi,4.0)*0.25, (1.0-floor(fi/4.0))*0.5); // flipY 검산 완료
-        beam += texture2D(uAtlas, cOff + uv*vec2(0.25,0.5)).rgb * b;
+        vec2 cOff = vec2(mod(fi,uAtlasGrid.x),uAtlasGrid.y-1.0-floor(fi/uAtlasGrid.x))/uAtlasGrid; // CanvasTexture flipY
+        vec2 cUV = cOff + clamp(uv,uAtlasInset,vec2(1.0)-uAtlasInset)/uAtlasGrid;
+        beam += texture2D(uAtlas,cUV).rgb * b;
       } else {
         beam += vec3(0.545, 0.894, 0.773)*gridPat(uv)*b;  // 테스트 그리드: Mint #8BE4C5
       }
@@ -7510,6 +7672,211 @@ function updateStage(){
 /* ---------- 씬 오브젝트 모델 ---------- */
 let objects = [];   // {id,type:'proj'|'surf'|'led', name, mesh, params, visible}
 let seq = 1, selected = null;
+/* ---------- 다중 선택 · 그룹 · 배치 잠금 ---------- */
+let selectionSet = new Set(), sceneGroups = [];
+let workflowSerial = 0;
+function workflowKey(prefix){return prefix+'-'+Date.now().toString(36)+'-'+(++workflowSerial).toString(36);}
+function selectedObjects(){return objects.filter(o=>selectionSet.has(o));}
+function placementLocked(o){return !!(o?.sys?stage[o.sys==='wall'?'wallLocked':'floorLocked']:o?.locked);}
+function selectionSnapshot(items=selectedObjects()){
+  return items.map(o=>({o,x:o.params.x,y:o.params.y,z:o.params.z,yaw:o.params.yaw,pitch:o.params.pitch,ry:o.params.ry}));
+}
+function canTransformSelection(items=selectedObjects()){return items.length>0&&items.every(o=>objects.includes(o)&&!placementLocked(o));}
+function refreshSelectionAppearance(){
+  objects.forEach(o=>{
+    if(o.type==='proj')o.frust.material.opacity=selectionSet.has(o)?0.95:0.4;
+    if(o.type==='light'&&o.guide)o.guide.visible=selectionSet.has(o)&&o.params.on;
+  });
+}
+function setSelection(items,primary){
+  selectionSet=new Set(items.filter(o=>objects.includes(o)));
+  selected=selectionSet.has(primary)?primary:[...selectionSet].at(-1)||null;
+  if(historyReady&&!historyApplying&&historyIndex>=0){
+    const state=historyEntries[historyIndex];
+    if(state&&[...selectionSet].every(o=>state.objects.some(x=>x.ref===o))){state.selected=selected;state.selection=[...selectionSet];}
+  }
+  refreshSelectionAppearance();refreshTree();renderProps();
+}
+function selectFromPointer(o,event={}){
+  if(!o||o.sys){select(o);return;}
+  if(event.ctrlKey||event.metaKey){
+    const next=selectedObjects();
+    if(selectionSet.has(o))setSelection(next.filter(x=>x!==o));else setSelection([...next,o],o);
+  }else select(o);
+}
+function pruneSceneGroups(){
+  sceneGroups=sceneGroups.filter(g=>objects.some(o=>o.groupId===g.id));
+  const ids=new Set(sceneGroups.map(g=>g.id));objects.forEach(o=>{if(o.groupId&&!ids.has(o.groupId))o.groupId='';});
+}
+function withSceneEdit(action){
+  settleLightingCue(true);flushHistory();
+  const previous=historyApplying;historyApplying=true;
+  try{return action();}
+  finally{historyApplying=previous;refreshSelectionAppearance();refreshTree();renderProps();commitHistory();scheduleAutosave();}
+}
+function groupSelection(name){
+  const items=selectedObjects();if(items.length<2){toast('두 개 이상 선택해 주세요.');return false;}
+  return withSceneEdit(()=>{
+    const group={id:workflowKey('group'),name:String(name||'새 그룹').trim().slice(0,40)||'새 그룹'};
+    sceneGroups.push(group);items.forEach(o=>o.groupId=group.id);pruneSceneGroups();return true;
+  });
+}
+function ungroupSelection(){
+  const ids=new Set(selectedObjects().map(o=>o.groupId).filter(Boolean));if(!ids.size)return;
+  withSceneEdit(()=>{objects.forEach(o=>{if(ids.has(o.groupId))o.groupId='';});pruneSceneGroups();});
+}
+function setSelectionLocked(value){
+  if(selected?.sys){withSceneEdit(()=>{stage[selected.sys==='wall'?'wallLocked':'floorLocked']=!!value;});return;}
+  withSceneEdit(()=>selectedObjects().forEach(o=>o.locked=!!value));
+}
+function translateSelection(snapshot,delta){
+  if(!canTransformSelection(snapshot.map(s=>s.o))||!['x','y','z'].every(k=>Number.isFinite(delta[k]??0)))return null;
+  const applied={};
+  for(const axis of ['x','y','z']){
+    const lo=axis==='y'?0:-60,hi=axis==='y'?40:60;
+    const min=Math.max(...snapshot.map(s=>lo-s[axis])),max=Math.min(...snapshot.map(s=>hi-s[axis]));
+    applied[axis]=Math.max(min,Math.min(max,delta[axis]||0));
+  }
+  snapshot.forEach(s=>{for(const axis of ['x','y','z'])s.o.params[axis]=Number((s[axis]+applied[axis]).toFixed(6));sync(s.o);});
+  return applied;
+}
+function rotateSelection(snapshot,degrees,pivot){
+  if(!canTransformSelection(snapshot.map(s=>s.o))||!Number.isFinite(degrees))return false;
+  const r=degrees*Math.PI/180,c=Math.cos(r),s=Math.sin(r);
+  const next=snapshot.map(item=>({item,x:pivot.x+(item.x-pivot.x)*c+(item.z-pivot.z)*s,z:pivot.z-(item.x-pivot.x)*s+(item.z-pivot.z)*c}));
+  if(next.some(p=>p.x< -60||p.x>60||p.z< -60||p.z>60))return false;
+  next.forEach(({item,x,z})=>{
+    const p=item.o.params;p.x=x;p.z=z;
+    if(item.yaw!==undefined)p.yaw=wrap180(item.yaw+degrees);else if(item.ry!==undefined)p.ry=wrap180(item.ry+degrees);
+    sync(item.o);
+  });return true;
+}
+function requireEditableSelection(){
+  if(!canTransformSelection()){toast('선택한 장비의 배치 잠금을 먼저 풀어 주세요.');return false;}return true;
+}
+function alignSelection(axis){
+  if(!['x','y','z'].includes(axis)||!requireEditableSelection())return false;
+  const items=selectedObjects(),value=selected.params[axis];
+  withSceneEdit(()=>items.forEach(o=>{o.params[axis]=value;sync(o);}));return true;
+}
+function spaceSelection(axis,gap){
+  if(!['x','y','z'].includes(axis)||!Number.isFinite(gap)||gap<0||!requireEditableSelection())return false;
+  const items=selectedObjects().sort((a,b)=>a.params[axis]-b.params[axis]||a.id-b.id);
+  if(items.length<2)return false;
+  const start=items[0].params[axis],end=start+gap*(items.length-1),limit=axis==='y'?40:60;
+  if(end>limit){toast('지정한 간격으로 배치하면 공간 범위를 벗어나요. 간격을 줄여 주세요.');return false;}
+  withSceneEdit(()=>items.forEach((o,i)=>{o.params[axis]=Number((start+gap*i).toFixed(6));sync(o);}));return true;
+}
+function distributeSelection(axis){
+  const items=selectedObjects().sort((a,b)=>a.params[axis]-b.params[axis]);
+  if(!['x','y','z'].includes(axis)||items.length<3)return false;
+  return spaceSelection(axis,(items.at(-1).params[axis]-items[0].params[axis])/(items.length-1));
+}
+function removeSelection(){
+  const items=selectedObjects();if(!items.length)return;
+  if(items.some(placementLocked)){toast('배치가 잠긴 장비는 삭제할 수 없어요. 잠금을 먼저 풀어 주세요.');return;}
+  withSceneEdit(()=>{items.forEach(removeObj);selectionSet.clear();selected=null;pruneSceneGroups();});
+}
+function duplicateSelection(){
+  const items=selectedObjects();if(!items.length)return;
+  if(objects.length+items.length>SCENE_LIMITS.objects||objects.filter(o=>o.type==='proj').length+items.filter(o=>o.type==='proj').length>MAXP||objects.filter(o=>o.type==='light').length+items.filter(o=>o.type==='light').length>MAX_STAGE_LIGHTS){toast('선택한 장비를 모두 복제하면 장면의 최대 개수를 넘어요.');return;}
+  withSceneEdit(()=>{
+    const copies=[],newGroups=new Map(),snapshot=selectionSnapshot(items);
+    const maxX=Math.max(...snapshot.map(s=>s.x)),minX=Math.min(...snapshot.map(s=>s.x));
+    const offset=maxX<60?Math.min(1,60-maxX):-Math.min(1,minX+60);
+    try{
+      items.forEach(o=>{
+        const d=duplicateObj(o);if(!d)throw new Error('장비를 복제하지 못했어요.');
+        copies.push(d);d.params.x=o.params.x+offset;d.locked=false;
+        if(o.groupId){
+          if(!newGroups.has(o.groupId)){const original=sceneGroups.find(g=>g.id===o.groupId);const g={id:workflowKey('group'),name:((original?.name||'그룹').slice(0,37)+' 사본')};sceneGroups.push(g);newGroups.set(o.groupId,g.id);}
+          d.groupId=newGroups.get(o.groupId);
+        }
+        sync(d);
+      });setSelection(copies,copies.at(-1));
+    }catch(error){copies.forEach(o=>{objects=objects.filter(x=>x!==o);releaseSceneObject(o);});pruneSceneGroups();setSelection(items,items.at(-1));toast(error.message);}
+  });
+}
+function selectionAction(label,action,disabled=false){
+  const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=label;b.disabled=disabled;b.onclick=action;return b;
+}
+function addSelectionManagement(root){
+  const items=selectedObjects(),sys=selected?.sys;if(!items.length&&!sys)return;
+  const box=document.createElement('div');box.className='sec selection-management';box.dataset.panelTitle='선택 · 그룹 · 잠금';
+  const status=document.createElement('p');status.className='workflow-note';
+  status.textContent=sys?'기본 '+(sys==='wall'?'벽':'바닥'):items.length+'개 선택 · 기준 장비: '+selected.name;
+  const lock=selectionAction(placementLocked(selected)&&items.every(placementLocked)?'배치 잠금 해제':'배치 잠금',()=>setSelectionLocked(!(sys?placementLocked(selected):items.every(placementLocked))));
+  const row=document.createElement('div');row.className='workflow-actions';row.appendChild(lock);
+  if(!sys){
+    row.append(selectionAction('선택 복제',duplicateSelection),selectionAction('선택 삭제',removeSelection,items.some(placementLocked)));
+    const group=items.length&&items.every(o=>o.groupId&&o.groupId===items[0].groupId)?sceneGroups.find(g=>g.id===items[0].groupId):null;
+    const label=document.createElement('label');label.className='workflow-field';label.textContent='그룹 이름';
+    const input=document.createElement('input');input.type='text';input.maxLength=40;input.value=group?.name||'';input.placeholder='예: 전면 PAR';label.appendChild(input);
+    const actions=document.createElement('div');actions.className='workflow-actions';
+    actions.append(selectionAction(group?'그룹 이름 변경':'그룹 만들기',()=>{if(group)withSceneEdit(()=>group.name=input.value.trim()||group.name);else groupSelection(input.value);},!group&&items.length<2),selectionAction('그룹 해제',ungroupSelection,!items.some(o=>o.groupId)));
+    box.append(status,row,label,actions);
+  }else box.append(status,row);
+  const hint=document.createElement('p');hint.className='workflow-note';hint.textContent='배치 잠금은 위치·회전·크기·삭제를 보호합니다. 밝기·색상과 조명 장면은 계속 조절할 수 있어요.';box.appendChild(hint);root.appendChild(box);
+}
+function disableLockedControls(){
+  if(!placementLocked(selected))return;
+  const geometryLabels=new Set(['X','Y','Z','Yaw','Pitch','회전 Y','폭 W','높이 H','깊이 D','반지름','스케일','사람 키','호 각도','키','키 (cm)','무대 폭','무대 깊이','스크린(벽) 폭','스크린(벽) 높이']);
+  right.querySelectorAll('.row').forEach(row=>{
+    if(row.dataset.transform||geometryLabels.has(row.querySelector('label')?.textContent))row.querySelectorAll('input,select,button').forEach(el=>el.disabled=true);
+  });
+  right.querySelectorAll('.projector-placement input,.projector-placement button').forEach(el=>el.disabled=true);
+}
+function renderSelectionProps(){
+  right.replaceChildren();transformBindings.clear();
+  const items=selectedObjects(),h=document.createElement('div');h.className='sec';
+  h.innerHTML='<div class="ptitle">여러 장비 편집</div>';right.appendChild(h);addSelectionManagement(right);
+  const pos=document.createElement('div');pos.className='sec';pos.dataset.panelTitle='함께 이동 · 회전';
+  const note=document.createElement('p');note.className='workflow-note';note.textContent='좌표는 기준 장비 위치입니다. 같은 거리만큼 함께 움직이며, 회전은 기준 장비를 중심으로 적용됩니다.';pos.appendChild(note);
+  ['x','y','z'].forEach(axis=>pos.appendChild(transformRow(axis,axis.toUpperCase(),selected.params[axis],.1,value=>{
+    if(!requireEditableSelection())return;translateSelection(selectionSnapshot(),{[axis]:value-selected.params[axis]});refreshTransformInputs();
+  },axis==='y'?0:-60,axis==='y'?40:60,...MM)));
+  const rotation=selected.params.yaw!==undefined?'yaw':'ry';
+  pos.appendChild(transformRow(rotation,'회전 Y',selected.params[rotation]||0,1,value=>{
+    if(!requireEditableSelection())return;
+    rotateSelection(selectionSnapshot(),wrap180(value-(selected.params[rotation]||0)),selected.params);refreshTransformInputs();
+  },-180,180,'°'));
+  if(items.some(placementLocked))pos.querySelectorAll('input').forEach(el=>el.disabled=true);
+  right.appendChild(pos);
+  const align=document.createElement('div');align.className='sec';align.dataset.panelTitle='정렬 · 간격';
+  const axes=document.createElement('select');axes.setAttribute('aria-label','정렬 축');
+  [['x','X · 좌우'],['y','Y · 높이'],['z','Z · 앞뒤']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;axes.appendChild(o);});
+  const gap=document.createElement('input');gap.type='number';gap.min='0';gap.max='120000';gap.step='100';gap.value='1000';gap.setAttribute('aria-label','장비 기준점 간격 (mm)');
+  const gapLabel=document.createElement('label');gapLabel.className='workflow-field';gapLabel.textContent='기준점 간격 (mm)';gapLabel.appendChild(gap);
+  const row=document.createElement('div');row.className='workflow-actions';const locked=items.some(placementLocked);
+  row.append(selectionAction('기준 장비에 맞춤',()=>alignSelection(axes.value),locked),selectionAction('양 끝 사이 균등 배치',()=>distributeSelection(axes.value),locked||items.length<3),selectionAction('지정 간격 배치',()=>{if(gap.value.trim()&&Number.isFinite(Number(gap.value)))spaceSelection(axes.value,Number(gap.value)/1000);},locked));
+  const info=document.createElement('p');info.className='workflow-note';info.textContent='간격은 장비 중심·렌즈 기준점 사이 거리입니다. 지정 간격은 선택 축의 가장 작은 좌표부터 적용합니다.';
+  align.append(axes,gapLabel,row,info);right.appendChild(align);
+  const lights=items.filter(o=>o.type==='light');
+  if(lights.length){
+    const light=document.createElement('div');light.className='sec';light.dataset.panelTitle='선택 조명 함께 조절';
+    const label=document.createElement('p');label.className='workflow-note';label.textContent='선택한 조명 '+lights.length+'대에 적용합니다. 값이 서로 다르면 첫 조명 값을 표시합니다.';light.appendChild(label);
+    light.appendChild(numRow('밝기',lights[0].params.intensity,1,v=>lights.forEach(o=>{o.params.intensity=v;sync(o);}),0,100,'%'));
+    const field=document.createElement('label');field.className='workflow-field';field.textContent='공통 색상';
+    const picker=document.createElement('input');picker.type='color';picker.value=lights[0].params.color;
+    const hex=document.createElement('input');hex.type='text';hex.value=lights[0].params.color;hex.maxLength=7;hex.setAttribute('aria-label','선택 조명 HEX 색상');
+    const applyColor=value=>{const color=normalizeSurfaceColor(value);if(!color){hex.setAttribute('aria-invalid','true');return;}withSceneEdit(()=>lights.forEach(o=>{o.params.color=color;sync(o);}));};
+    picker.onchange=()=>applyColor(picker.value);hex.onchange=()=>applyColor(hex.value);field.append(picker,hex);light.appendChild(field);
+    const buttons=document.createElement('div');buttons.className='workflow-actions';buttons.append(selectionAction('선택 조명 켜기',()=>withSceneEdit(()=>lights.forEach(o=>o.params.on=true))),selectionAction('선택 조명 끄기',()=>withSceneEdit(()=>lights.forEach(o=>o.params.on=false))));light.appendChild(buttons);right.appendChild(light);
+  }
+  finishPanel();
+}
+function normalizeSceneGroups(raw,items){
+  if(raw===undefined)raw=[];
+  if(!Array.isArray(raw)||raw.length>128)throw new Error('그룹 목록이 올바르지 않아요.');
+  const ids=new Set();const groups=raw.map(g=>{
+    if(!plainRecord(g)||typeof g.id!=='string'||!/^[-a-zA-Z0-9_]{1,100}$/.test(g.id)||ids.has(g.id))throw new Error('그룹 ID가 없거나 중복돼요.');
+    ids.add(g.id);return {id:g.id,name:sceneText(g.name,'그룹',40,'그룹 이름')};
+  });
+  items.forEach(o=>{if(o.groupId&&!ids.has(o.groupId))throw new Error('장비의 그룹을 찾을 수 없어요.');});
+  return groups.filter(g=>items.some(o=>o.groupId===g.id));
+}
+/* ---------- 다중 선택 모듈 끝 ---------- */
+
 
 /* Person dimensions are stored in metres; the UI uses centimetres. */
 const humanDraft = {kind:'man',cm:'175'};
@@ -7560,6 +7927,7 @@ function createHumanForm(){
 }
 
 function addSurface(kind, name, heightMeters){
+  if(!historyApplying){settleLightingCue(true,false);flushHistory();}
   if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
   const isPerson=kind==='man'||kind==='woman';
   if(isPerson && heightMeters!==undefined && (!Number.isFinite(heightMeters)||heightMeters<0.3||heightMeters>3)){
@@ -7648,6 +8016,7 @@ function surfGeo(p){
 }
 /* ---------- 3D 모델 임포트 (.obj) ---------- */
 function addModelFromText(name, objText, unit, modelAssets){
+  if(!historyApplying){settleLightingCue(true,false);flushHistory();}
   if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
   unit = unit || stage.unit;
   const uScale = unit==='mm'?0.001 : unit==='cm'?0.01 : 1;
@@ -7687,6 +8056,7 @@ function effLumens(o){
   return nominalLumens(p) * (p.output/100) * ((stage.derate??100)/100);
 }
 function addProjector(lib){
+  if(!historyApplying){settleLightingCue(true,false);flushHistory();}
   if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
   if(objects.filter(o=>o.type==='proj').length>=MAXP){toast('프로젝터는 최대 '+MAXP+'대까지 배치할 수 있어요. 사용하지 않는 장비를 삭제해 주세요.');return null;}
   const lens0 = defaultLens(lib);
@@ -7713,6 +8083,7 @@ function addProjector(lib){
   return o;
 }
 function addLED(lib){
+  if(!historyApplying){settleLightingCue(true,false);flushHistory();}
   if(objects.length>=SCENE_LIMITS.objects){toast('한 장면에 최대 128개의 오브젝트를 배치할 수 있어요.');return null;}
   const p = {name:lib.name, w:lib.w||6, h:lib.h||3.5, pitch:lib.pitch, nits:lib.nits, x:0, y:2, z:-6, ry:0};
   const tex = ledTexture(p);
@@ -7780,8 +8151,9 @@ function duplicateObj(o){
   }
   if(!d) return;
   Object.assign(d.params, saved);
-  d.params.x = (saved.x||0) + 1;   // 겹치지 않게 1m 옆
-  d.name = o.name + ' 사본';
+  d.locked=false;d.groupId='';
+  d.params.x = (saved.x||0)+((saved.x||0)<=59?1:-1);   // 공간 경계 안에서 1m 옆
+  d.name = o.name.slice(0,117) + ' 사본';
   if(o.type==='surf' && o.params.kind!=='model') rebuild(d);
   else if(o.type==='led') rebuildLED(d);
   else sync(d);
@@ -7830,11 +8202,11 @@ function loadMedia(file,onReady){
 }
 /* 프레임 동기화: 새 비디오 프레임 도착 시점에만 타일을 갱신 (저더 제거) */
 function attachFrameSync(c){
-  c.frameReady = true;
+  c.frameReady = true;c.frameSerial=(c.frameSerial||0)+1;
   if('requestVideoFrameCallback' in HTMLVideoElement.prototype){
     c.hasRVFC = true;
     const cb = ()=>{
-      c.frameReady = true;
+      c.frameReady = true;c.frameSerial=(c.frameSerial||0)+1;
       if(c.el && !c.disposed) c.el.requestVideoFrameCallback(cb);
     };
     c.el.requestVideoFrameCallback(cb);
@@ -8258,6 +8630,8 @@ function clearLEDContent(o){
 }
 
 function removeObj(o){
+  if(placementLocked(o)){toast('배치 잠금을 먼저 풀어 주세요.');return;}
+  settleLightingCue(true);
   cancelPendingBridge(o);
   flushHistory();
   retainedObjects.add(o);
@@ -8265,8 +8639,8 @@ function removeObj(o){
   if(o.ledSrc) retainedMedia.add(o.ledSrc);
   detachMeasurementsFromObject(o);
   scene.remove(o.mesh);objects=objects.filter(x=>x!==o);
-  if(selected===o)select(null);
-  refreshTree();commitHistory();reconcileMedia();
+  selectionSet.delete(o);if(selected===o)selected=[...selectionSet].at(-1)||null;pruneSceneGroups();
+  refreshSelectionAppearance();refreshTree();renderProps();commitHistory();reconcileMedia();
 }
 
 /* ---------- 프로젝터 프러스텀 & 카메라 갱신 ---------- */
@@ -8318,6 +8692,7 @@ function updateProjector(o){
 function pushUniforms(){
   pushStageLightUniforms(shadowDirty);
   const act = activeProjectors();
+  ensureContentAtlas(act);
   shared.uNum.value = act.length;
   act.forEach((o,i)=>{
     updateProjector(o);
@@ -8330,26 +8705,8 @@ function pushUniforms(){
     shared.uLum.value[i] = effLumens(o);
     shared.uTanH.value[i] = o._tanH;
     shared.uTanV.value[i] = o._tanV;
-    // 콘텐츠: 활성 인덱스 i의 타일에 그리기 (변경 시 / 영상 재생 중)
-    const c = o.content;
-    if(c && c.ready){
-      const ar = o.params.resW / o.params.resH;
-      const key = o.id + ':' + c.ver + ':' + ar;
-      if(c.type === 'video'){
-        const fresh = tileOwner[i] !== key;
-        // rVFC: 새 프레임 도착 시에만 드로우 (저더 없음) / 미지원 브라우저는 격프레임 폴백
-        const wantDraw = c.hasRVFC ? c.frameReady
-                                   : (!c.live || frame % 2 === 0);
-        if(fresh || (!c.el.paused && wantDraw)){
-          if(drawContentTile(i, c.el, ar, c.crop, c)){ tileOwner[i] = key; c.frameReady = false; }
-        }
-      } else if(tileOwner[i] !== key){
-        if(drawContentTile(i, c.el, ar, c.crop, c)) tileOwner[i] = key;
-      }
-      shared.uHasC.value[i] = tileOwner[i] === key ? 1 : 0;
-    } else {
-      shared.uHasC.value[i] = 0;
-    }
+    // Every tile remembers its own decoded-frame token, including shared sources.
+    updateProjectorContentTile(o,i);
   });
   // 그림자 베이크: 씬 변화 또는 활성 프로젝터 구성 변경 시에만
   if(shared.uShadowOn.value > 0.5){
@@ -8503,65 +8860,49 @@ renderLib();
 /* ---------- UI: 씬 트리 ---------- */
 const tree = document.getElementById('tree');
 function refreshTree(){
-  markShadowDirty();
-  tree.innerHTML='';
-  // 고정 시스템 노드: 기본 벽 · 기본 바닥
+  markShadowDirty();tree.replaceChildren();
+  const toolbar=document.createElement('div');toolbar.className='tree-tools';
+  toolbar.append(selectionAction('모두 선택',()=>setSelection(objects,objects.at(-1)),!objects.length),selectionAction('선택 해제',()=>select(null)));
+  const help=document.createElement('span');help.textContent='체크박스 또는 Ctrl/Cmd+클릭';toolbar.appendChild(help);tree.appendChild(toolbar);
   [[SYS_WALL,'wallOn','#8B95A7'],[SYS_FLOOR,'floorOn','#5E6878']].forEach(([sysObj,key,col])=>{
-    const n = document.createElement('div');
-    n.className = 'node'+(selected===sysObj?' sel':'');
-    n.innerHTML = `<span class="dot" style="background:${col};border-radius:50%"></span>
-      <span class="nm">${sysObj.name}</span>
-      <input type="checkbox" class="vis" ${stage[key]?'checked':''} title="표시">`;
-    n.querySelector('.nm').onclick = ()=>{select(sysObj); openPropsIfMobile();};
-    n.onclick = e=>{ if(e.target===n){select(sysObj); openPropsIfMobile();} };
-    const cb = n.querySelector('.vis');
-    cb.onclick = e=>e.stopPropagation();
-    cb.onchange = ()=>{
-      stage[key]=cb.checked; updateStage(); refreshTree();
-      if(selected===sysObj) renderProps();
-    };
-    tree.appendChild(n);
+    const n=document.createElement('div');n.className='node'+(selected===sysObj?' sel':'');
+    n.innerHTML='<span class="dot"></span><button class="nm"></button><input type="checkbox" class="vis"><button class="lock"></button>';
+    n.querySelector('.dot').style.background=col;
+    const name=n.querySelector('.nm');name.textContent=sysObj.name;name.onclick=()=>{select(sysObj);openPropsIfMobile();};
+    const vis=n.querySelector('.vis');vis.checked=stage[key];vis.setAttribute('aria-label',sysObj.name+' 표시');
+    vis.onchange=()=>withSceneEdit(()=>{stage[key]=vis.checked;updateStage();});
+    const lock=n.querySelector('.lock');lock.textContent=placementLocked(sysObj)?'🔒':'🔓';lock.setAttribute('aria-label',sysObj.name+' 배치 잠금');lock.setAttribute('aria-pressed',String(placementLocked(sysObj)));
+    lock.onclick=()=>withSceneEdit(()=>{const k=sysObj.sys==='wall'?'wallLocked':'floorLocked';stage[k]=!stage[k];});tree.appendChild(n);
   });
-  objects.forEach(o=>{
-    const n = document.createElement('div');
-    n.className = 'node'+(selected===o?' sel':'');n.dataset.objectId=String(o.id);
-    const col = o.type==='proj' ? '#'+o.color.toString(16).padStart(6,'0')
-              : o.type==='light' ? o.params.color : o.type==='led' ? 'var(--led)' : '#8B95A7';
-    n.innerHTML = `<span class="dot" style="background:${col}"></span>
-      <span class="nm"></span>
-      <input type="checkbox" class="vis" ${o.visible?'checked':''} title="표시">
-      <button class="dup" title="복제">⧉</button>
-      <button class="del">×</button>`;
-    n.querySelector('.dup').onclick = e=>{e.stopPropagation(); duplicateObj(o);};
-    const nm = n.querySelector('.nm'); nm.textContent = o.name;
-    nm.onclick = ()=>{select(o); openPropsIfMobile();};
-    nm.ondblclick = e=>{
-      e.stopPropagation();
-      const inp = document.createElement('input');
-      inp.type='text'; inp.value=o.name;
-      inp.style.cssText='flex:1;min-width:0;background:var(--bg);border:1px solid var(--beam);color:var(--txt);border-radius:4px;padding:2px 6px;font-size:12px;font-family:var(--sans)';
-      nm.replaceWith(inp); inp.focus(); inp.select();
-      const commit = ()=>{ o.name = inp.value.trim() || o.name; refreshTree(); if(selected===o) renderProps(); };
-      inp.onblur = commit;
-      inp.onkeydown = ev=>{ if(ev.key==='Enter') inp.blur(); if(ev.key==='Escape'){ inp.onblur=null; refreshTree(); } };
-      inp.onclick = ev=>ev.stopPropagation();
-    };
-    n.onclick = e=>{ if(e.target===n){select(o); openPropsIfMobile();} };
-    const cb = n.querySelector('.vis');
-    cb.onclick = e=>e.stopPropagation();
-    cb.onchange = ()=>{o.visible=cb.checked; o.mesh.visible=o.visible; refreshTree();};
-    n.querySelector('.del').onclick = e=>{e.stopPropagation(); removeObj(o);};
+  const addObject=o=>{
+    const n=document.createElement('div');n.className='node'+(selectionSet.has(o)?' sel':'');n.dataset.objectId=String(o.id);
+    n.innerHTML='<input type="checkbox" class="pick"><span class="dot"></span><button class="nm"></button><input type="checkbox" class="vis"><button class="lock"></button><button class="dup">⧉</button><button class="del">×</button>';
+    const col=o.type==='proj'?'#'+o.color.toString(16).padStart(6,'0'):o.type==='light'?o.params.color:o.type==='led'?'var(--led)':'#8B95A7';n.querySelector('.dot').style.background=col;
+    const pick=n.querySelector('.pick');pick.checked=selectionSet.has(o);pick.setAttribute('aria-label',o.name+' 선택');pick.onchange=()=>selectFromPointer(o,{ctrlKey:true});
+    const name=n.querySelector('.nm');name.textContent=o.name;name.title=o.name;name.onclick=e=>{selectFromPointer(o,e);openPropsIfMobile();};
+    const vis=n.querySelector('.vis');vis.checked=o.visible;vis.setAttribute('aria-label',o.name+' 표시');vis.onchange=()=>withSceneEdit(()=>{o.visible=vis.checked;o.mesh.visible=o.visible;});
+    const lock=n.querySelector('.lock');lock.textContent=o.locked?'🔒':'🔓';lock.setAttribute('aria-label',o.name+' 배치 잠금');lock.setAttribute('aria-pressed',String(!!o.locked));lock.onclick=()=>withSceneEdit(()=>o.locked=!o.locked);
+    const dup=n.querySelector('.dup');dup.setAttribute('aria-label',o.name+' 복제');dup.onclick=()=>withSceneEdit(()=>duplicateObj(o));
+    const del=n.querySelector('.del');del.setAttribute('aria-label',o.name+' 삭제');del.disabled=!!o.locked;del.onclick=()=>removeObj(o);
     tree.appendChild(n);
+  };
+  const rendered=new Set();
+  objects.forEach(o=>{
+    const g=sceneGroups.find(g=>g.id===o.groupId);
+    if(!g){addObject(o);return;}if(rendered.has(g.id))return;rendered.add(g.id);
+    const members=objects.filter(x=>x.groupId===g.id),header=document.createElement('div');header.className='scene-group';
+    const button=selectionAction(g.name+' · '+members.length+'개',()=>setSelection(members,members[0]));button.setAttribute('aria-pressed',String(members.every(x=>selectionSet.has(x))));header.appendChild(button);tree.appendChild(header);members.forEach(addObject);
   });
 }
 
 /* ---------- UI: 속성 패널 ---------- */
 const right = document.getElementById('right');
 function select(o){
-  selected = o;
-  objects.forEach(x=>{ if(x.type==='proj') x.frust.material.opacity = (x===o?0.95:0.4); if(x.type==='light'&&x.guide)x.guide.visible=x===o&&x.params.on; });
-  refreshTree(); renderProps();
+  if(o?.sys){selectionSet.clear();selected=o;refreshSelectionAppearance();refreshTree();renderProps();return;}
+  const members=o?(o.groupId?objects.filter(x=>x.groupId===o.groupId):[o]):[];
+  setSelection(members,o);
 }
+
 function numRow(label, val, step, cb, min, max, unit, factor){
   if(min===undefined) min=-30; if(max===undefined) max=30; factor=factor||1;
   const r=document.createElement('div');r.className='row';
@@ -8611,6 +8952,7 @@ function contentSection(o, getC, setFn, clearFn, note, isLED){
   cs.appendChild(row);
   const c = getC();
   appendBridgeControls(cs,o,!!isLED,c);
+  if(c&&!isLED)appendProjectedResolutionReadout(cs,o);
   if(c){
     const info = document.createElement('div');
     info.style.cssText='font-family:var(--mono);font-size:10px;color:var(--txt2);margin:4px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
@@ -8819,6 +9161,7 @@ function setProjectorReference(o,point,bearing){
   commitHistory();scheduleAutosave();
 }
 function applyProjectorPlacement(o,settings){
+  if(placementLocked(o))throw new Error('배치 잠금을 먼저 풀어 주세요.');
   if(!['proj','light'].includes(o.type)||!objects.includes(o)||selected!==o)throw new Error('배치할 프로젝터 또는 조명을 다시 선택해 주세요.');
   const position=calculateProjectorPlacement(o.params,settings);
   flushHistory();
@@ -8834,6 +9177,7 @@ function cancelPlacementPick(){
   if(button){button.textContent='화면에서 기준점 선택';button.setAttribute('aria-pressed','false');}
 }
 function beginPlacementPick(o){
+  if(placementLocked(o))return;
   if(placementPicking===o){cancelPlacementPick();return;}
   if(selected!==o||!['proj','light'].includes(o.type)||!objects.includes(o))return;
   endCanvasDrag();
@@ -9011,6 +9355,7 @@ function createStageLightColorControls(o){
   refresh();return section;
 }
 function aimStageLightAtReference(o){
+  if(placementLocked(o))throw new Error('배치 잠금을 먼저 풀어 주세요.');
   if(!stageLightOwned(o)||selected!==o)throw new Error('바라볼 조명을 다시 선택해 주세요.');
   const point=placementReference(o.params);
   if(!point)throw new Error('먼저 벽·바닥·모델에서 기준점을 선택해 주세요.');
@@ -9108,11 +9453,233 @@ function renderStageLightLibrary(root){
   const note=document.createElement('p');note.className='search-hint';note.textContent='추가 후 오른쪽에서 조명을 조절하세요. 기준점을 선택하면 해당 위치를 향하도록 맞출 수 있습니다.';root.appendChild(note);
 }
 
+/* ---------- 조명 장면: 밝기·색상·켜짐 저장 / 시간 전환 ---------- */
+const LIGHTING_CUE_LIMIT = 30;
+let lightingCues = [];
+let lightingCueRun = null;
+let lightingCueSelected = '';
+let lightingCueSequence = 0;
+let lightingCueLastProgress = 0;
+const lightingCueKeyPattern = /^[A-Za-z0-9_-]{1,80}$/;
+function newLightingCueKey(prefix){
+  const random=typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function'
+    ?crypto.randomUUID():Date.now().toString(36)+'-'+(++lightingCueSequence).toString(36)+'-'+Math.random().toString(36).slice(2,10);
+  return prefix+'-'+random;
+}
+function ensureCueKey(o){
+  if(!o||o.type!=='light')return '';
+  if(typeof o.cueKey==='string'&&lightingCueKeyPattern.test(o.cueKey)
+    &&!objects.some(other=>other!==o&&other.type==='light'&&other.cueKey===o.cueKey))return o.cueKey;
+  do{o.cueKey=newLightingCueKey('light');}while(objects.some(other=>other!==o&&other.cueKey===o.cueKey));
+  return o.cueKey;
+}
+function cloneLightingCues(cues=lightingCues){
+  return cues.map(cue=>({id:cue.id,name:cue.name,duration:cue.duration,lights:cue.lights.map(light=>({...light}))}));
+}
+function captureLightingCues(){return cloneLightingCues();}
+function normalizeLightingCues(raw,normalizedObjects=[]){
+  const invalid=message=>{throw new Error('조명 장면: '+message);};
+  const fixtureKeys=new Set();
+  normalizedObjects.filter(o=>o.type==='light').forEach(o=>{
+    if(typeof o.cueKey!=='string'||!lightingCueKeyPattern.test(o.cueKey)||fixtureKeys.has(o.cueKey))invalid('조명 식별자가 올바르지 않거나 중복됩니다.');
+    fixtureKeys.add(o.cueKey);
+  });
+  if(raw===undefined)return [];
+  if(!Array.isArray(raw)||raw.length>LIGHTING_CUE_LIMIT)invalid('최대 '+LIGHTING_CUE_LIMIT+'개까지 저장할 수 있어요.');
+  const ids=new Set();
+  return raw.map(cue=>{
+    if(!cue||typeof cue!=='object'||Array.isArray(cue))invalid('올바르지 않은 장면입니다.');
+    if(typeof cue.id!=='string'||!lightingCueKeyPattern.test(cue.id)||ids.has(cue.id))invalid('장면 식별자가 올바르지 않거나 중복됩니다.');
+    ids.add(cue.id);
+    if(typeof cue.name!=='string'||!cue.name.trim()||cue.name.length>40)invalid('이름은 1–40자로 입력해 주세요.');
+    if(typeof cue.duration!=='number'||!Number.isFinite(cue.duration)||cue.duration<0||cue.duration>30)invalid('전환 시간은 0–30초입니다.');
+    if(!Array.isArray(cue.lights)||cue.lights.length>MAX_STAGE_LIGHTS)invalid('장면에 저장한 조명이 너무 많습니다.');
+    const keys=new Set();
+    const lights=cue.lights.map(light=>{
+      if(!light||typeof light!=='object'||Array.isArray(light)||typeof light.key!=='string'||!lightingCueKeyPattern.test(light.key)||keys.has(light.key))invalid('조명 식별자가 올바르지 않거나 중복됩니다.');
+      keys.add(light.key);
+      if(typeof light.on!=='boolean'||typeof light.intensity!=='number'||!Number.isFinite(light.intensity)||light.intensity<0||light.intensity>100
+        ||typeof light.color!=='string'||!/^#[0-9a-f]{6}$/i.test(light.color))invalid('켜짐·밝기·색상 값이 올바르지 않아요.');
+      return {key:light.key,on:light.on,intensity:light.intensity,color:light.color.toUpperCase()};
+    });
+    // Missing keys are retained: deleting a fixture must not silently rewrite saved looks.
+    return {id:cue.id,name:cue.name.trim(),duration:Math.round(cue.duration*1000)/1000,lights};
+  });
+}
+function captureLightingCueLights(){
+  return objects.filter(o=>o.type==='light').map(o=>({key:ensureCueKey(o),on:!!o.params.on,
+    intensity:o.params.intensity,color:o.params.color.toUpperCase()}));
+}
+function lightingCueFields(name,duration){
+  const clean=typeof name==='string'?name.trim():'';
+  const seconds=typeof duration==='number'?duration:typeof duration==='string'&&duration.trim()!==''?Number(duration):NaN;
+  if(!clean||clean.length>40)throw new Error('장면 이름을 1–40자로 입력해 주세요.');
+  if(!Number.isFinite(seconds)||seconds<0||seconds>30)throw new Error('전환 시간을 0–30초로 입력해 주세요.');
+  return {name:clean,duration:Math.round(seconds*1000)/1000};
+}
+function lightingCueById(id){return lightingCues.find(cue=>cue.id===id)||null;}
+function isLightingCueRunning(){return !!lightingCueRun;}
+function setLightingCueMessage(text,error=false){
+  const status=document.getElementById('lightingCueStatus');
+  if(status){status.textContent=text;status.classList.toggle('cue-error',!!error);}
+}
+function saveLightingCue(name,duration,id){
+  const fields=lightingCueFields(name,duration);
+  if(!id&&lightingCues.length>=LIGHTING_CUE_LIMIT)throw new Error('조명 장면은 최대 '+LIGHTING_CUE_LIMIT+'개입니다. 사용하지 않는 장면을 삭제해 주세요.');
+  const old=id?lightingCueById(id):null;
+  if(id&&!old)throw new Error('덮어쓸 조명 장면을 다시 선택해 주세요.');
+  if(!objects.some(o=>o.type==='light'))throw new Error('먼저 퍼넬·ERS·PAR 조명을 추가해 주세요.');
+  settleLightingCue();flushHistory();
+  const cue={id:old?old.id:newLightingCueKey('cue'),...fields,lights:captureLightingCueLights()};
+  if(old)lightingCues[lightingCues.indexOf(old)]=cue;else lightingCues.push(cue);
+  lightingCueSelected=cue.id;commitHistory();scheduleAutosave();renderLightingCuePanel();
+  setLightingCueMessage((old?'현재 조명으로 덮어썼어요: ':'새 조명 장면을 저장했어요: ')+cue.name);
+  return cue;
+}
+function renameLightingCue(id,name,duration){
+  const cue=lightingCueById(id),fields=lightingCueFields(name,duration);
+  if(!cue)throw new Error('이름을 바꿀 조명 장면을 선택해 주세요.');
+  settleLightingCue();flushHistory();Object.assign(cue,fields);commitHistory();scheduleAutosave();renderLightingCuePanel();
+  setLightingCueMessage('이름과 전환 시간을 변경했어요. 저장된 조명 값은 유지됩니다.');
+}
+function deleteLightingCue(id){
+  const cue=lightingCueById(id);if(!cue)return false;
+  settleLightingCue();flushHistory();lightingCues=lightingCues.filter(item=>item!==cue);
+  lightingCueSelected=lightingCues[0]?.id||'';commitHistory();scheduleAutosave();renderLightingCuePanel();
+  setLightingCueMessage('조명 장면을 삭제했어요. 실행 취소로 복원할 수 있어요.');return true;
+}
+function cueLinearColor(hex){
+  return [1,3,5].map(index=>{const value=parseInt(hex.slice(index,index+2),16)/255;return value<=.04045?value/12.92:Math.pow((value+.055)/1.055,2.4);});
+}
+function cueColorHex(channels){
+  return '#'+channels.map(channel=>{const value=Math.max(0,Math.min(1,channel));
+    const srgb=value<=.0031308?12.92*value:1.055*Math.pow(value,1/2.4)-.055;
+    return Math.round(srgb*255).toString(16).padStart(2,'0');}).join('').toUpperCase();
+}
+function updateLightingCueControls(){
+  const panel=document.getElementById('lightingCuePanel');if(!panel)return;
+  const running=!!lightingCueRun,exists=!!lightingCueById(lightingCueSelected);
+  const stop=panel.querySelector('[data-cue-action="stop"]');if(stop)stop.disabled=!running;
+  ['apply','overwrite','rename','delete'].forEach(action=>{const button=panel.querySelector('[data-cue-action="'+action+'"]');if(button)button.disabled=!exists;});
+  const add=panel.querySelector('[data-cue-action="save"]');if(add)add.disabled=lightingCues.length>=LIGHTING_CUE_LIMIT;
+}
+function refreshAfterLightingCue(){
+  refreshTree();renderProps();updateStageLightReadout();updateLightingCueControls();
+}
+function finishLightingCue(commit=true,refresh=true){
+  const running=lightingCueRun;if(!running)return null;
+  lightingCueRun=null;
+  const progress=document.getElementById('lightingCueProgress');if(progress)progress.hidden=true;
+  if(refresh)refreshAfterLightingCue();else updateLightingCueControls();
+  if(commit){commitHistory();scheduleAutosave();}
+  return running;
+}
+function settleLightingCue(commit=true,refresh=true){
+  const running=finishLightingCue(commit,refresh);
+  if(running)setLightingCueMessage('현재 밝기·색상에서 멈췄어요: '+running.name);
+  return !!running;
+}
+function applyLightingCue(id,now=performance.now()){
+  const cue=lightingCueById(id);if(!cue)throw new Error('실행할 조명 장면을 선택해 주세요.');
+  settleLightingCue();flushHistory();
+  const lights=new Map(objects.filter(o=>o.type==='light').map(o=>[ensureCueKey(o),o]));
+  const targets=cue.lights.map(saved=>{
+    const o=lights.get(saved.key);if(!o)return null;
+    const p=o.params;
+    return {o,target:{...saved},from:{on:!!p.on,intensity:p.intensity,color:p.color},
+      fromPower:p.on?p.intensity:0,toPower:saved.on?saved.intensity:0,
+      fromColor:cueLinearColor(p.color),toColor:cueLinearColor(saved.color)};
+  }).filter(Boolean);
+  if(!targets.length){setLightingCueMessage('이 장면에 저장된 조명이 현재 무대에 없어요.',true);return false;}
+  lightingCueSelected=id;
+  lightingCueRun={id,name:cue.name,targets,start:now,duration:cue.duration*1000,skipped:cue.lights.length-targets.length};
+  lightingCueLastProgress=0;
+  updateLightingCueControls();setLightingCueMessage(cue.name+' · '+cue.duration+'초 전환 중'+(lightingCueRun.skipped?' · 없는 조명 '+lightingCueRun.skipped+'대 제외':''));
+  stepLightingCue(now);return true;
+}
+function stepLightingCue(now=performance.now()){
+  const running=lightingCueRun;if(!running)return;
+  const fraction=running.duration===0?1:Math.max(0,Math.min(1,(now-running.start)/running.duration));
+  running.targets.forEach(item=>{
+    const o=item.o;if(!objects.includes(o)||o.type!=='light')return;
+    const p=o.params;
+    if(fraction===1){p.on=item.target.on;p.intensity=item.target.intensity;p.color=item.target.color;}
+    else{
+      const power=item.fromPower+(item.toPower-item.fromPower)*fraction;
+      p.on=power>0;p.intensity=power;
+      p.color=cueColorHex(item.fromColor.map((value,index)=>value+(item.toColor[index]-value)*fraction));
+    }
+    updateStageLight(o);
+  });
+  if(fraction===1){
+    finishLightingCue();
+    setLightingCueMessage(running.name+' 적용 완료'+(running.skipped?' · 없는 조명 '+running.skipped+'대 제외':'')+' · 위치와 조사각은 유지됩니다.');
+  }else if(now-lightingCueLastProgress>=100||lightingCueLastProgress===0){
+    lightingCueLastProgress=now;
+    const progress=document.getElementById('lightingCueProgress');
+    if(progress){progress.hidden=false;progress.value=fraction*100;progress.setAttribute('aria-label',running.name+' 전환 진행률');}
+  }
+}
+function restoreLightingCues(cues){
+  lightingCueRun=null;
+  lightingCues=cues.map(cue=>({...cue,lights:cue.lights.map(light=>({...light}))}));
+  if(!lightingCueById(lightingCueSelected))lightingCueSelected=lightingCues[0]?.id||'';
+  renderLightingCuePanel();
+}
+function renderLightingCuePanel(){
+  const root=document.getElementById('lightingCuePanel');if(!root)return;
+  const picker=root.querySelector('#lightingCueSelect');if(!picker)return;
+  if(!lightingCueById(lightingCueSelected))lightingCueSelected=lightingCues[0]?.id||'';
+  picker.replaceChildren();
+  if(!lightingCues.length){const option=document.createElement('option');option.value='';option.textContent='저장한 조명 장면 없음';picker.appendChild(option);}
+  lightingCues.forEach(cue=>{
+    const option=document.createElement('option');option.value=cue.id;option.textContent=cue.name+' · '+cue.duration+'초';picker.appendChild(option);
+  });
+  picker.value=lightingCueSelected;
+  const cue=lightingCueById(lightingCueSelected);
+  root.querySelector('#lightingCueName').value=cue?.name||'새 조명 장면';
+  root.querySelector('#lightingCueDuration').value=String(cue?.duration??2);
+  const description=root.querySelector('#lightingCueInfo');
+  if(cue){const keys=new Set(objects.filter(o=>o.type==='light').map(o=>o.cueKey));const found=cue.lights.filter(light=>keys.has(light.key)).length;
+    description.textContent='저장 '+cue.lights.length+'대 · 현재 일치 '+found+'대'+(found<cue.lights.length?' · 없는 조명은 건너뜁니다.':'');}
+  else description.textContent='조명을 배치하고 밝기·색상을 맞춘 후 새 장면으로 저장하세요.';
+  const counter=root.querySelector('#lightingCueCount');if(counter)counter.textContent=lightingCues.length+' / '+LIGHTING_CUE_LIMIT;
+  updateLightingCueControls();
+}
+function renderLightingCues(){renderLightingCuePanel();}
+function toggleLightingCuePanel(open){
+  const root=document.getElementById('lightingCuePanel'),button=document.getElementById('btnLightingCues');if(!root||!button)return;
+  const show=typeof open==='boolean'?open:root.hidden;
+  root.hidden=!show;button.setAttribute('aria-expanded',String(show));button.classList.toggle('toggled',show);
+  if(show){renderLightingCuePanel();root.querySelector('#lightingCueSelect').focus();}
+  else button.focus();
+}
+function initializeLightingCueUI(){
+  const root=document.getElementById('lightingCuePanel'),toggle=document.getElementById('btnLightingCues');if(!root||!toggle)return;
+  toggle.onclick=()=>toggleLightingCuePanel();
+  root.querySelector('[data-cue-action="close"]').onclick=()=>toggleLightingCuePanel(false);
+  root.querySelector('#lightingCueSelect').onchange=event=>{lightingCueSelected=event.target.value;renderLightingCuePanel();};
+  const attempt=callback=>{try{callback();}catch(error){setLightingCueMessage(error.message,true);}};
+  const fields=()=>[root.querySelector('#lightingCueName').value,root.querySelector('#lightingCueDuration').value];
+  root.querySelector('[data-cue-action="save"]').onclick=()=>attempt(()=>saveLightingCue(...fields()));
+  root.querySelector('[data-cue-action="overwrite"]').onclick=()=>attempt(()=>saveLightingCue(...fields(),lightingCueSelected));
+  root.querySelector('[data-cue-action="rename"]').onclick=()=>attempt(()=>renameLightingCue(lightingCueSelected,...fields()));
+  root.querySelector('[data-cue-action="delete"]').onclick=()=>attempt(()=>deleteLightingCue(lightingCueSelected));
+  root.querySelector('[data-cue-action="apply"]').onclick=()=>attempt(()=>applyLightingCue(lightingCueSelected));
+  root.querySelector('[data-cue-action="stop"]').onclick=()=>settleLightingCue();
+  root.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();toggleLightingCuePanel(false);}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&settleLightingCue()){setLightingCueMessage('다른 창으로 이동해 전환을 현재 밝기·색상에서 멈췄어요.');autosaveNow();}});
+  renderLightingCuePanel();
+}
+/* ---------- 조명 장면 끝 ---------- */
+
+
 function renderProps(){
   cancelPlacementPick();
   transformBindings.clear();
   if(!selected){ renderStage(); return; }
   if(selected.sys){ renderSysProps(selected.sys); return; }
+  if(selectedObjects().length>1){renderSelectionProps();return;}
   const o = selected, p = o.params;
   right.innerHTML='';
   const s1 = document.createElement('div'); s1.className='sec';
@@ -9123,6 +9690,7 @@ function renderProps(){
   ni.onchange = ()=>{ o.name = ni.value.trim() || o.name; ni.value = o.name; refreshTree(); };
   nr.appendChild(ni); s1.appendChild(nr);
   right.appendChild(s1);
+  addSelectionManagement(right);
 
   const pos = document.createElement('div'); pos.className='sec';
   pos.appendChild(transformRow('x', 'X', p.x, 0.1, v=>{p.x=v; sync(o);}, -60, 60, ...MM));
@@ -9304,6 +9872,7 @@ function renderSysProps(kind){
   h.innerHTML = `<div class="ptitle" style="padding:0 0 6px">SYSTEM — ${isWall?'기본 벽':'기본 바닥'}</div>`;
   right.appendChild(h);
 
+  addSelectionManagement(right);
   const t = document.createElement('div'); t.className='sec';
   t.appendChild(toggleRow('표시', isWall?stage.wallOn:stage.floorOn, v=>{
     if(isWall) stage.wallOn=v; else stage.floorOn=v;
@@ -9422,7 +9991,11 @@ function renderStage(){
   cn.textContent = '새로 연결하는 라이브 캡처부터 적용돼요. 60fps는 라이브 1~2개·데스크톱에서 권장.';
   g.appendChild(cn);
   right.appendChild(g);
+  appendRenderQualityControls(right);
   finishPanel();
+  right.querySelectorAll('.row').forEach(row=>{const l=row.querySelector('label')?.textContent;
+    if((stage.wallLocked&&['스크린(벽) 폭','스크린(벽) 높이'].includes(l))||(stage.floorLocked&&['무대 폭','무대 깊이'].includes(l)))row.querySelectorAll('input').forEach(i=>i.disabled=true);
+  });
 }
 
 function sync(o){
@@ -9465,6 +10038,7 @@ function updateLEDReadout(o){
 }
 var panelFolds = Object.create(null);
 function finishPanel(){
+  disableLockedControls();
   updateProjectorReadout();
   updateStageLightReadout();
   const kind=selected?(selected.sys||selected.type):'stage';
@@ -9748,7 +10322,7 @@ function syncShadowBtn(){
   btnShadow.textContent = stage.shadows ? '그림자 ON' : '그림자 OFF';
   btnShadow.classList.toggle('toggled', !!stage.shadows);
 }
-btnShadow.onclick = ()=>{ stage.shadows = !stage.shadows; updateStage(); syncShadowBtn(); };
+btnShadow.onclick = ()=>{ settleLightingCue(true,false);flushHistory();stage.shadows = !stage.shadows; updateStage(); syncShadowBtn();commitHistory(); };
 syncShadowBtn();
 
 /* ---------- 뷰 모드 ---------- */
@@ -9800,7 +10374,7 @@ function axisT(rayO, rayD, lineO, lineD){
   return new THREE.Vector3().crossVectors(diff, rayD).dot(n)/n2;
 }
 function updateGizmo(){
-  const on = selected && objects.includes(selected);
+  const on = selected && objects.includes(selected) && canTransformSelection();
   gizmo.visible = !!on;
   rotGizmo.visible = !!on;
   if(!on) return;
@@ -9811,7 +10385,7 @@ function updateGizmo(){
   rotGizmo.scale.copy(gizmo.scale);
   const p = selected.params;
   yawRing.visible = (p.yaw!==undefined || p.ry!==undefined);
-  pitchRing.visible = selected.type==='proj'||selected.type==='light';
+  pitchRing.visible = selectedObjects().length===1&&(selected.type==='proj'||selected.type==='light');
   if(pitchRing.visible)
     pitchRing.rotation.set(0, Math.PI/2 + THREE.MathUtils.degToRad(p.yaw||0), 0);
 }
@@ -9953,6 +10527,7 @@ camViewsEl.id = 'camViews';
 vpEl.appendChild(camViewsEl);
 function saveView(){
   if(views.length>=50){toast('저장 시점은 50개까지 지원해요.');return;}
+  settleLightingCue(true,false);
   flushHistory();
   views.push({name:'시점 '+(views.length+1),
     tgt:[orbit.tgt.x,orbit.tgt.y,orbit.tgt.z], r:orbit.r, theta:orbit.theta, phi:orbit.phi});
@@ -10000,7 +10575,7 @@ function renderViews(){
     c.append(document.createTextNode(`${i+1}. ${v.name} `));
     const close=document.createElement('span');close.className='vx';close.title='삭제';close.textContent='×';c.appendChild(close);
     c.onclick = e=>{
-      if(e.target.classList.contains('vx')){ views.splice(i,1); renderViews(); return; }
+      if(e.target.classList.contains('vx')){settleLightingCue(true,false);flushHistory();views.splice(i,1);renderViews();commitHistory();return;}
       applyView(v);
     };
     camViewsEl.appendChild(c);
@@ -10033,7 +10608,7 @@ function openPropsIfMobile(){ if(isMobile()) setDrawer('right'); }
 
 /* ---------- 마우스 인터랙션 ---------- */
 let dragMode=null,downPos=null,pointerStart=null,moved=false,pendingHit=null;
-let axisDrag=null,rotDrag=null,moveDrag=null,dragTarget=null;
+let axisDrag=null,rotDrag=null,moveDrag=null,dragTarget=null,dragSelection=null,pendingToggle=false;
 const pointers=new Map();
 let pinch=null;
 function pinchState(){
@@ -10054,7 +10629,7 @@ function endCanvasDrag(){
   if(!pointers.size && !dragMode) return;
   const ids=[...pointers.keys()];
   pointers.clear();dragMode=null;downPos=null;pointerStart=null;pendingHit=null;
-  axisDrag=null;rotDrag=null;moveDrag=null;dragTarget=null;pinch=null;moved=false;
+  axisDrag=null;rotDrag=null;moveDrag=null;dragTarget=null;dragSelection=null;pendingToggle=false;pinch=null;moved=false;
   // Clear ownership before release: lostpointercapture must not end a later gesture.
   ids.forEach(id=>{if(renderer.domElement.hasPointerCapture(id))renderer.domElement.releasePointerCapture(id);});
   historyPointer=false;flushHistory();scheduleAutosave();
@@ -10073,16 +10648,18 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   flushHistory();historyPointer=true;camAnim=null;
   pointers.set(e.pointerId,[e.clientX,e.clientY]);pinch={touch:e.pointerType==='touch'};
   downPos=[e.clientX,e.clientY];pointerStart=downPos.slice();moved=false;pendingHit=null;dragTarget=selected;
+  dragSelection=selectionSnapshot();pendingToggle=!!(e.ctrlKey||e.metaKey);
   setNDC(e);ray.setFromCamera(ndc,camera);
   if(placementPicking && e.button===0 && !e.shiftKey){dragMode='placement';renderer.domElement.setPointerCapture(e.pointerId);return;}
   // Pick a ruler endpoint only on click release; dragging still controls the camera.
   if(measure.on && e.button===0 && !e.shiftKey){dragMode='measure';renderer.domElement.setPointerCapture(e.pointerId);return;}
-  if(gizmo.visible && selected?.params && e.button===0 && !e.shiftKey){
+  if(gizmo.visible && selected?.params && canTransformSelection() && e.button===0 && !e.shiftKey && !pendingToggle){
     const gh=ray.intersectObjects(gizmo.children,true).filter(h=>h.object.userData.axis);
     if(gh.length){
       const axis=gh[0].object.userData.axis,dir=AXIS_DIR[axis];
       const t0=axisT(ray.ray.origin,ray.ray.direction,gizmo.position,dir);
       if(t0!==null && isFinite(t0)){
+        settleLightingCue(true,false);
         axisDrag={axis,dir,start:selected.mesh.position.clone(),t0};dragMode='axis';
         renderer.domElement.setPointerCapture(e.pointerId);return;
       }
@@ -10093,6 +10670,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
       const axis=tag==='yaw'?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),THREE.MathUtils.degToRad(p.yaw||0));
       const center=gizmo.position.clone(),ref=ringHitVec(axis,center);
       if(ref){
+        settleLightingCue(true,false);
         const startVal=tag==='yaw'?(p.yaw!==undefined?p.yaw:(p.ry||0)):(p.pitch||0);
         rotDrag={tag,axis,center,ref,startVal};dragMode='rot';
         renderer.domElement.setPointerCapture(e.pointerId);return;
@@ -10105,8 +10683,9 @@ renderer.domElement.addEventListener('pointerdown',e=>{
     const ud=hits[0].object.userData;
     hitObj=ud.oid?objects.find(o=>o.id===ud.oid):ud.sys==='wall'?SYS_WALL:SYS_FLOOR;
   }
-  const movable=hitObj===selected && selected && (selected.params || selected===SYS_WALL);
+  const movable=selected && !pendingToggle && !placementLocked(selected) && ((selected===SYS_WALL&&hitObj===selected)||(selectionSet.has(hitObj)&&canTransformSelection()));
   if(e.button===0 && !e.shiftKey && movable){
+    settleLightingCue(true,false);
     // Move parallel to the floor through the grabbed point, preserving its offset.
     const plane=new THREE.Plane(new THREE.Vector3(0,1,0),-hits[0].point.y),grab=new THREE.Vector3();
     if(ray.ray.intersectPlane(plane,grab)){
@@ -10139,9 +10718,9 @@ renderer.domElement.addEventListener('pointermove',e=>{
       const crossV=new THREE.Vector3().crossVectors(rotDrag.ref,cur);
       const deg=THREE.MathUtils.radToDeg(Math.atan2(crossV.dot(rotDrag.axis),rotDrag.ref.dot(cur)));
       const p=selected.params,val=Math.round(rotDrag.startVal+deg);
-      if(rotDrag.tag==='yaw'){if(p.yaw!==undefined)p.yaw=wrap180(val);else p.ry=wrap180(val);}
-      else p.pitch=THREE.MathUtils.clamp(wrap180(val),-90,90);
-      sync(selected);refreshTransformInputs();
+      if(rotDrag.tag==='yaw')rotateSelection(dragSelection,Math.round(deg),rotDrag.center);
+      else {p.pitch=THREE.MathUtils.clamp(wrap180(val),-90,90);sync(selected);}
+      refreshTransformInputs();
     }return;
   }
   if(dragMode==='axis' && axisDrag && selected){
@@ -10150,10 +10729,8 @@ renderer.domElement.addEventListener('pointermove',e=>{
     const t=axisT(ray.ray.origin,ray.ray.direction,axisDrag.start,axisDrag.dir);
     if(t!==null && isFinite(t)){
       const delta=THREE.MathUtils.clamp(t-axisDrag.t0,-60,60),np=axisDrag.start.clone().addScaledVector(axisDrag.dir,delta);
-      selected.params.x=THREE.MathUtils.clamp(Math.round(np.x*100)/100,-60,60);
-      selected.params.y=THREE.MathUtils.clamp(Math.round(np.y*100)/100,0,40);
-      selected.params.z=THREE.MathUtils.clamp(Math.round(np.z*100)/100,-60,60);
-      sync(selected);refreshTransformInputs();
+      translateSelection(dragSelection,{[axisDrag.axis]:Math.round((np[axisDrag.axis]-axisDrag.start[axisDrag.axis])*100)/100});
+      refreshTransformInputs();
     }return;
   }
   const dx=e.clientX-downPos[0],dy=e.clientY-downPos[1];
@@ -10168,7 +10745,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
       const x=THREE.MathUtils.clamp(Math.round((moveDrag.start.x+pt.x-moveDrag.grab.x)*20)/20,-60,60);
       const z=THREE.MathUtils.clamp(Math.round((moveDrag.start.z+pt.z-moveDrag.grab.z)*20)/20,-60,60);
       if(selected===SYS_WALL){stage.wallX=x;stage.wallZ=z;updateStage();}
-      else if(selected.params){selected.params.x=x;selected.params.z=z;sync(selected);}
+      else if(selected.params)translateSelection(dragSelection,{x:x-moveDrag.start.x,z:z-moveDrag.start.z});
       refreshTransformInputs();
     }
   }
@@ -10177,11 +10754,11 @@ renderer.domElement.addEventListener('pointermove',e=>{
 renderer.domElement.addEventListener('pointerup',e=>{
   if(!pointers.has(e.pointerId))return;
   const releasedOnCanvas=pointerOverCanvas(e);
-  const clicked=dragMode==='orbit' && !moved && releasedOnCanvas,hit=pendingHit;
+  const clicked=dragMode==='orbit' && !moved && releasedOnCanvas,hit=pendingHit,toggle=pendingToggle;
   const measured=dragMode==='measure' && !moved && releasedOnCanvas;
   if(dragMode==='placement' && !moved && releasedOnCanvas){setNDC(e);ray.setFromCamera(ndc,camera);placementClick();}
   if(measured){setNDC(e);ray.setFromCamera(ndc,camera);measureClick();}
-  endCanvasDrag();if(clicked)select(hit||null);
+  endCanvasDrag();if(clicked)selectFromPointer(hit||null,{ctrlKey:toggle});
 });
 renderer.domElement.addEventListener('lostpointercapture',e=>{if(pointers.has(e.pointerId))endCanvasDrag();});
 window.addEventListener('pointerup',e=>{if(pointers.has(e.pointerId))endCanvasDrag();});
@@ -10320,18 +10897,19 @@ function normalizeMeasurements(raw, sceneObjects){
 function normalizeSceneData(data){
   if(!plainRecord(data) || !Array.isArray(data.objects)) throw new Error('프로젝터 시뮬레이터의 장면 JSON 파일을 선택해 주세요.');
   if(data.app!==undefined && data.app!=='Projector Simulator') throw new Error('다른 앱의 파일은 불러올 수 없어요.');
-  const version=sceneNumber(data.v,3,1,6,'저장 파일 버전',true),migrationNotes=[];
+  const version=sceneNumber(data.v,3,1,7,'저장 파일 버전',true),migrationNotes=[];
   if(data.objects.length>SCENE_LIMITS.objects) throw new Error('한 장면에는 오브젝트를 최대 128개까지 불러올 수 있어요.');
   if(data.stage!==undefined && !plainRecord(data.stage)) throw new Error('무대 설정 형식이 올바르지 않아요.');
   const ss=data.stage||{}, ns={...STAGE_DEFAULTS};
   const stageRules={ambPreset:[0,AMB_PRESETS.length-1,true],ambPct:[0,100],wallGain:[0.3,2.5],wallW:[0.1,60],wallH:[0.1,40],
     wallX:[-60,60],wallZ:[-60,60],wallRy:[-180,180],stageW:[1,80],stageD:[1,80],floorRefl:[0,100],derate:[50,100]};
   for(const [key,range] of Object.entries(stageRules)) ns[key]=sceneNumber(ss[key],ns[key],range[0],range[1],'무대 '+key,range[2]);
-  for(const key of ['wallOn','floorOn','shadows']) ns[key]=sceneBool(ss[key],ns[key],'무대 '+key);
+  for(const key of ['wallOn','floorOn','shadows','wallLocked','floorLocked']) ns[key]=sceneBool(ss[key],ns[key],'무대 '+key);
   ns.wallMode=sceneEnum(ss.wallMode,ns.wallMode,['front','rear'],'벽 투사 방식');
   ns.capFps=sceneEnum(ss.capFps,ns.capFps,[30,60],'캡처 프레임');
   ns.unit=sceneEnum(ss.unit,ns.unit,['m','cm','mm'],'모델 단위');
   ns.lightShadowQuality=sceneEnum(ss.lightShadowQuality,ns.lightShadowQuality,['off','medium','high'],'조명 그림자 품질');
+  ns.renderQuality=sceneEnum(ss.renderQuality,ns.renderQuality,['fast','standard','high'],'화질 설정');
   if(data.views!==undefined && (!Array.isArray(data.views) || data.views.length>50)) throw new Error('저장 시점은 최대 50개까지 지원해요.');
   const nviews=(data.views||[]).map((v,i)=>{
     if(!plainRecord(v) || !Array.isArray(v.tgt) || v.tgt.length!==3) throw new Error('시점 '+(i+1)+' 설정이 올바르지 않아요.');
@@ -10392,18 +10970,21 @@ function normalizeSceneData(data){
         q.pitch=sceneNumber(p.pitch,2.6,0.1,10,'LED 픽셀 피치'); q.nits=sceneNumber(p.nits,1200,1,20000,'LED 밝기');
       }
     }
-    return {type,name:sceneText(so.name,type==='proj'?q.model:type==='surf'?q.kind:type==='light'?STAGE_LIGHT_LIB.find(item=>item.kind===q.fixture).name:'LED',120,'오브젝트 이름'),params:q,
+    const groupId=sceneText(so.groupId,'',100,'그룹 ID'),locked=sceneBool(so.locked,false,'배치 잠금');
+    const cueKey=type==='light'?sceneText(so.cueKey,'legacy-light-'+index,100,'조명 ID'):undefined;
+    return {type,groupId,locked,cueKey,name:sceneText(so.name,type==='proj'?q.model:type==='surf'?q.kind:type==='light'?STAGE_LIGHT_LIB.find(item=>item.kind===q.fixture).name:'LED',120,'오브젝트 이름'),params:q,
       visible:sceneBool(so.visible,true,'오브젝트 표시'),color:type==='proj'?sceneNumber(so.color,PCOLORS[(projectors-1)%PCOLORS.length],0,0xffffff,'프로젝터 색상',true):undefined};
   });
   if(nobjects.some(o=>o.params.modelAssets)){
     if(new Blob([JSON.stringify(data)]).size>SCENE_LIMITS.fileBytes)throw new Error('텍스처를 포함한 장면 JSON은 40MB 이하로 줄여 주세요.');
     if(nobjects.reduce((sum,o)=>sum+modelAssetMemory(o.params.modelAssets),0)>192*1024*1024)throw new Error('장면의 텍스처가 너무 큽니다. 이미지 수나 크기를 줄여 주세요.');
   }
-  return {app:'Projector Simulator',v:6,specRevision:SPEC_REVISION,migrationNotes,targetLux:sceneNumber(data.targetLux,150,1,10000,'목표 조도'),stage:ns,views:nviews,objects:nobjects,measurements:normalizeMeasurements(data.measurements,nobjects)};
+  const groups=normalizeSceneGroups(data.groups,nobjects),cues=normalizeLightingCues(data.lightingCues,nobjects);
+  return {app:'Projector Simulator',v:7,groups,lightingCues:cues,specRevision:SPEC_REVISION,migrationNotes,targetLux:sceneNumber(data.targetLux,150,1,10000,'목표 조도'),stage:ns,views:nviews,objects:nobjects,measurements:normalizeMeasurements(data.measurements,nobjects)};
 }
 function serialize(){
-  return JSON.stringify({app:'Projector Simulator',v:6,specRevision:SPEC_REVISION,targetLux:shared.uTargetLux.value,stage,views,measurements:snapshotMeasurements(),
-    objects:objects.map(o=>({type:o.type,name:o.name,params:o.params,visible:o.visible,color:o.type==='proj'?o.color:undefined}))},null,2);
+  return JSON.stringify({app:'Projector Simulator',v:7,groups:sceneGroups,lightingCues:cloneLightingCues(),specRevision:SPEC_REVISION,targetLux:shared.uTargetLux.value,stage,views,measurements:snapshotMeasurements(),
+    objects:objects.map(o=>({type:o.type,name:o.name,params:o.params,visible:o.visible,color:o.type==='proj'?o.color:undefined,locked:!!o.locked,groupId:o.groupId||'',cueKey:o.type==='light'?ensureCueKey(o):undefined}))},null,2);
 }
 function setSaveStatus(state, detail){
   const el=document.getElementById('saveStatus'); if(!el) return;
@@ -10428,12 +11009,12 @@ function mediaState(c){
   return {ref:c,id:mediaIds.get(c),crop:c.crop?{...c.crop}:null,flipX:!!c.flipX,flipY:!!c.flipY};
 }
 function captureHistoryState(){
-  return {stage:{...stage},targetLux:shared.uTargetLux.value,views:views.map(v=>({...v,tgt:[...v.tgt]})),selected,measurements:snapshotMeasurements(),
-    objects:objects.map(o=>{retainedObjects.add(o);return {ref:o,id:o.id,name:o.name,params:{...o.params},visible:o.visible,color:o.color,
+  return {stage:{...stage},targetLux:shared.uTargetLux.value,views:views.map(v=>({...v,tgt:[...v.tgt]})),selected,selection:[...selectionSet],groups:sceneGroups.map(g=>({...g})),lightingCues:cloneLightingCues(),measurements:snapshotMeasurements(),
+    objects:objects.map(o=>{retainedObjects.add(o);return {ref:o,id:o.id,name:o.name,params:{...o.params},visible:o.visible,color:o.color,locked:!!o.locked,groupId:o.groupId||'',cueKey:o.type==='light'?ensureCueKey(o):undefined,
       content:mediaState(o.content),ledSrc:mediaState(o.ledSrc)};})};
 }
 function historyKey(s){
-  return JSON.stringify({stage:s.stage,targetLux:s.targetLux,views:s.views,measurements:s.measurements,objects:s.objects.map(x=>({id:x.id,name:x.name,
+  return JSON.stringify({stage:s.stage,targetLux:s.targetLux,views:s.views,groups:s.groups,lightingCues:s.lightingCues,measurements:s.measurements,objects:s.objects.map(x=>({id:x.id,name:x.name,locked:x.locked,groupId:x.groupId,cueKey:x.cueKey,
     params:{...x.params,objText:undefined,modelAssets:undefined,modelAssetsId:modelAssetsHistoryId(x.params.modelAssets)},visible:x.visible,color:x.color,
     content:x.content?{id:x.content.id,crop:x.content.crop,flipX:x.content.flipX,flipY:x.content.flipY}:null,ledSrc:x.ledSrc?{id:x.ledSrc.id,crop:x.ledSrc.crop,flipX:x.ledSrc.flipX,flipY:x.ledSrc.flipY}:null}))});
 }
@@ -10497,10 +11078,11 @@ function retainedByteEstimate(){
   return bytes;
 }
 function commitHistory(){
+  if(isLightingCueRunning())return;
   if(!historyReady || historyApplying) return;
   clearTimeout(historyTimer);historyTimer=null;
   const snap=captureHistoryState(),key=historyKey(snap);
-  if(historyIndex>=0 && historyEntries[historyIndex].key===key){historyEntries[historyIndex].selected=selected;updateHistoryButtons();return;}
+  if(historyIndex>=0 && historyEntries[historyIndex].key===key){historyEntries[historyIndex].selected=selected;historyEntries[historyIndex].selection=[...selectionSet];updateHistoryButtons();return;}
   historyEntries=historyEntries.slice(0,historyIndex+1); snap.key=key;historyEntries.push(snap);historyIndex=historyEntries.length-1;
   while(historyEntries.length>SCENE_LIMITS.history || (historyEntries.length>1 && retainedByteEstimate()>SCENE_LIMITS.retainedBytes)){
     historyEntries.shift();historyIndex--;
@@ -10508,6 +11090,7 @@ function commitHistory(){
   collectHistoryResources();updateHistoryButtons();scheduleAutosave();
 }
 function scheduleHistory(){
+  if(isLightingCueRunning())return;
   if(!historyReady || historyApplying) return;
   clearTimeout(historyTimer);
   if(historyPointer || document.activeElement?.matches('input[type="number"],input[type="range"]')) return;
@@ -10515,6 +11098,7 @@ function scheduleHistory(){
 }
 function flushHistory(){if(historyReady && !historyApplying){clearTimeout(historyTimer);historyTimer=null;commitHistory();}}
 function restoreHistoryState(s){
+  settleLightingCue(false,false);
   cancelModelImport();
   cancelPlacementPick();
   cancelAllPendingBridge();
@@ -10522,8 +11106,9 @@ function restoreHistoryState(s){
   try{
     const wanted=new Set(s.objects.map(x=>x.ref));objects.forEach(o=>{if(!wanted.has(o))scene.remove(o.mesh);});
     Object.assign(stage,s.stage);shared.uTargetLux.value=s.targetLux;views=s.views.map(v=>({...v,tgt:[...v.tgt]}));
+    sceneGroups=(s.groups||[]).map(g=>({...g}));lightingCues=cloneLightingCues(s.lightingCues||[]);
     objects=s.objects.map(x=>{
-      const o=x.ref;o.name=x.name;o.params={...x.params};o.visible=x.visible;o.color=x.color;o.mesh.visible=x.visible;
+      const o=x.ref;o.name=x.name;o.params={...x.params};o.visible=x.visible;o.color=x.color;o.mesh.visible=x.visible;o.locked=!!x.locked;o.groupId=x.groupId||'';o.cueKey=x.cueKey;
       o.content=x.content?x.content.ref:null;o.ledSrc=x.ledSrc?x.ledSrc.ref:null;
       for(const state of [x.content,x.ledSrc])if(state){state.ref.crop=state.crop?{...state.crop}:undefined;state.ref.flipX=!!state.flipX;state.ref.flipY=!!state.flipY;state.ref.ver=++contentVer;state.ref.frameReady=true;}
       scene.add(o.mesh);
@@ -10532,23 +11117,25 @@ function restoreHistoryState(s){
     });
     restoreMeasurements(s.measurements);
     selected=s.selected?.sys?s.selected:objects.includes(s.selected)?s.selected:null;
+    selectionSet=new Set((s.selection||[selected]).filter(o=>objects.includes(o)));refreshSelectionAppearance();renderLightingCues();
     updateStage();syncShadowBtn();renderViews();refreshTree();renderProps();updateLegend();
     reconcileMedia();
   }finally{historyApplying=false;}
   updateHistoryButtons();scheduleAutosave();
 }
-function undoScene(){flushHistory();if(historyIndex>0){historyIndex--;restoreHistoryState(historyEntries[historyIndex]);}}
-function redoScene(){flushHistory();if(historyIndex<historyEntries.length-1){historyIndex++;restoreHistoryState(historyEntries[historyIndex]);}}
+function undoScene(){settleLightingCue(true);flushHistory();if(historyIndex>0){historyIndex--;restoreHistoryState(historyEntries[historyIndex]);}}
+function redoScene(){settleLightingCue(true);flushHistory();if(historyIndex<historyEntries.length-1){historyIndex++;restoreHistoryState(historyEntries[historyIndex]);}}
 function applySceneData(raw){
   const data=normalizeSceneData(raw); // Validate the complete file before any scene mutation.
   cancelModelImport();
   cancelPlacementPick();
   cancelAllPendingBridge();
-  flushHistory();
-  const old={objects,stage:{...stage},views,targetLux:shared.uTargetLux.value,selected,seq,measurements:snapshotMeasurements()};
+  settleLightingCue(true);flushHistory();
+  const old={objects,stage:{...stage},views,targetLux:shared.uTargetLux.value,selected,seq,selection:[...selectionSet],groups:sceneGroups,lightingCues:cloneLightingCues(),measurements:snapshotMeasurements()};
   historyApplying=true;objects=[];
   try{
     Object.assign(stage,data.stage);views=data.views;shared.uTargetLux.value=data.targetLux;
+    sceneGroups=data.groups;lightingCues=cloneLightingCues(data.lightingCues);selectionSet.clear();selected=null;
     data.objects.forEach(so=>{
       let o;
       if(so.type==='proj')o=addProjector(PROJ_LIB.find(l=>l.name===so.params.model)||PROJ_LIB[PROJ_LIB.length-1]);
@@ -10556,7 +11143,7 @@ function applySceneData(raw){
       else if(so.type==='light')o=addStageLight(so.params.fixture);
       else o=addLED({name:so.name,pitch:so.params.pitch,nits:so.params.nits,w:so.params.w,h:so.params.h});
       if(!o)throw new Error('오브젝트를 만들지 못했어요.');
-      o.params={...so.params};o.name=so.name;o.visible=so.visible;o.mesh.visible=so.visible;
+      o.params={...so.params};o.name=so.name;o.visible=so.visible;o.mesh.visible=so.visible;o.locked=so.locked;o.groupId=so.groupId;o.cueKey=so.cueKey;
       if(o.type==='proj'){o.color=so.color;o.frust.material.color.setHex(so.color);sync(o);}
       else if(o.type==='light')sync(o);else if(o.type==='led')rebuildLED(o);else rebuild(o);
     });
@@ -10564,16 +11151,17 @@ function applySceneData(raw){
     updateStage();syncShadowBtn();renderViews();select(null);updateLegend();
   }catch(err){
     objects.forEach(releaseSceneObject);objects=old.objects;Object.assign(stage,old.stage);views=old.views;
-    shared.uTargetLux.value=old.targetLux;seq=old.seq;selected=old.selected;
+    shared.uTargetLux.value=old.targetLux;seq=old.seq;selected=old.selected;selectionSet=new Set(old.selection);sceneGroups=old.groups;lightingCues=old.lightingCues;
     restoreMeasurements(old.measurements);
     updateStage();syncShadowBtn();renderViews();refreshTree();renderProps();updateLegend();
     throw err;
   }finally{historyApplying=false;}
   old.objects.forEach(o=>{retainedObjects.add(o);scene.remove(o.mesh);});
-  commitHistory();reconcileMedia();scheduleAutosave();
+  renderLightingCues();commitHistory();reconcileMedia();scheduleAutosave();
   showSpecMigration(data.migrationNotes,raw);
 }
 function autosaveNow(){
+  if(isLightingCueRunning())return;
   if(!autosaveReady || historyApplying) return;
   clearTimeout(autosaveTimer);autosaveTimer=null;
   try{
@@ -10586,6 +11174,7 @@ function autosaveNow(){
   }
 }
 function scheduleAutosave(){
+  if(isLightingCueRunning())return;
   if(!autosaveReady || historyApplying) return;
   setSaveStatus('pending');clearTimeout(autosaveTimer);autosaveTimer=setTimeout(autosaveNow,1200);
 }
@@ -10596,16 +11185,17 @@ function initializeState(){
   historyReady=true;commitHistory();
   const undo=document.getElementById('btnUndo'),redo=document.getElementById('btnRedo');
   if(undo)undo.onclick=undoScene;if(redo)redo.onclick=redoScene;
-  document.addEventListener('pointerdown',e=>{if(e.target.matches('input[type="range"]')){flushHistory();historyPointer=true;}},true);
+  document.addEventListener('pointerdown',e=>{if(e.target.closest('#right'))settleLightingCue(true,false);if(e.target.matches('input[type="range"]')){flushHistory();historyPointer=true;}},true);
   const finishPointer=()=>{if(historyPointer){historyPointer=false;queueMicrotask(()=>{commitHistory();scheduleAutosave();});}};
   window.addEventListener('pointerup',finishPointer,true);window.addEventListener('pointercancel',finishPointer,true);
-  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel,.projector-placement'))return;scheduleHistory();scheduleAutosave();});
-  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel,.projector-placement'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
-  document.addEventListener('focusout',e=>{if(e.target.closest('.surface-color-panel,.projector-placement'))return;queueMicrotask(commitHistory);});
+  document.addEventListener('input',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel,.projector-placement,.lighting-cue-panel'))return;scheduleHistory();scheduleAutosave();});
+  document.addEventListener('change',e=>{if(e.target.closest('#libItems,#rulerPanel,.bridge-input,.surface-color-panel,.projector-placement,.lighting-cue-panel'))return;queueMicrotask(()=>{commitHistory();scheduleAutosave();});});
+  document.addEventListener('focusout',e=>{if(e.target.closest('.surface-color-panel,.projector-placement,.lighting-cue-panel'))return;queueMicrotask(commitHistory);});
   document.addEventListener('click',e=>{
-    if(e.target.closest('#btnUndo,#btnRedo,#btnSave,#mJson,#btnLoad,#fileIn,#mPng,#mTop,#mClose,#btnPublish,#viewModes,#btnMeasure,#btnBlend'))return;
+    if(e.target.closest('#btnUndo,#btnRedo,#btnSave,#mJson,#btnLoad,#fileIn,#mPng,#mTop,#mClose,#btnPublish,#viewModes,#btnMeasure,#btnBlend,.lighting-cue-panel,#btnLightingCues'))return;
     queueMicrotask(commitHistory);
   });
+  document.addEventListener('input',e=>{if(e.target.closest('#right'))settleLightingCue(true,false);},true);
   window.addEventListener('keydown',e=>{
     if(!(e.ctrlKey||e.metaKey) || e.altKey || e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
     const key=e.key.toLowerCase();if(key==='z'){e.preventDefault();e.shiftKey?redoScene():undoScene();}
@@ -10624,7 +11214,7 @@ function initializeState(){
   const fresh=document.createElement('button');fresh.className='tbtn';fresh.textContent='새로 시작';
   fresh.onclick=()=>{resolveRestorePrompt();autosaveNow();};bn.append(label,resume,fresh);vpEl.appendChild(bn);
 }
-document.getElementById('btnSave').onclick=()=>{flushHistory();download('projector_simulator_scene.json',serialize(),'application/json');toast('장면 JSON을 내보냈어요. 이미지·영상 파일은 별도로 보관해 주세요.');};
+document.getElementById('btnSave').onclick=()=>{settleLightingCue(true);flushHistory();download('projector_simulator_scene.json',serialize(),'application/json');toast('장면 JSON을 내보냈어요. 이미지·영상 파일은 별도로 보관해 주세요.');};
 document.getElementById('btnLoad').onclick=()=>document.getElementById('fileIn').click();
 document.getElementById('fileIn').onchange=e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
@@ -10634,8 +11224,8 @@ document.getElementById('fileIn').onchange=e=>{
     catch(err){toast('불러오기 실패: '+err.message+' 현재 작업은 유지돼요.');}};rd.readAsText(f);
 };
 setInterval(autosaveNow,30000);
-window.addEventListener('beforeunload',autosaveNow);
-window.addEventListener('pagehide',autosaveNow);
+window.addEventListener('beforeunload',()=>{settleLightingCue(true,false);autosaveNow();});
+window.addEventListener('pagehide',()=>{settleLightingCue(true,false);autosaveNow();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)autosaveNow();});
 
 /* ---------- 탑뷰 리그 도면 (PNG) ---------- */
@@ -10819,7 +11409,7 @@ document.getElementById('btnPublish').onclick = ()=>{
 };
 document.getElementById('mClose').onclick = ()=>document.getElementById('modal').style.display='none';
 document.getElementById('mTop').onclick = exportTopView;
-document.getElementById('mJson').onclick = ()=>download('projector_simulator_scene.json', serialize(), 'application/json');
+document.getElementById('mJson').onclick = ()=>{settleLightingCue(true);download('projector_simulator_scene.json',serialize(),'application/json');};
 
 /* ---------- HUD ---------- */
 const hud = document.getElementById('hud');
@@ -10833,6 +11423,7 @@ function updateHUD(){
   if(selected && selected.type==='led') updateLEDReadout(selected);
   updateProjectorReadout();
   updateStageLightReadout();
+  updateQualityReadout();
 }
 
 /* ---------- 접근성 · 내보내기 ---------- */
@@ -10841,10 +11432,13 @@ function layoutViewportTools(){
   if(bar) camViewsEl.style.top=(bar.offsetTop+bar.offsetHeight+10)+'px';
   const ruler=document.getElementById('rulerPanel');
   if(ruler){const top=camViewsEl.offsetTop+camViewsEl.offsetHeight+10;ruler.style.top=top+'px';ruler.style.maxHeight=Math.max(72,vpEl.clientHeight-top-16)+'px';}
+  const cues=document.getElementById('lightingCuePanel');
+  if(cues){const top=camViewsEl.offsetTop+camViewsEl.offsetHeight+10;cues.style.top=top+'px';cues.style.maxHeight=Math.max(72,vpEl.clientHeight-top-16)+'px';}
 }
 if(typeof ResizeObserver!=='undefined') new ResizeObserver(layoutViewportTools).observe(vpEl);
 window.addEventListener('resize',layoutViewportTools);
-document.getElementById('btnHelp').onclick=()=>toast('드래그: 회전 · 우클릭 / Shift+드래그: 이동 · 휠 / 두 손가락: 확대 · 오브젝트 선택 후 축으로 배치 · ⌘/Ctrl Z: 실행 취소',7000);
+document.getElementById('btnQuality').onclick=()=>{select(null);openPropsIfMobile();const panel=document.getElementById('renderQualityPanel');if(panel){const group=panel.closest('details');if(group)group.open=true;panel.scrollIntoView({block:'nearest'});}};
+document.getElementById('btnHelp').onclick=()=>toast('체크박스 / Ctrl·Cmd+클릭: 다중 선택 · 드래그: 회전 · 우클릭 / Shift+드래그: 이동 · 휠 / 두 손가락: 확대 · 오브젝트 선택 후 축으로 배치 · ⌘/Ctrl Z: 실행 취소',7000);
 document.getElementById('mReport').onclick=()=>download('projector_simulator_report.txt',document.getElementById('report').textContent,'text/plain;charset=utf-8');
 const exportModal=document.getElementById('modal');
 exportModal.addEventListener('click',e=>{if(e.target===exportModal)closeExport();});
@@ -10884,8 +11478,10 @@ function updateLEDVideos(){
     }
   });
 }
-function loop(){
+function loop(now=performance.now()){
   requestAnimationFrame(loop);
+  if(!shouldRenderQualityFrame(now))return;
+  stepLightingCue(now);
   stepCamAnim();
   pushUniforms();
   updateLEDVideos();
@@ -10894,6 +11490,7 @@ function loop(){
   updateMeasureLabel();updatePlacementMarker();
   if(frame++ % 12 === 0) updateHUD();
   renderer.render(scene, camera);
+  countQualityRender(now);
 }
 
 /* ---------- 시작 씬 ---------- */
@@ -10901,6 +11498,7 @@ updateStage();
 const p1 = addProjector(PROJ_LIB[0]); p1.params.z = 12; p1.params.y = 1.8;
 select(null);
 initializeState();
+initializeLightingCueUI();
 loop();
 } catch(error) {
   console.error(error);
