@@ -6563,7 +6563,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-31.4';
+const SPEC_REVISION = '2026-10-31.5';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6733,7 +6733,8 @@ const SURF_LIB = [
   {name:'커브드 월', kind:'curve', sub:'반지름·각도 조절'},
   {name:'실린더', kind:'cyl',    sub:'원기둥 (막힌 기둥)'},
   {name:'박스 / 건물', kind:'box', sub:'W×H×D'},
-  {name:'성당 파사드', kind:'facade', sub:'아치 프리셋'},
+  {name:'앉는 사각 큐브', kind:'seat_cube', sub:'400×400×400 mm · 크기·색상 조절'},
+  {name:'성당 파사드', kind:'facade', sub:'아치 프리셋', hidden:true}, // Legacy saved scenes only.
   {name:'남성 · 서 있는 자세', kind:'man', sub:'목각인형 · 기본 신장 175cm'},
   {name:'여성 · 서 있는 자세', kind:'woman', sub:'목각인형 · 기본 신장 160cm'},
   {name:'남성 · 앉은 자세', kind:'man_seated', sub:'목각인형 · 의자 없음 · 서 있을 때 175cm'},
@@ -8818,10 +8819,11 @@ function addSurface(kind, name, heightMeters){
   const p = {kind, w:10, h:6, d:4, radius:6, angle:120, x:0, y:0, z:0, ry:0,
              gain:1.0, pmode: screenLike ? 'rear' : 'front', surfaceColor:isPerson?DEFAULT_HUMAN_COLOR:DEFAULT_SURFACE_COLOR};
   if(isPerson)p.humanHeight=heightMeters??(['woman','woman_seated'].includes(kind)?1.6:1.75);
+  if(kind==='seat_cube')Object.assign(p,{w:.4,h:.4,d:.4});
   const glossU = {value:0}, rearU = {value: p.pmode==='rear'?1:0};
   const mat = makeSurfMat(0xB9C2D0, glossU, rearU);
   const mesh = new THREE.Mesh(surfGeo(p), mat);
-  mesh.position.set(0, isPerson ? 0 : p.h/2, -6);
+  mesh.position.set(0, isPerson||kind==='seat_cube' ? 0 : p.h/2, -6);
   p.y = mesh.position.y; p.z = -6;
   const o = {id:seq++, type:'surf', name:name||kind, mesh, params:p, visible:true, glossU, rearU};
   mesh.userData.oid = o.id;
@@ -8980,6 +8982,7 @@ function surfGeo(p){
     case 'man_seated': return humanGeo(personHeight(p), 1.0, 1.0, true);
     case 'woman_seated': return humanGeo(personHeight(p), 0.9, 1.08, true);
     case 'box':    return new THREE.BoxGeometry(p.w,p.h,p.d);
+    case 'seat_cube': return new THREE.BoxGeometry(p.w,p.h,p.d).translate(0,p.h/2,0);
     case 'facade': {
       const w=p.w, h=p.h, s=new THREE.Shape();
       s.moveTo(-w/2,0); s.lineTo(-w/2,h*0.7); s.lineTo(-w*0.18,h*0.7);
@@ -10066,7 +10069,7 @@ function renderLib(){
   }else{
     projectorSearchComposing=false;libItems.replaceChildren();
   }
-  let list=libTab==='proj'?PROJ_LIB:libTab==='human'?HUMAN_LIB:libTab==='surf'?SURF_LIB.filter(item=>!HUMAN_KINDS.includes(item.kind)):LED_LIB;
+  let list=libTab==='proj'?PROJ_LIB:libTab==='human'?HUMAN_LIB:libTab==='surf'?SURF_LIB.filter(item=>!item.hidden&&!HUMAN_KINDS.includes(item.kind)):LED_LIB;
   const searching=libTab==='proj'&&!!projFilter.trim();
   if(searching)list=PROJ_LIB.filter(item=>matchesProjectorQuery(item,projFilter));
   if(libTab==='proj'){
@@ -11069,6 +11072,12 @@ function renderProps(){
       info.style.cssText='font-size:10.5px;color:var(--txt2);margin-top:6px;font-family:var(--mono)';
       info.textContent = `삼각형 ${ (o.mesh.geometry.attributes.position.count/3).toLocaleString() }개`;
       s.appendChild(info);
+    } else if(p.kind==='seat_cube'){
+      s.appendChild(numRow('폭 W', p.w, 0.01, v=>{p.w=v; rebuild(o);}, 0.1, 10, ...MM));
+      s.appendChild(numRow('높이 H', p.h, 0.01, v=>{p.h=v; rebuild(o);}, 0.1, 10, ...MM));
+      s.appendChild(numRow('깊이 D', p.d, 0.01, v=>{p.d=v; rebuild(o);}, 0.1, 10, ...MM));
+      const info=document.createElement('div');info.className='surface-color-note';
+      info.textContent='위치 Y는 큐브 바닥 높이입니다. 앉은 사람은 별도로 배치하고, 신장에 맞춰 높이를 조절하세요.';s.appendChild(info);
     } else if(p.kind==='wall'||p.kind==='box'||p.kind==='facade'){
       s.appendChild(numRow('폭 W', p.w, 0.5, v=>{p.w=v; rebuild(o);}, 0.5, 30, ...MM));
       s.appendChild(numRow('높이 H', p.h, 0.5, v=>{p.h=v; rebuild(o);}, 0.5, 30, ...MM));
@@ -12226,8 +12235,10 @@ function normalizeSceneData(data){
           q.materialMode=sceneEnum(p.materialMode,q.modelAssets?.materials.length?'original':'solid',['original','solid'],'모델 재질 표시');
           q.objText=p.objText; q.unit=sceneEnum(p.unit,'m',['m','cm','mm'],'모델 단위'); q.scale=sceneNumber(p.scale,1,0.05,10,'모델 스케일');
         }else{
-          for(const [key,def,min,max] of [['w',10,0.1,60],['h',6,0.1,40],['d',4,0.1,60],['radius',6,0.1,30],['angle',120,10,360]])
-            q[key]=sceneNumber(p[key],def,min,max,'표면 '+key);
+          for(const [key,def,min,max] of [['w',10,0.1,60],['h',6,0.1,40],['d',4,0.1,60],['radius',6,0.1,30],['angle',120,10,360]]){
+            const cubeDimension=q.kind==='seat_cube'&&['w','h','d'].includes(key);
+            q[key]=sceneNumber(p[key],cubeDimension?.4:def,min,cubeDimension?10:max,'표면 '+key);
+          }
         }
       }else{
         q.name=sceneText(p.name,'LED',120,'LED 이름');
