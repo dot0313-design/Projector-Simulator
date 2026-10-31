@@ -6563,7 +6563,7 @@ const PROJ_LIB = [
   }
 ];
 // All shift values use the FULL optical image width/height, relative to lens center.
-const SPEC_REVISION = '2026-10-31.3';
+const SPEC_REVISION = '2026-10-31.4';
 function normalizedProjectorText(value){return String(value).normalize('NFKC').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');}
 function projectorSearchTerms(query){
   const brands=[['panasonic','파나소닉'],['sony','소니'],['epson','엡손','앱손'],['benq','벤큐'],['barco','바코'],['christie','크리스티'],['evision','이비전','이비젼'],['custom','커스텀']];
@@ -6995,7 +6995,7 @@ function renderShadows(act){
   scene.background = prevBg;
 }
 /* ---------- 무대 조명: 범용 퍼넬 / ERS / LED PAR / PAR64 (배치·분위기용 근사) ---------- */
-const MAX_STAGE_LIGHTS = 8;
+const MAX_STAGE_LIGHTS = 32;
 const STAGE_LIGHT_LIB = [
   {kind:'fresnel', name:'퍼넬 · Fresnel', sub:'부드러운 원형 빛 · 조사각 조절', beamAngle:45, edge:65, color:'#FFE1B3', referenceFlux:8000},
   {kind:'ers', name:'ERS · 프로파일', sub:'선명한 원형 빛 · 4방향 셔터', beamAngle:26, edge:8, color:'#FFE1B3', referenceFlux:6000},
@@ -7376,9 +7376,11 @@ function updateStageLight(o){
   o.mesh.visible=o.visible;
 }
 
-// Packed vec4 arrays keep the additional fragment uniform budget to 80 vec4 slots.
+// CPU staging arrays retain the existing lighting math; the shader reads a small data texture.
 const stageLightUniforms={
   uStageLightCount:{value:0},
+  uStageLightData:{value:null},uStageLightDataSize:{value:new THREE.Vector2(16,MAX_STAGE_LIGHTS)},
+  uStageLightDataByteEncoded:{value:0},uStageLightGrid:{value:new THREE.Vector2(4,2)},
   uStageLightVP:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Matrix4())},
   uStageLightPosPower:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Vector4())},
   uStageLightDirEdge:{value:Array.from({length:MAX_STAGE_LIGHTS},()=>new THREE.Vector4())},
@@ -7389,7 +7391,59 @@ const stageLightUniforms={
   uStageLightShadow:{value:null},uStageLightTexel:{value:new THREE.Vector2(1/2048,1/1024)},
 };
 Object.assign(shared,stageLightUniforms);
-let stageLightShadowRT=null,stageLightShadowTile=0,stageLightShadowSignature='',stageLightOccluders='';
+let stageLightShadowRT=null,stageLightShadowTile=0,stageLightShadowColumns=0,stageLightShadowRows=0,stageLightShadowSignature='',stageLightOccluders='';
+/* One small data texture avoids a per-light fragment-uniform allocation.
+ * Float sampling needs no renderable-float extension or linear-float filtering.
+ * WebGL1 without float textures uses exact little-endian Float32 bytes in RGBA8.
+ */
+let stageLightDataTexture=null,stageLightDataValues=null,stageLightDataBytes=null,stageLightDataView=null;
+function ensureStageLightDataTexture(){
+  if(stageLightDataTexture)return;
+  const floating=!!(renderer.capabilities.isWebGL2||renderer.extensions?.has?.('OES_texture_float'));
+  stageLightDataValues=new Float32Array(MAX_STAGE_LIGHTS*64);
+  if(!floating){stageLightDataBytes=new Uint8Array(stageLightDataValues.byteLength);stageLightDataView=new DataView(stageLightDataBytes.buffer);}
+  const width=floating?16:64;
+  stageLightDataTexture=new THREE.DataTexture(floating?stageLightDataValues:stageLightDataBytes,width,MAX_STAGE_LIGHTS,THREE.RGBAFormat,floating?THREE.FloatType:THREE.UnsignedByteType);
+  stageLightDataTexture.minFilter=stageLightDataTexture.magFilter=THREE.NearestFilter;
+  stageLightDataTexture.generateMipmaps=false;stageLightDataTexture.flipY=false;stageLightDataTexture.unpackAlignment=1;
+  stageLightDataTexture.needsUpdate=true;
+  stageLightUniforms.uStageLightData.value=stageLightDataTexture;
+  stageLightUniforms.uStageLightDataSize.value.set(width,MAX_STAGE_LIGHTS);
+  stageLightUniforms.uStageLightDataByteEncoded.value=floating?0:1;
+}
+function uploadStageLightData(count){
+  ensureStageLightDataTexture();
+  let changed=false;
+  const write=(index,value)=>{
+    const rounded=Math.fround(value);
+    if(Object.is(stageLightDataValues[index],rounded))return;
+    stageLightDataValues[index]=rounded;
+    if(stageLightDataView)stageLightDataView.setFloat32(index*4,rounded,true);
+    changed=true;
+  };
+  const vectors=[stageLightUniforms.uStageLightPosPower,stageLightUniforms.uStageLightDirEdge,
+    stageLightUniforms.uStageLightRightTan,stageLightUniforms.uStageLightUpType,
+    stageLightUniforms.uStageLightColorShadow,stageLightUniforms.uStageLightCuts];
+  for(let i=0;i<count;i++){
+    const base=i*64,matrix=stageLightUniforms.uStageLightVP.value[i].elements;
+    for(let j=0;j<16;j++)write(base+j,matrix[j]);
+    for(let j=0;j<vectors.length;j++){
+      const vector=vectors[j].value[i],offset=base+16+j*4;
+      write(offset,vector.x);write(offset+1,vector.y);write(offset+2,vector.z);write(offset+3,vector.w);
+    }
+  }
+  // Count changes use their own uniform; unused rows cannot contribute light.
+  if(changed)stageLightDataTexture.needsUpdate=true;
+}
+function stageLightShadowPlan(quality,count=8){
+  const columns=count>16?8:4,rows=count>8?4:2;
+  const requested=quality==='high'?1024:512;
+  const maxSize=Math.max(1,Math.floor(Number(renderer.capabilities.maxTextureSize)||2048));
+  // Preserve the previous eight-light pixel budget when adding more fixtures.
+  const limit=Math.min(requested,Math.sqrt(requested*requested*8/(columns*rows)),Math.floor(maxSize/columns),Math.floor(maxSize/rows));
+  const tile=Math.max(1,Math.pow(2,Math.floor(Math.log2(Math.max(1,limit)))));
+  return {columns,rows,tile,width:columns*tile,height:rows*tile};
+}
 function stageLightOccluderSignature(){
   const parts=[];
   const roots=[sysWall,sysFloor,...objects.filter(o=>o.type==='surf'||o.type==='led').map(o=>o.mesh)];
@@ -7403,16 +7457,17 @@ function stageLightOccluderSignature(){
   }
   return parts.join(';');
 }
-function ensureStageLightShadowTarget(quality){
-  const desired=Math.min(quality==='high'?1024:512,Math.floor(renderer.capabilities.maxTextureSize/4));
-  if(stageLightShadowRT&&desired===stageLightShadowTile)return;
+function ensureStageLightShadowTarget(quality,count=8){
+  const plan=stageLightShadowPlan(quality,count);
+  if(stageLightShadowRT&&plan.tile===stageLightShadowTile&&plan.columns===stageLightShadowColumns&&plan.rows===stageLightShadowRows)return;
   if(stageLightShadowRT)stageLightShadowRT.dispose();
-  stageLightShadowTile=desired;
-  stageLightShadowRT=new THREE.WebGLRenderTarget(desired*4,desired*2,{
+  stageLightShadowTile=plan.tile;stageLightShadowColumns=plan.columns;stageLightShadowRows=plan.rows;
+  stageLightShadowRT=new THREE.WebGLRenderTarget(plan.width,plan.height,{
     minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,format:THREE.RGBAFormat,depthBuffer:true,stencilBuffer:false});
   stageLightShadowRT.texture.generateMipmaps=false;
   stageLightUniforms.uStageLightShadow.value=stageLightShadowRT.texture;
-  stageLightUniforms.uStageLightTexel.value.set(1/(desired*4),1/(desired*2));
+  stageLightUniforms.uStageLightTexel.value.set(1/plan.width,1/plan.height);
+  stageLightUniforms.uStageLightGrid.value.set(plan.columns,plan.rows);
   stageLightShadowSignature='';
 }
 function renderStageLightShadows(act){
@@ -7425,7 +7480,7 @@ function renderStageLightShadows(act){
     rt.scissorTest=true;
     for(let i=0;i<act.length;i++){
       if(!act[i].params.castShadow)continue;
-      const col=i%4,row=Math.floor(i/4),tile=stageLightShadowTile;
+      const col=i%stageLightShadowColumns,row=Math.floor(i/stageLightShadowColumns),tile=stageLightShadowTile;
       rt.viewport.set(col*tile,row*tile,tile,tile);rt.scissor.set(col*tile,row*tile,tile,tile);
       renderer.setRenderTarget(rt);renderer.clear(true,true,false);renderer.render(scene,act[i].cam);
     }
@@ -7441,7 +7496,7 @@ function pushStageLightUniforms(forceDirty=false){
   const shadows=stage.shadows!==false&&quality!=='off'&&act.some(o=>o.params.castShadow);
   stageLightUniforms.uStageLightCount.value=act.length;
   if(shadows){
-    ensureStageLightShadowTarget(quality);
+    ensureStageLightShadowTarget(quality,act.length);
     if(forceDirty||!stageLightOccluders)stageLightOccluders=stageLightOccluderSignature();
     const sig=quality+'|'+stageLightOccluders+'|'+act.map(o=>o.id+':'+o._lightProjectionSig+':'+!!o.params.castShadow).join(';');
     if(sig!==stageLightShadowSignature){renderStageLightShadows(act);stageLightShadowSignature=sig;}
@@ -7449,7 +7504,7 @@ function pushStageLightUniforms(forceDirty=false){
     // Make any re-enabled shadow rebuild even after edits while the shadows were off.
     stageLightOccluders='';stageLightShadowSignature='';
     if(stageLightShadowRT&&quality==='off'){
-      stageLightShadowRT.dispose();stageLightShadowRT=null;stageLightShadowTile=0;stageLightUniforms.uStageLightShadow.value=null;
+      stageLightShadowRT.dispose();stageLightShadowRT=null;stageLightShadowTile=0;stageLightShadowColumns=0;stageLightShadowRows=0;stageLightUniforms.uStageLightShadow.value=null;
     }
   }
   act.forEach((o,i)=>{
@@ -7462,18 +7517,38 @@ function pushStageLightUniforms(forceDirty=false){
     stageLightUniforms.uStageLightColorShadow.value[i].set(col.r,col.g,col.b,shadows&&p.castShadow?1:0);
     stageLightUniforms.uStageLightCuts.value[i].set(...optic.cuts);
   });
+  uploadStageLightData(act.length);
 }
 const STAGE_LIGHT_FRAG_DECL=`
 uniform int uStageLightCount;
-uniform mat4 uStageLightVP[${MAX_STAGE_LIGHTS}];
-uniform vec4 uStageLightPosPower[${MAX_STAGE_LIGHTS}];
-uniform vec4 uStageLightDirEdge[${MAX_STAGE_LIGHTS}];
-uniform vec4 uStageLightRightTan[${MAX_STAGE_LIGHTS}];
-uniform vec4 uStageLightUpType[${MAX_STAGE_LIGHTS}];
-uniform vec4 uStageLightColorShadow[${MAX_STAGE_LIGHTS}];
-uniform vec4 uStageLightCuts[${MAX_STAGE_LIGHTS}];
+uniform sampler2D uStageLightData;
+uniform vec2 uStageLightDataSize;
+uniform float uStageLightDataByteEncoded;
+// Components are sampled at texel centres with NEAREST filtering.
+float stageLightDecodeFloat(vec4 sampleValue){
+  vec4 bytes=floor(sampleValue*255.0+.5);
+  float signValue=1.0-2.0*step(128.0,bytes.w);
+  float exponent=mod(bytes.w,128.0)*2.0+floor(bytes.z/128.0);
+  float mantissa=mod(bytes.z,128.0)*65536.0+bytes.y*256.0+bytes.x;
+  if(exponent<.5){
+    if(mantissa<.5)return signValue*0.0;
+    return signValue*(mantissa/8388608.0)*exp2(-126.0);
+  }
+  return signValue*(1.0+mantissa/8388608.0)*exp2(exponent-127.0);
+}
+vec4 stageLightVector(float field,int lightIndex){
+  float row=float(lightIndex)+.5;
+  if(uStageLightDataByteEncoded<.5)return texture2D(uStageLightData,vec2(field+.5,row)/uStageLightDataSize);
+  float col=field*4.0+.5;
+  return vec4(
+    stageLightDecodeFloat(texture2D(uStageLightData,vec2(col,row)/uStageLightDataSize)),
+    stageLightDecodeFloat(texture2D(uStageLightData,vec2(col+1.0,row)/uStageLightDataSize)),
+    stageLightDecodeFloat(texture2D(uStageLightData,vec2(col+2.0,row)/uStageLightDataSize)),
+    stageLightDecodeFloat(texture2D(uStageLightData,vec2(col+3.0,row)/uStageLightDataSize)));
+}
 uniform sampler2D uStageLightShadow;
 uniform vec2 uStageLightTexel;
+uniform vec2 uStageLightGrid;
 float stageLightStoredDistance(vec2 uv){
   vec4 packedDepth=texture2D(uStageLightShadow,uv);
   float depth=dot(packedDepth,(255.0/256.0)/vec4(16777216.0,65536.0,256.0,1.0));
@@ -7487,13 +7562,14 @@ const STAGE_LIGHT_FRAG_EVAL=`
     vec3 stageN=gl_FrontFacing?N:-N;
     for(int lightIndex=0;lightIndex<${MAX_STAGE_LIGHTS};lightIndex++){
       if(lightIndex>=uStageLightCount)break;
-      vec4 lp=uStageLightPosPower[lightIndex],ld=uStageLightDirEdge[lightIndex];
-      vec4 lr=uStageLightRightTan[lightIndex],lu=uStageLightUpType[lightIndex];
-      vec4 lc=uStageLightColorShadow[lightIndex],cuts=uStageLightCuts[lightIndex];
-      vec4 lightClip=uStageLightVP[lightIndex]*vec4(vW,1.0);
+      mat4 lightVP=mat4(stageLightVector(0.0,lightIndex),stageLightVector(1.0,lightIndex),stageLightVector(2.0,lightIndex),stageLightVector(3.0,lightIndex));
+      vec4 lightClip=lightVP*vec4(vW,1.0);
       if(lightClip.w<=0.0)continue;
       vec3 lightNDC=lightClip.xyz/lightClip.w;
       if(abs(lightNDC.x)>1.0||abs(lightNDC.y)>1.0||lightNDC.z>1.0||lightNDC.z< -1.0)continue;
+      vec4 lp=stageLightVector(4.0,lightIndex),ld=stageLightVector(5.0,lightIndex);
+      vec4 lr=stageLightVector(6.0,lightIndex),lu=stageLightVector(7.0,lightIndex);
+      vec4 lc=stageLightVector(8.0,lightIndex),cuts=stageLightVector(9.0,lightIndex);
       vec3 toLight=lp.xyz-vW;
       float dist=length(toLight),cosine=max(dot(stageN,toLight/max(dist,.0001)),0.0);
       if(cosine<=.001)continue;
@@ -7513,7 +7589,7 @@ const STAGE_LIGHT_FRAG_EVAL=`
       float visibility=1.0,axialD=dot(vW-lp.xyz,ld.xyz);
       if(lc.w>.5){
         float fi=float(lightIndex);
-        vec2 tile=vec2(.25,.5),offset=vec2(mod(fi,4.0)*.25,floor(fi/4.0)*.5);
+        vec2 tile=1.0/uStageLightGrid,offset=vec2(mod(fi,uStageLightGrid.x),floor(fi/uStageLightGrid.x))*tile;
         vec2 lo=offset+uStageLightTexel*.5,hi=offset+tile-uStageLightTexel*.5;
         vec2 suv=offset+(lightNDC.xy*.5+.5)*tile;
         vec2 center=clamp((floor(suv/uStageLightTexel)+.5)*uStageLightTexel,lo,hi);
@@ -10597,7 +10673,7 @@ function appendStageLightProperties(o){
     if(!current())return;flushHistory();stage.lightShadowQuality=qualities[index];change();commitHistory();scheduleAutosave();
   }));
   const shadowStatus=document.createElement('p');shadowStatus.dataset.lightShadowStatus='';shadowStatus.className='surface-color-note';shadowStatus.setAttribute('role','status');shadows.appendChild(shadowStatus);
-  shadows.appendChild(stageLightNote('품질 설정은 모든 무대 조명에 적용됩니다. 장면이 느려지면 표준 또는 끄기를 선택하세요. 조명 기구 자체는 그림자를 만들지 않습니다.'));
+  shadows.appendChild(stageLightNote('품질 설정은 모든 무대 조명에 적용됩니다. 켜진 조명이 많아지면 그림자 해상도를 자동 조절합니다. 장면이 느려지면 표준 또는 끄기를 선택하세요. 조명 기구 자체는 그림자를 만들지 않습니다.'));
   right.appendChild(shadows);
   const placement=createProjectorPlacementControls(o);
   const aim=document.createElement('button');aim.type='button';aim.className='tbtn';aim.textContent='현재 위치에서 기준점 바라보기';
@@ -12609,7 +12685,7 @@ document.getElementById('mJson').onclick = ()=>{settleLightingCue(true);download
 /* ---------- HUD ---------- */
 const hud = document.getElementById('hud');
 function updateHUD(){
-  let t = `오브젝트 ${objects.length} · 프로젝터 ${objects.filter(o=>o.type==='proj').length}/${MAXP} · 조명 ${objects.filter(o=>o.type==='light').length}/8 · made by Moon`;
+  let t = `오브젝트 ${objects.length} · 프로젝터 ${objects.filter(o=>o.type==='proj').length}/${MAXP} · 조명 ${objects.filter(o=>o.type==='light').length}/${MAX_STAGE_LIGHTS} · made by Moon`;
   if(selected && selected.type==='proj'){
     const hit = centerHit(selected);
     if(hit) t += `\n${selected.name} → ${hit.d.toFixed(1)}m · ${hit.w.toFixed(1)}×${hit.h.toFixed(1)}m · ${hit.lux.toFixed(0)} lux`;
